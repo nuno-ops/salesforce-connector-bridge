@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 export const SalesforceLogin = () => {
   const [credentials, setCredentials] = useState({
@@ -24,21 +25,38 @@ export const SalesforceLogin = () => {
     setIsLoading(true);
 
     try {
-      // Store credentials temporarily in localStorage
-      localStorage.setItem('sf_credentials', JSON.stringify(credentials));
+      // Salesforce login endpoint
+      const loginUrl = 'https://login.salesforce.com/services/oauth2/token';
       
-      // Simulate connection delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create the form data
+      const formData = new URLSearchParams();
+      formData.append('grant_type', 'password');
+      formData.append('client_id', import.meta.env.VITE_SALESFORCE_CLIENT_ID || '');
+      formData.append('client_secret', import.meta.env.VITE_SALESFORCE_CLIENT_SECRET || '');
+      formData.append('username', credentials.username);
+      // Append security token to password
+      formData.append('password', credentials.password + credentials.securityToken);
+
+      const response = await axios.post(loginUrl, formData.toString(), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+
+      // Store the access token and instance URL
+      localStorage.setItem('sf_access_token', response.data.access_token);
+      localStorage.setItem('sf_instance_url', response.data.instance_url);
       
       toast({
         title: "Successfully connected!",
-        description: "Your Salesforce credentials have been saved.",
+        description: "You are now connected to Salesforce.",
       });
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         variant: "destructive",
         title: "Connection failed",
-        description: "Please check your credentials and try again.",
+        description: "Invalid credentials or connection error. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -119,7 +137,7 @@ export const SalesforceLogin = () => {
         </form>
 
         <p className="text-xs text-center text-sf-gray">
-          Your credentials are stored temporarily and securely in your browser
+          Make sure you have created a Connected App in Salesforce and have the correct credentials
         </p>
       </div>
     </Card>
