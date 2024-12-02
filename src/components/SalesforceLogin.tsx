@@ -11,6 +11,8 @@ export const SalesforceLogin = () => {
     username: '',
     password: '',
     securityToken: '',
+    clientId: '',
+    clientSecret: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -31,11 +33,13 @@ export const SalesforceLogin = () => {
       // Create the form data
       const formData = new URLSearchParams();
       formData.append('grant_type', 'password');
-      formData.append('client_id', import.meta.env.VITE_SALESFORCE_CLIENT_ID || '');
-      formData.append('client_secret', import.meta.env.VITE_SALESFORCE_CLIENT_SECRET || '');
+      formData.append('client_id', credentials.clientId);
+      formData.append('client_secret', credentials.clientSecret);
       formData.append('username', credentials.username);
       // Append security token to password
       formData.append('password', credentials.password + credentials.securityToken);
+
+      console.log('Attempting login with form data:', formData.toString());
 
       const response = await axios.post(loginUrl, formData.toString(), {
         headers: {
@@ -74,6 +78,38 @@ export const SalesforceLogin = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="clientId" className="text-sm font-medium">
+              Client ID
+            </label>
+            <Input
+              id="clientId"
+              name="clientId"
+              type="text"
+              placeholder="Connected App Client ID"
+              required
+              value={credentials.clientId}
+              onChange={handleChange}
+              className="w-full"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="clientSecret" className="text-sm font-medium">
+              Client Secret
+            </label>
+            <Input
+              id="clientSecret"
+              name="clientSecret"
+              type="password"
+              placeholder="Connected App Client Secret"
+              required
+              value={credentials.clientSecret}
+              onChange={handleChange}
+              className="w-full"
+            />
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="username" className="text-sm font-medium">
               Username
