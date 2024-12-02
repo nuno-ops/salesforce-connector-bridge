@@ -27,25 +27,17 @@ export const SalesforceLogin = () => {
     setIsLoading(true);
 
     try {
-      // Salesforce login endpoint
-      const loginUrl = 'https://login.salesforce.com/services/oauth2/token';
-      
-      // Create the form data
-      const formData = new URLSearchParams();
-      formData.append('grant_type', 'password');
-      formData.append('client_id', credentials.clientId);
-      formData.append('client_secret', credentials.clientSecret);
-      formData.append('username', credentials.username);
-      // Append security token to password
-      formData.append('password', credentials.password + credentials.securityToken);
-
-      console.log('Attempting login with form data:', formData.toString());
-
-      const response = await axios.post(loginUrl, formData.toString(), {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+      const response = await axios.post(
+        'https://YOUR_PROJECT_REF.supabase.co/functions/v1/salesforce-auth',
+        credentials,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            // Add your Supabase anon key here if required
+            // 'apikey': 'your-anon-key'
+          }
         }
-      });
+      );
 
       // Store the access token and instance URL
       localStorage.setItem('sf_access_token', response.data.access_token);
