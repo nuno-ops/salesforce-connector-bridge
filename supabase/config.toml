@@ -1,1 +1,4 @@
 project_id = "pnzdzneuynkyzfjwheej"
+
+[functions.salesforce-auth]
+verify_jwt = false
