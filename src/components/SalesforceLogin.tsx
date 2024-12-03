@@ -28,13 +28,11 @@ export const SalesforceLogin = () => {
 
     try {
       const response = await axios.post(
-        'https://YOUR_PROJECT_REF.supabase.co/functions/v1/salesforce-auth',
+        'https://pnzdzneuynkyzfjwheej.supabase.co/functions/v1/salesforce-auth',
         credentials,
         {
           headers: {
             'Content-Type': 'application/json',
-            // Add your Supabase anon key here if required
-            // 'apikey': 'your-anon-key'
           }
         }
       );
