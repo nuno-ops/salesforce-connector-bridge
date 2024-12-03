@@ -6,7 +6,11 @@ import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import axios from 'axios';
 
-export const SalesforceLogin = () => {
+interface SalesforceLoginProps {
+  onSuccess?: () => void;
+}
+
+export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   const [credentials, setCredentials] = useState({
     username: '',
     password: '',
@@ -45,6 +49,8 @@ export const SalesforceLogin = () => {
         title: "Successfully connected!",
         description: "You are now connected to Salesforce.",
       });
+
+      onSuccess?.();
     } catch (error) {
       console.error('Login error:', error);
       toast({
