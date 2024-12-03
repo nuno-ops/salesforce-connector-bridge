@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SalesforceUser {
   Id: string;
@@ -39,20 +39,16 @@ export const SalesforceUsers = () => {
       }
 
       try {
-        const response = await axios.post(
-          'https://pnzdzneuynkyzfjwheej.supabase.co/functions/v1/salesforce-users',
-          { access_token, instance_url },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          }
-        );
+        const { data, error } = await supabase.functions.invoke('salesforce-users', {
+          body: { access_token, instance_url }
+        });
 
-        setUsers(response.data.records);
+        if (error) throw error;
+
+        setUsers(data.records);
         toast({
           title: "Users loaded",
-          description: `Successfully loaded ${response.data.records.length} users.`,
+          description: `Successfully loaded ${data.records.length} users.`,
         });
       } catch (error) {
         console.error('Error fetching users:', error);
