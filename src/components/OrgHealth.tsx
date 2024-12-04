@@ -28,13 +28,21 @@ interface OrgLimits {
   };
 }
 
+interface SandboxInfo {
+  Id: string;
+  SandboxName: string;
+  LicenseType: string;
+  Description: string;
+}
+
 export const OrgHealth = () => {
   const [limits, setLimits] = useState<OrgLimits | null>(null);
+  const [sandboxes, setSandboxes] = useState<SandboxInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchLimits = async () => {
+    const fetchData = async () => {
       const access_token = localStorage.getItem('sf_access_token');
       const instance_url = localStorage.getItem('sf_instance_url');
 
@@ -44,26 +52,34 @@ export const OrgHealth = () => {
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke('salesforce-limits', {
+        // Fetch limits
+        const limitsResponse = await supabase.functions.invoke('salesforce-limits', {
           body: { access_token, instance_url }
         });
 
-        if (error) throw error;
+        if (limitsResponse.error) throw limitsResponse.error;
+        setLimits(limitsResponse.data);
 
-        setLimits(data);
+        // Fetch sandboxes
+        const sandboxResponse = await supabase.functions.invoke('salesforce-sandboxes', {
+          body: { access_token, instance_url }
+        });
+
+        if (sandboxResponse.error) throw sandboxResponse.error;
+        setSandboxes(sandboxResponse.data.records || []);
       } catch (error) {
-        console.error('Error fetching limits:', error);
+        console.error('Error fetching data:', error);
         toast({
           variant: "destructive",
-          title: "Error loading org limits",
-          description: "Failed to load Salesforce organization limits.",
+          title: "Error loading organization data",
+          description: "Failed to load Salesforce organization data.",
         });
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchLimits();
+    fetchData();
   }, [toast]);
 
   if (isLoading) {
@@ -94,88 +110,115 @@ export const OrgHealth = () => {
   const workflowLimits = calculateUsage(limits.HourlyTimeBasedWorkflow.Max, limits.HourlyTimeBasedWorkflow.Remaining);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card>
-        <CardHeader>
-          <CardTitle>Data Storage</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Progress value={dataStorage.percentage} />
-            <div className="text-sm text-muted-foreground">
-              Used: {dataStorage.used} MB / {limits.DataStorageMB.Max} MB ({dataStorage.percentage}%)
+    <div className="space-y-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Storage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Progress value={dataStorage.percentage} />
+              <div className="text-sm text-muted-foreground">
+                Used: {dataStorage.used} MB / {limits.DataStorageMB.Max} MB ({dataStorage.percentage}%)
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Remaining: {limits.DataStorageMB.Remaining} MB
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              Remaining: {limits.DataStorageMB.Remaining} MB
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>File Storage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Progress value={fileStorage.percentage} />
+              <div className="text-sm text-muted-foreground">
+                Used: {fileStorage.used} MB / {limits.FileStorageMB.Max} MB ({fileStorage.percentage}%)
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Remaining: {limits.FileStorageMB.Remaining} MB
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily API Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Progress value={apiRequests.percentage} />
+              <div className="text-sm text-muted-foreground">
+                Used: {apiRequests.used} / {limits.DailyApiRequests.Max} ({apiRequests.percentage}%)
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Remaining: {limits.DailyApiRequests.Remaining}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Single Email Limits</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Progress value={emailLimits.percentage} />
+              <div className="text-sm text-muted-foreground">
+                Used: {emailLimits.used} / {limits.SingleEmail.Max} ({emailLimits.percentage}%)
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Remaining: {limits.SingleEmail.Remaining}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Hourly Time-Based Workflow</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Progress value={workflowLimits.percentage} />
+              <div className="text-sm text-muted-foreground">
+                Used: {workflowLimits.used} / {limits.HourlyTimeBasedWorkflow.Max} ({workflowLimits.percentage}%)
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Remaining: {limits.HourlyTimeBasedWorkflow.Remaining}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>File Storage</CardTitle>
+          <CardTitle>Active Sandboxes</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <Progress value={fileStorage.percentage} />
-            <div className="text-sm text-muted-foreground">
-              Used: {fileStorage.used} MB / {limits.FileStorageMB.Max} MB ({fileStorage.percentage}%)
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Remaining: {limits.FileStorageMB.Remaining} MB
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Daily API Requests</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Progress value={apiRequests.percentage} />
-            <div className="text-sm text-muted-foreground">
-              Used: {apiRequests.used} / {limits.DailyApiRequests.Max} ({apiRequests.percentage}%)
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Remaining: {limits.DailyApiRequests.Remaining}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Single Email Limits</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Progress value={emailLimits.percentage} />
-            <div className="text-sm text-muted-foreground">
-              Used: {emailLimits.used} / {limits.SingleEmail.Max} ({emailLimits.percentage}%)
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Remaining: {limits.SingleEmail.Remaining}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Hourly Time-Based Workflow</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Progress value={workflowLimits.percentage} />
-            <div className="text-sm text-muted-foreground">
-              Used: {workflowLimits.used} / {limits.HourlyTimeBasedWorkflow.Max} ({workflowLimits.percentage}%)
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Remaining: {limits.HourlyTimeBasedWorkflow.Remaining}
-            </div>
+            {sandboxes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No active sandboxes found.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {sandboxes.map((sandbox) => (
+                  <div key={sandbox.Id} className="p-4 border rounded-lg">
+                    <h3 className="font-medium">{sandbox.SandboxName}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{sandbox.LicenseType}</p>
+                    {sandbox.Description && (
+                      <p className="text-sm text-muted-foreground mt-2">{sandbox.Description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
