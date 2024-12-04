@@ -14,6 +14,18 @@ interface OrgLimits {
     Max: number;
     Remaining: number;
   };
+  DailyApiRequests: {
+    Max: number;
+    Remaining: number;
+  };
+  SingleEmail: {
+    Max: number;
+    Remaining: number;
+  };
+  HourlyTimeBasedWorkflow: {
+    Max: number;
+    Remaining: number;
+  };
 }
 
 export const OrgHealth = () => {
@@ -77,9 +89,12 @@ export const OrgHealth = () => {
 
   const dataStorage = calculateUsage(limits.DataStorageMB.Max, limits.DataStorageMB.Remaining);
   const fileStorage = calculateUsage(limits.FileStorageMB.Max, limits.FileStorageMB.Remaining);
+  const apiRequests = calculateUsage(limits.DailyApiRequests.Max, limits.DailyApiRequests.Remaining);
+  const emailLimits = calculateUsage(limits.SingleEmail.Max, limits.SingleEmail.Remaining);
+  const workflowLimits = calculateUsage(limits.HourlyTimeBasedWorkflow.Max, limits.HourlyTimeBasedWorkflow.Remaining);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card>
         <CardHeader>
           <CardTitle>Data Storage</CardTitle>
@@ -109,6 +124,57 @@ export const OrgHealth = () => {
             </div>
             <div className="text-sm text-muted-foreground">
               Remaining: {limits.FileStorageMB.Remaining} MB
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Daily API Requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Progress value={apiRequests.percentage} />
+            <div className="text-sm text-muted-foreground">
+              Used: {apiRequests.used} / {limits.DailyApiRequests.Max} ({apiRequests.percentage}%)
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Remaining: {limits.DailyApiRequests.Remaining}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Single Email Limits</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Progress value={emailLimits.percentage} />
+            <div className="text-sm text-muted-foreground">
+              Used: {emailLimits.used} / {limits.SingleEmail.Max} ({emailLimits.percentage}%)
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Remaining: {limits.SingleEmail.Remaining}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Hourly Time-Based Workflow</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Progress value={workflowLimits.percentage} />
+            <div className="text-sm text-muted-foreground">
+              Used: {workflowLimits.used} / {limits.HourlyTimeBasedWorkflow.Max} ({workflowLimits.percentage}%)
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Remaining: {limits.HourlyTimeBasedWorkflow.Remaining}
             </div>
           </div>
         </CardContent>
