@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const { access_token, instance_url } = await req.json()
     
-    const response = await fetch(`${instance_url}/services/data/v59.0/query?q=SELECT Id, Name, Email, Username, LastLoginDate FROM User`, {
+    const response = await fetch(`${instance_url}/services/data/v57.0/limits/`, {
       headers: {
         'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/json',

@@ -10,12 +10,15 @@ import {
 } from "@/components/ui/table";
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { OrgHealth } from './OrgHealth';
+import { format } from 'date-fns';
 
 interface SalesforceUser {
   Id: string;
   Name: string;
   Email: string;
   Username: string;
+  LastLoginDate: string;
 }
 
 export const SalesforceUsers = () => {
@@ -82,25 +85,34 @@ export const SalesforceUsers = () => {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Username</TableHead>
-            <TableHead>Email</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.Id}>
-              <TableCell>{user.Name}</TableCell>
-              <TableCell>{user.Username}</TableCell>
-              <TableCell>{user.Email}</TableCell>
+    <div className="space-y-8">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Last Login</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow key={user.Id}>
+                <TableCell>{user.Name}</TableCell>
+                <TableCell>{user.Username}</TableCell>
+                <TableCell>{user.Email}</TableCell>
+                <TableCell>
+                  {user.LastLoginDate 
+                    ? format(new Date(user.LastLoginDate), 'PPp')
+                    : 'Never'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <OrgHealth />
     </div>
   );
 };
