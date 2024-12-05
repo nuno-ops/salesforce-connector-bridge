@@ -50,3 +50,25 @@ export interface PermissionSetLicense {
   TotalLicenses: number;
   UsedLicenses: number;
 }
+
+export interface LeadRecord {
+  Id: string;
+  IsConverted: boolean;
+  CreatedDate: string;
+  ConvertedDate: string | null;
+  Status: string;
+}
+
+export interface OpportunityRecord {
+  Id: string;
+  StageName: string;
+  IsClosed: boolean;
+  IsWon: boolean;
+  CreatedDate: string;
+  CloseDate: string;
+}
+
+export interface MonthlyMetrics {
+  leads: LeadRecord[];
+  opportunities: OpportunityRecord[];
+}

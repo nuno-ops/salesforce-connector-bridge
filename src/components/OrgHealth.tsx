@@ -5,7 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { LimitCard } from './org-health/LimitCard';
 import { SandboxList } from './org-health/SandboxList';
 import { LicenseCard } from './org-health/LicenseCard';
-import { OrgLimits, SandboxInfo, UserLicense, PackageLicense, PermissionSetLicense } from './org-health/types';
+import { MetricsCard } from './org-health/MetricsCard';
+import { OrgLimits, SandboxInfo, UserLicense, PackageLicense, PermissionSetLicense, MonthlyMetrics } from './org-health/types';
+import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
 export const OrgHealth = () => {
   const [limits, setLimits] = useState<OrgLimits | null>(null);
@@ -13,6 +15,7 @@ export const OrgHealth = () => {
   const [userLicenses, setUserLicenses] = useState<UserLicense[]>([]);
   const [packageLicenses, setPackageLicenses] = useState<PackageLicense[]>([]);
   const [permissionSetLicenses, setPermissionSetLicenses] = useState<PermissionSetLicense[]>([]);
+  const [metrics, setMetrics] = useState<MonthlyMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -52,6 +55,14 @@ export const OrgHealth = () => {
         setUserLicenses(licensesResponse.data.userLicenses || []);
         setPackageLicenses(licensesResponse.data.packageLicenses || []);
         setPermissionSetLicenses(licensesResponse.data.permissionSetLicenses || []);
+
+        // Fetch metrics
+        const metricsResponse = await supabase.functions.invoke('salesforce-metrics', {
+          body: { access_token, instance_url }
+        });
+
+        if (metricsResponse.error) throw metricsResponse.error;
+        setMetrics(metricsResponse.data);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -67,6 +78,56 @@ export const OrgHealth = () => {
     fetchData();
   }, [toast]);
 
+  const calculateMonthlyMetrics = () => {
+    if (!metrics) return { leadConversion: [], oppWinRate: [] };
+
+    const now = new Date();
+    const months = Array.from({ length: 3 }, (_, i) => subMonths(now, i));
+
+    const monthlyLeadMetrics = months.map(month => {
+      const start = startOfMonth(month);
+      const end = endOfMonth(month);
+      
+      const monthLeads = metrics.leads.filter(lead => {
+        const createdDate = parseISO(lead.CreatedDate);
+        return createdDate >= start && createdDate <= end;
+      });
+
+      const totalLeads = monthLeads.length;
+      const convertedLeads = monthLeads.filter(lead => lead.IsConverted).length;
+      const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+
+      return {
+        month: format(month, 'MMM yy'),
+        value: Math.round(conversionRate * 10) / 10
+      };
+    }).reverse();
+
+    const monthlyOppMetrics = months.map(month => {
+      const start = startOfMonth(month);
+      const end = endOfMonth(month);
+      
+      const monthOpps = metrics.opportunities.filter(opp => {
+        const createdDate = parseISO(opp.CreatedDate);
+        return createdDate >= start && createdDate <= end;
+      });
+
+      const closedOpps = monthOpps.filter(opp => opp.IsClosed).length;
+      const wonOpps = monthOpps.filter(opp => opp.IsWon).length;
+      const winRate = closedOpps > 0 ? (wonOpps / closedOpps) * 100 : 0;
+
+      return {
+        month: format(month, 'MMM yy'),
+        value: Math.round(winRate * 10) / 10
+      };
+    }).reverse();
+
+    return {
+      leadConversion: monthlyLeadMetrics,
+      oppWinRate: monthlyOppMetrics
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -79,33 +140,23 @@ export const OrgHealth = () => {
     return null;
   }
 
-  const formatLicenseData = (licenses: UserLicense[]) => {
-    return licenses.map(license => ({
-      name: license.Name,
-      total: license.TotalLicenses,
-      used: license.UsedLicenses
-    }));
-  };
-
-  const formatPackageLicenseData = (licenses: PackageLicense[]) => {
-    return licenses.map(license => ({
-      name: license.NamespacePrefix || 'Unnamed Package',
-      total: license.AllowedLicenses,
-      used: license.UsedLicenses,
-      status: license.Status
-    }));
-  };
-
-  const formatPermissionSetLicenseData = (licenses: PermissionSetLicense[]) => {
-    return licenses.map(license => ({
-      name: license.DeveloperName,
-      total: license.TotalLicenses,
-      used: license.UsedLicenses
-    }));
-  };
+  const { leadConversion, oppWinRate } = calculateMonthlyMetrics();
 
   return (
     <div className="space-y-8">
+      <div className="grid gap-4 md:grid-cols-2">
+        <MetricsCard 
+          title="Lead Conversion Rate" 
+          data={leadConversion}
+          valueLabel="Conversion Rate"
+        />
+        <MetricsCard 
+          title="Opportunity Win Rate" 
+          data={oppWinRate}
+          valueLabel="Win Rate"
+        />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <LimitCard
           title="Data Storage"
