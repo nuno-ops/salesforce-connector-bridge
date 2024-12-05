@@ -5,13 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { LimitCard } from './org-health/LimitCard';
 import { SandboxList } from './org-health/SandboxList';
 import { LicenseCard } from './org-health/LicenseCard';
-import { OrgLimits, SandboxInfo, UserLicense, PackageLicense } from './org-health/types';
+import { OrgLimits, SandboxInfo, UserLicense, PackageLicense, PermissionSetLicense } from './org-health/types';
 
 export const OrgHealth = () => {
   const [limits, setLimits] = useState<OrgLimits | null>(null);
   const [sandboxes, setSandboxes] = useState<SandboxInfo[]>([]);
   const [userLicenses, setUserLicenses] = useState<UserLicense[]>([]);
   const [packageLicenses, setPackageLicenses] = useState<PackageLicense[]>([]);
+  const [permissionSetLicenses, setPermissionSetLicenses] = useState<PermissionSetLicense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -50,6 +51,7 @@ export const OrgHealth = () => {
         if (licensesResponse.error) throw licensesResponse.error;
         setUserLicenses(licensesResponse.data.userLicenses || []);
         setPackageLicenses(licensesResponse.data.packageLicenses || []);
+        setPermissionSetLicenses(licensesResponse.data.permissionSetLicenses || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -94,6 +96,14 @@ export const OrgHealth = () => {
     }));
   };
 
+  const formatPermissionSetLicenseData = (licenses: PermissionSetLicense[]) => {
+    return licenses.map(license => ({
+      name: license.DeveloperName,
+      total: license.TotalLicenses,
+      used: license.UsedLicenses
+    }));
+  };
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -126,7 +136,7 @@ export const OrgHealth = () => {
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <LicenseCard 
           title="User Licenses" 
           licenses={formatLicenseData(userLicenses)} 
@@ -134,6 +144,10 @@ export const OrgHealth = () => {
         <LicenseCard 
           title="Package Licenses" 
           licenses={formatPackageLicenseData(packageLicenses)} 
+        />
+        <LicenseCard 
+          title="Permission Set Licenses" 
+          licenses={formatPermissionSetLicenseData(permissionSetLicenses)} 
         />
       </div>
 

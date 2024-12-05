@@ -37,10 +37,23 @@ serve(async (req) => {
 
     const packageLicenses = await packageLicensesResponse.json()
 
+    // Fetch Permission Set Licenses
+    const permissionSetLicensesResponse = await fetch(
+      `${instance_url}/services/data/v57.0/query?q=SELECT Id, DeveloperName, TotalLicenses, UsedLicenses FROM PermissionSetLicense`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    )
+
+    const permissionSetLicenses = await permissionSetLicensesResponse.json()
+
     return new Response(
       JSON.stringify({
         userLicenses: userLicenses.records,
         packageLicenses: packageLicenses.records,
+        permissionSetLicenses: permissionSetLicenses.records,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -43,3 +43,10 @@ export interface PackageLicense {
   AllowedLicenses: number;
   UsedLicenses: number;
 }
+
+export interface PermissionSetLicense {
+  Id: string;
+  DeveloperName: string;
+  TotalLicenses: number;
+  UsedLicenses: number;
+}
