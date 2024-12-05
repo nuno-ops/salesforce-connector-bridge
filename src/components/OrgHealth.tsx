@@ -4,11 +4,14 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LimitCard } from './org-health/LimitCard';
 import { SandboxList } from './org-health/SandboxList';
-import { OrgLimits, SandboxInfo } from './org-health/types';
+import { LicenseCard } from './org-health/LicenseCard';
+import { OrgLimits, SandboxInfo, UserLicense, PackageLicense } from './org-health/types';
 
 export const OrgHealth = () => {
   const [limits, setLimits] = useState<OrgLimits | null>(null);
   const [sandboxes, setSandboxes] = useState<SandboxInfo[]>([]);
+  const [userLicenses, setUserLicenses] = useState<UserLicense[]>([]);
+  const [packageLicenses, setPackageLicenses] = useState<PackageLicense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -38,6 +41,15 @@ export const OrgHealth = () => {
 
         if (sandboxResponse.error) throw sandboxResponse.error;
         setSandboxes(sandboxResponse.data.records || []);
+
+        // Fetch licenses
+        const licensesResponse = await supabase.functions.invoke('salesforce-licenses', {
+          body: { access_token, instance_url }
+        });
+
+        if (licensesResponse.error) throw licensesResponse.error;
+        setUserLicenses(licensesResponse.data.userLicenses || []);
+        setPackageLicenses(licensesResponse.data.packageLicenses || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -64,6 +76,23 @@ export const OrgHealth = () => {
   if (!limits) {
     return null;
   }
+
+  const formatLicenseData = (licenses: UserLicense[]) => {
+    return licenses.map(license => ({
+      name: license.Name,
+      total: license.TotalLicenses,
+      used: license.UsedLicenses
+    }));
+  };
+
+  const formatPackageLicenseData = (licenses: PackageLicense[]) => {
+    return licenses.map(license => ({
+      name: license.NamespacePrefix || 'Unnamed Package',
+      total: license.AllowedLicenses,
+      used: license.UsedLicenses,
+      status: license.Status
+    }));
+  };
 
   return (
     <div className="space-y-8">
@@ -94,6 +123,17 @@ export const OrgHealth = () => {
           title="Hourly Time-Based Workflow"
           max={limits.HourlyTimeBasedWorkflow.Max}
           remaining={limits.HourlyTimeBasedWorkflow.Remaining}
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <LicenseCard 
+          title="User Licenses" 
+          licenses={formatLicenseData(userLicenses)} 
+        />
+        <LicenseCard 
+          title="Package Licenses" 
+          licenses={formatPackageLicenseData(packageLicenses)} 
         />
       </div>
 

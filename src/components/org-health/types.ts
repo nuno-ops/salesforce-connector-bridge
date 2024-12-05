@@ -27,3 +27,19 @@ export interface SandboxInfo {
   LicenseType: string;
   Description: string;
 }
+
+export interface UserLicense {
+  Id: string;
+  Name: string;
+  TotalLicenses: number;
+  UsedLicenses: number;
+}
+
+export interface PackageLicense {
+  Id: string;
+  NamespacePrefix: string;
+  Status: string;
+  IsProvisioned: boolean;
+  AllowedLicenses: number;
+  UsedLicenses: number;
+}
