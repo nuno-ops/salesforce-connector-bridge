@@ -7,6 +7,7 @@ import { SandboxList } from './org-health/SandboxList';
 import { LicenseCard } from './org-health/LicenseCard';
 import { MetricsCard } from './org-health/MetricsCard';
 import { OrgLimits, SandboxInfo, UserLicense, PackageLicense, PermissionSetLicense, MonthlyMetrics } from './org-health/types';
+import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from './org-health/utils';
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
 export const OrgHealth = () => {
@@ -38,12 +39,15 @@ export const OrgHealth = () => {
         if (limitsResponse.error) throw limitsResponse.error;
         setLimits(limitsResponse.data);
 
-        // Fetch sandboxes
+        // Fetch sandboxes with better error handling
         const sandboxResponse = await supabase.functions.invoke('salesforce-sandboxes', {
           body: { access_token, instance_url }
         });
 
-        if (sandboxResponse.error) throw sandboxResponse.error;
+        if (sandboxResponse.error) {
+          console.error('Sandbox fetch error:', sandboxResponse.error);
+          throw new Error(sandboxResponse.error.message);
+        }
         setSandboxes(sandboxResponse.data.records || []);
 
         // Fetch licenses
@@ -68,7 +72,7 @@ export const OrgHealth = () => {
         toast({
           variant: "destructive",
           title: "Error loading organization data",
-          description: "Failed to load Salesforce organization data.",
+          description: error instanceof Error ? error.message : "Failed to load Salesforce organization data.",
         });
       } finally {
         setIsLoading(false);
