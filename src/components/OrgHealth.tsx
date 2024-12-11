@@ -6,6 +6,7 @@ import { LimitCard } from './org-health/LimitCard';
 import { SandboxList } from './org-health/SandboxList';
 import { LicenseCard } from './org-health/LicenseCard';
 import { MetricsCard } from './org-health/MetricsCard';
+import { CostSavingsReport } from './CostSavingsReport';
 import { OrgLimits, SandboxInfo, UserLicense, PackageLicense, PermissionSetLicense, MonthlyMetrics } from './org-health/types';
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from './org-health/utils';
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
@@ -86,7 +87,7 @@ export const OrgHealth = () => {
     if (!metrics) return { leadConversion: [], oppWinRate: [] };
 
     const now = new Date();
-    const months = Array.from({ length: 3 }, (_, i) => subMonths(now, i));
+    const months = Array.from({ length: 6 }, (_, i) => subMonths(now, i));
 
     const monthlyLeadMetrics = months.map(month => {
       const start = startOfMonth(month);
@@ -145,17 +146,29 @@ export const OrgHealth = () => {
   }
 
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics();
+  const apiUsagePercentage = ((limits.DailyApiRequests.Max - limits.DailyApiRequests.Remaining) / limits.DailyApiRequests.Max) * 100;
+  const storageUsagePercentage = ((limits.DataStorageMB.Max - limits.DataStorageMB.Remaining) / limits.DataStorageMB.Max) * 100;
 
   return (
     <div className="space-y-8">
+      <CostSavingsReport
+        userLicenses={formatLicenseData(userLicenses)}
+        packageLicenses={formatPackageLicenseData(packageLicenses)}
+        permissionSetLicenses={formatPermissionSetLicenseData(permissionSetLicenses)}
+        inactiveUsers={[]} // This will be populated from the parent component
+        sandboxes={sandboxes}
+        apiUsage={apiUsagePercentage}
+        storageUsage={storageUsagePercentage}
+      />
+
       <div className="grid gap-4 md:grid-cols-2">
         <MetricsCard 
-          title="Lead Conversion Rate" 
+          title="Lead Conversion Rate (Last 6 Months)" 
           data={leadConversion}
           valueLabel="Conversion Rate"
         />
         <MetricsCard 
-          title="Opportunity Win Rate" 
+          title="Opportunity Win Rate (Last 6 Months)" 
           data={oppWinRate}
           valueLabel="Win Rate"
         />
@@ -178,16 +191,6 @@ export const OrgHealth = () => {
           title="Daily API Requests"
           max={limits.DailyApiRequests.Max}
           remaining={limits.DailyApiRequests.Remaining}
-        />
-        <LimitCard
-          title="Single Email Limits"
-          max={limits.SingleEmail.Max}
-          remaining={limits.SingleEmail.Remaining}
-        />
-        <LimitCard
-          title="Hourly Time-Based Workflow"
-          max={limits.HourlyTimeBasedWorkflow.Max}
-          remaining={limits.HourlyTimeBasedWorkflow.Remaining}
         />
       </div>
 

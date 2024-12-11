@@ -11,7 +11,8 @@ import {
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrgHealth } from './OrgHealth';
-import { format } from 'date-fns';
+import { CostSavingsReport } from './CostSavingsReport';
+import { format, subMonths } from 'date-fns';
 
 interface SalesforceUser {
   Id: string;
@@ -48,10 +49,17 @@ export const SalesforceUsers = () => {
 
         if (error) throw error;
 
-        setUsers(data.records);
+        // Filter users who haven't logged in for more than a month
+        const oneMonthAgo = subMonths(new Date(), 1);
+        const inactiveUsers = data.records.filter(user => {
+          if (!user.LastLoginDate) return true;
+          return new Date(user.LastLoginDate) < oneMonthAgo;
+        });
+
+        setUsers(inactiveUsers);
         toast({
           title: "Users loaded",
-          description: `Successfully loaded ${data.records.length} users.`,
+          description: `Found ${inactiveUsers.length} inactive users.`,
         });
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -76,16 +84,9 @@ export const SalesforceUsers = () => {
     );
   }
 
-  if (users.length === 0) {
-    return (
-      <div className="text-center p-8 text-gray-500">
-        No users found. Please make sure you're connected to Salesforce.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
+      <OrgHealth />
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -112,7 +113,6 @@ export const SalesforceUsers = () => {
           </TableBody>
         </Table>
       </div>
-      <OrgHealth />
     </div>
   );
 };
