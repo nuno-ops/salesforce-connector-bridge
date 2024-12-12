@@ -14,18 +14,48 @@ serve(async (req) => {
   try {
     const { access_token, instance_url } = await req.json()
     
-    const response = await fetch(`${instance_url}/services/data/v59.0/query?q=SELECT Id, Name, Email, Username, LastLoginDate FROM User`, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    if (!access_token || !instance_url) {
+      console.error('Missing required parameters');
+      return new Response(
+        JSON.stringify({ error: 'Missing access_token or instance_url' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    const data = await response.json()
+    const response = await fetch(
+      `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(
+        'SELECT Id, Name, Email, Username, LastLoginDate FROM User'
+      )}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Salesforce API error:', response.status);
+      const errorData = await response.text();
+      console.error('Error details:', errorData);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to fetch users',
+          details: errorData
+        }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Successfully fetched users data');
     
     return new Response(
       JSON.stringify(data),
@@ -37,10 +67,15 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error in salesforce-users function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        type: error.name,
+        stack: error.stack
+      }),
       { 
-        status: 400,
+        status: 500,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json' 

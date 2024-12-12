@@ -26,6 +26,21 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
     setCredentials(prev => ({ ...prev, [name]: value }));
   };
 
+  const validateToken = async (access_token: string, instance_url: string) => {
+    try {
+      const response = await axios.get(`${instance_url}/services/data/v57.0/limits/`, {
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.status === 200;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -40,6 +55,13 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
           }
         }
       );
+
+      // Validate the token before storing
+      const isValid = await validateToken(response.data.access_token, response.data.instance_url);
+      
+      if (!isValid) {
+        throw new Error('Invalid token received from authentication');
+      }
 
       // Store the access token and instance URL
       localStorage.setItem('sf_access_token', response.data.access_token);
@@ -56,7 +78,7 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
       toast({
         variant: "destructive",
         title: "Connection failed",
-        description: "Invalid credentials or connection error. Please try again.",
+        description: error.response?.data?.error_description || "Invalid credentials or connection error. Please try again.",
       });
     } finally {
       setIsLoading(false);

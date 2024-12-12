@@ -14,18 +14,44 @@ serve(async (req) => {
   try {
     const { access_token, instance_url } = await req.json()
     
-    const response = await fetch(`${instance_url}/services/data/v57.0/limits/`, {
+    if (!access_token || !instance_url) {
+      console.error('Missing required parameters');
+      return new Response(
+        JSON.stringify({ error: 'Missing access_token or instance_url' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate token first
+    const validateResponse = await fetch(`${instance_url}/services/data/v57.0/limits/`, {
       headers: {
         'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/json',
       },
-    })
+    });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    if (!validateResponse.ok) {
+      console.error('Token validation failed:', validateResponse.status);
+      const errorData = await validateResponse.text();
+      console.error('Error details:', errorData);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid or expired token',
+          details: errorData
+        }),
+        { 
+          status: validateResponse.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    const data = await response.json()
+    const data = await validateResponse.json();
+    console.log('Successfully fetched limits data');
     
     return new Response(
       JSON.stringify(data),
@@ -37,10 +63,15 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error in salesforce-limits function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        type: error.name,
+        stack: error.stack
+      }),
       { 
-        status: 400,
+        status: 500,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json' 
