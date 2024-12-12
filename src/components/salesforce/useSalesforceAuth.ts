@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export const validateToken = async (access_token: string, instance_url: string) => {
   if (!access_token || !instance_url) {
+    console.error('Missing token or instance URL');
     return false;
   }
 
@@ -34,13 +35,30 @@ export const authenticateSalesforce = async (credentials: {
   clientSecret: string;
 }) => {
   try {
+    // First, ensure all required credentials are present
+    if (!credentials.username || !credentials.password || !credentials.securityToken || 
+        !credentials.clientId || !credentials.clientSecret) {
+      throw new Error('All credentials are required');
+    }
+
+    // Combine password and security token as required by Salesforce
+    const passwordWithToken = `${credentials.password}${credentials.securityToken}`;
+
+    const formData = new URLSearchParams();
+    formData.append('grant_type', 'password');
+    formData.append('client_id', credentials.clientId);
+    formData.append('client_secret', credentials.clientSecret);
+    formData.append('username', credentials.username);
+    formData.append('password', passwordWithToken);
+
+    // Make direct request to Salesforce OAuth endpoint
     const response = await axios.post(
-      'https://pnzdzneuynkyzfjwheej.supabase.co/functions/v1/salesforce-auth',
-      credentials,
+      'https://login.salesforce.com/services/oauth2/token',
+      formData.toString(),
       {
         headers: {
-          'Content-Type': 'application/json',
-        }
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
       }
     );
 
@@ -59,6 +77,9 @@ export const authenticateSalesforce = async (credentials: {
     return response.data;
   } catch (error) {
     console.error('Authentication error:', error);
+    if (error.response?.data) {
+      console.error('Salesforce error details:', error.response.data);
+    }
     throw error;
   }
 };
