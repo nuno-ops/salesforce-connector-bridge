@@ -31,8 +31,8 @@ export const calculateMonthlyMetrics = (metrics: MonthlyMetrics | null) => {
     const end = endOfMonth(month);
     
     const monthOpps = metrics.opportunities.filter(opp => {
-      const createdDate = parseISO(opp.CreatedDate);
-      return createdDate >= start && createdDate <= end;
+      const closeDate = parseISO(opp.CloseDate);
+      return closeDate >= start && closeDate <= end;
     });
 
     const closedOpps = monthOpps.filter(opp => opp.IsClosed).length;

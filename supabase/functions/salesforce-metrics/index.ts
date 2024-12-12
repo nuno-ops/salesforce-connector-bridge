@@ -13,7 +13,7 @@ serve(async (req) => {
   try {
     const { access_token, instance_url } = await req.json()
 
-    // Fetch Leads for last 180 days (6 months)
+    // Fetch Leads for last 180 days (6 months) by Created Date
     const leadsQuery = `
       SELECT 
         Id, 
@@ -36,7 +36,7 @@ serve(async (req) => {
 
     const leads = await leadsResponse.json()
 
-    // Fetch Opportunities for last 180 days (6 months)
+    // Fetch Opportunities for last 180 days (6 months) by Close Date
     const oppsQuery = `
       SELECT 
         Id, 
@@ -46,8 +46,8 @@ serve(async (req) => {
         CreatedDate, 
         CloseDate 
       FROM Opportunity 
-      WHERE CreatedDate = LAST_N_DAYS:180 
-      ORDER BY CreatedDate DESC
+      WHERE CloseDate = LAST_N_DAYS:180 
+      ORDER BY CloseDate DESC
     `
     const oppsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(oppsQuery)}`,
@@ -72,7 +72,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error fetching metrics:', error)
+    console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {

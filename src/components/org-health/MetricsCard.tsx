@@ -9,11 +9,12 @@ interface MonthlyMetric {
 
 interface MetricsCardProps {
   title: string;
+  subtitle?: string;
   data: MonthlyMetric[];
   valueLabel: string;
 }
 
-export const MetricsCard = ({ title, data, valueLabel }: MetricsCardProps) => {
+export const MetricsCard = ({ title, subtitle, data, valueLabel }: MetricsCardProps) => {
   const config = {
     metric: {
       color: "#2563eb",
@@ -24,6 +25,9 @@ export const MetricsCard = ({ title, data, valueLabel }: MetricsCardProps) => {
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
+        {subtitle && (
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        )}
       </CardHeader>
       <CardContent>
         <div className="h-[200px]">
