@@ -56,6 +56,10 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
         }
       );
 
+      if (response.data.error) {
+        throw new Error(response.data.error_description || 'Authentication failed');
+      }
+
       // Validate the token before storing
       const isValid = await validateToken(response.data.access_token, response.data.instance_url);
       
@@ -63,9 +67,10 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
         throw new Error('Invalid token received from authentication');
       }
 
-      // Store the access token and instance URL
+      // Store the access token, instance URL, and timestamp
       localStorage.setItem('sf_access_token', response.data.access_token);
       localStorage.setItem('sf_instance_url', response.data.instance_url);
+      localStorage.setItem('sf_token_timestamp', Date.now().toString());
       
       toast({
         title: "Successfully connected!",
@@ -78,7 +83,7 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
       toast({
         variant: "destructive",
         title: "Connection failed",
-        description: error.response?.data?.error_description || "Invalid credentials or connection error. Please try again.",
+        description: error.response?.data?.error_description || error.message || "Invalid credentials or connection error. Please try again.",
       });
     } finally {
       setIsLoading(false);

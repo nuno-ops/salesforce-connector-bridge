@@ -17,8 +17,25 @@ export const useOrgHealthData = () => {
     const fetchData = async () => {
       const access_token = localStorage.getItem('sf_access_token');
       const instance_url = localStorage.getItem('sf_instance_url');
+      const timestamp = localStorage.getItem('sf_token_timestamp');
 
-      if (!access_token || !instance_url) {
+      if (!access_token || !instance_url || !timestamp) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Check token age
+      const tokenAge = Date.now() - parseInt(timestamp);
+      if (tokenAge > 7200000) { // 2 hours
+        toast({
+          variant: "destructive",
+          title: "Session expired",
+          description: "Your Salesforce session has expired. Please reconnect.",
+        });
+        // Clear storage and return
+        localStorage.removeItem('sf_access_token');
+        localStorage.removeItem('sf_instance_url');
+        localStorage.removeItem('sf_token_timestamp');
         setIsLoading(false);
         return;
       }
@@ -59,11 +76,22 @@ export const useOrgHealthData = () => {
         setMetrics(metricsResponse.data);
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast({
-          variant: "destructive",
-          title: "Error loading organization data",
-          description: error instanceof Error ? error.message : "Failed to load Salesforce organization data.",
-        });
+        if (error.message?.includes('INVALID_SESSION_ID')) {
+          localStorage.removeItem('sf_access_token');
+          localStorage.removeItem('sf_instance_url');
+          localStorage.removeItem('sf_token_timestamp');
+          toast({
+            variant: "destructive",
+            title: "Session expired",
+            description: "Your Salesforce session has expired. Please reconnect.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error loading organization data",
+            description: error instanceof Error ? error.message : "Failed to load Salesforce organization data.",
+          });
+        }
       } finally {
         setIsLoading(false);
       }
