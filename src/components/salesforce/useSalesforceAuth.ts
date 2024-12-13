@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from '@/integrations/supabase/client';
 
 export const validateToken = async (access_token: string, instance_url: string) => {
   if (!access_token || !instance_url) {
@@ -41,32 +42,27 @@ export const authenticateSalesforce = async (credentials: {
       throw new Error('All credentials are required');
     }
 
-    // Combine password and security token as required by Salesforce
-    const passwordWithToken = `${credentials.password}${credentials.securityToken}`;
-
-    const formData = new URLSearchParams();
-    formData.append('grant_type', 'password');
-    formData.append('client_id', credentials.clientId);
-    formData.append('client_secret', credentials.clientSecret);
-    formData.append('username', credentials.username);
-    formData.append('password', passwordWithToken);
-
-    // Make direct request to Salesforce OAuth endpoint
-    const response = await axios.post(
-      'https://login.salesforce.com/services/oauth2/token',
-      formData.toString(),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+    // Use Supabase Edge Function for authentication
+    const { data, error } = await supabase.functions.invoke('salesforce-auth', {
+      body: {
+        username: credentials.username,
+        password: credentials.password,
+        securityToken: credentials.securityToken,
+        clientId: credentials.clientId,
+        clientSecret: credentials.clientSecret
       }
-    );
+    });
 
-    if (response.data.error) {
-      throw new Error(response.data.error_description || 'Authentication failed');
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw error;
     }
 
-    const { access_token, instance_url } = response.data;
+    if (data.error) {
+      throw new Error(data.error_description || 'Authentication failed');
+    }
+
+    const { access_token, instance_url } = data;
 
     // Validate the token immediately after receiving it
     const isValid = await validateToken(access_token, instance_url);
@@ -74,7 +70,7 @@ export const authenticateSalesforce = async (credentials: {
       throw new Error('Invalid token received from authentication');
     }
 
-    return response.data;
+    return data;
   } catch (error) {
     console.error('Authentication error:', error);
     if (error.response?.data) {
