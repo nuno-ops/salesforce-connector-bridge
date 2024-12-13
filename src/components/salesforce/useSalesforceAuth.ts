@@ -8,14 +8,13 @@ export const validateToken = async (access_token: string, instance_url: string) 
   }
 
   try {
-    const response = await axios.get(`${instance_url}/services/data/v57.0/limits`, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Content-Type': 'application/json',
-      },
+    // Use the Supabase function to validate the token to avoid CORS issues
+    const { data, error } = await supabase.functions.invoke('salesforce-validate', {
+      body: { access_token, instance_url }
     });
-    
-    return response.status === 200;
+
+    if (error) throw error;
+    return data.isValid;
   } catch (error) {
     console.error('Token validation error:', error);
     // Check specifically for session expiration
@@ -44,13 +43,7 @@ export const authenticateSalesforce = async (credentials: {
 
     // Use Supabase Edge Function for authentication
     const { data, error } = await supabase.functions.invoke('salesforce-auth', {
-      body: {
-        username: credentials.username,
-        password: credentials.password,
-        securityToken: credentials.securityToken,
-        clientId: credentials.clientId,
-        clientSecret: credentials.clientSecret
-      }
+      body: credentials
     });
 
     if (error) {
@@ -58,14 +51,12 @@ export const authenticateSalesforce = async (credentials: {
       throw error;
     }
 
-    if (data.error) {
-      throw new Error(data.error_description || 'Authentication failed');
+    if (!data.access_token || !data.instance_url) {
+      throw new Error('Invalid response from authentication service');
     }
 
-    const { access_token, instance_url } = data;
-
     // Validate the token immediately after receiving it
-    const isValid = await validateToken(access_token, instance_url);
+    const isValid = await validateToken(data.access_token, data.instance_url);
     if (!isValid) {
       throw new Error('Invalid token received from authentication');
     }
@@ -73,9 +64,6 @@ export const authenticateSalesforce = async (credentials: {
     return data;
   } catch (error) {
     console.error('Authentication error:', error);
-    if (error.response?.data) {
-      console.error('Salesforce error details:', error.response.data);
-    }
     throw error;
   }
 };
