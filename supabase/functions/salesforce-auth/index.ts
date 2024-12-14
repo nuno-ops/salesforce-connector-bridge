@@ -13,6 +13,7 @@ serve(async (req) => {
 
   try {
     const { username, password, securityToken, clientId, clientSecret } = await req.json();
+    console.log('Received authentication request for user:', username);
 
     // Validate inputs
     if (!username || !password || !securityToken || !clientId || !clientSecret) {
@@ -23,13 +24,11 @@ serve(async (req) => {
           success: false 
         }),
         { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
         }
       );
     }
-
-    console.log('Attempting to authenticate user:', username);
 
     // Combine password and security token as required by Salesforce
     const passwordWithToken = `${password}${securityToken}`;
@@ -68,12 +67,13 @@ serve(async (req) => {
           success: false
         }),
         { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
         }
       );
     }
 
+    console.log('Authentication successful');
     return new Response(
       JSON.stringify({ ...data, success: true }),
       {
@@ -90,8 +90,8 @@ serve(async (req) => {
         success: false
       }),
       {
-        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       }
     );
   }

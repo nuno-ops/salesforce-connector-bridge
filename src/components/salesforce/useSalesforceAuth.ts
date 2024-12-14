@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { supabase } from '@/integrations/supabase/client';
 
 export const validateToken = async (access_token: string, instance_url: string) => {
@@ -8,16 +7,19 @@ export const validateToken = async (access_token: string, instance_url: string) 
   }
 
   try {
-    // Use the Supabase function to validate the token to avoid CORS issues
     const { data, error } = await supabase.functions.invoke('salesforce-validate', {
       body: { access_token, instance_url }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Token validation error:', error);
+      throw error;
+    }
+
+    console.log('Token validation response:', data);
     return data.isValid;
   } catch (error) {
     console.error('Token validation error:', error);
-    // Check specifically for session expiration
     if (error.response?.status === 401) {
       localStorage.removeItem('sf_access_token');
       localStorage.removeItem('sf_instance_url');
@@ -35,13 +37,13 @@ export const authenticateSalesforce = async (credentials: {
   clientSecret: string;
 }) => {
   try {
-    // First, ensure all required credentials are present
+    console.log('Starting Salesforce authentication...');
+    
     if (!credentials.username || !credentials.password || !credentials.securityToken || 
         !credentials.clientId || !credentials.clientSecret) {
       throw new Error('All credentials are required');
     }
 
-    // Use Supabase Edge Function for authentication
     const { data, error } = await supabase.functions.invoke('salesforce-auth', {
       body: credentials
     });
@@ -51,11 +53,16 @@ export const authenticateSalesforce = async (credentials: {
       throw error;
     }
 
+    console.log('Authentication response:', data);
+
+    if (!data.success) {
+      throw new Error(data.error_description || data.error || 'Authentication failed');
+    }
+
     if (!data.access_token || !data.instance_url) {
       throw new Error('Invalid response from authentication service');
     }
 
-    // Validate the token immediately after receiving it
     const isValid = await validateToken(data.access_token, data.instance_url);
     if (!isValid) {
       throw new Error('Invalid token received from authentication');
