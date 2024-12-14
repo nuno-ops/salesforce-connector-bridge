@@ -38,11 +38,27 @@ export const authenticateSalesforce = async (credentials: {
 }) => {
   try {
     console.log('Starting Salesforce authentication...');
+    console.log('Credentials being used:', {
+      username: credentials.username,
+      passwordLength: credentials.password?.length || 0,
+      tokenLength: credentials.securityToken?.length || 0,
+      clientIdLength: credentials.clientId?.length || 0,
+      clientSecretLength: credentials.clientSecret?.length || 0
+    });
     
     if (!credentials.username || !credentials.password || !credentials.securityToken || 
         !credentials.clientId || !credentials.clientSecret) {
       throw new Error('All credentials are required');
     }
+
+    // Log the structure of the request (without sensitive data)
+    console.log('Sending authentication request with credentials structure:', {
+      username: 'present',
+      password: credentials.password ? 'present' : 'missing',
+      securityToken: credentials.securityToken ? 'present' : 'missing',
+      clientId: credentials.clientId ? 'present' : 'missing',
+      clientSecret: credentials.clientSecret ? 'present' : 'missing'
+    });
 
     const { data, error } = await supabase.functions.invoke('salesforce-auth', {
       body: credentials
