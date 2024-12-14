@@ -8,14 +8,23 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     const { access_token, instance_url } = await req.json();
 
     if (!access_token || !instance_url) {
-      throw new Error('Missing required parameters');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required parameters',
+          isValid: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
     console.log('Validating token with instance URL:', instance_url);
@@ -30,9 +39,28 @@ serve(async (req) => {
 
     console.log('Validation response status:', response.status);
 
-    const isValid = response.status === 200;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Salesforce validation error:', {
+        status: response.status,
+        error: errorData
+      });
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Token validation failed',
+          details: errorData,
+          isValid: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200, // Return 200 even for invalid tokens, but with isValid: false
+        }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ isValid }),
+      JSON.stringify({ isValid: true }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -41,10 +69,14 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in salesforce-validate function:', error);
     return new Response(
-      JSON.stringify({ error: error.message, isValid: false }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message,
+        isValid: false 
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: 200, // Always return 200 but with error details
       }
     );
   }

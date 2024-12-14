@@ -16,12 +16,16 @@ serve(async (req) => {
     // Validate inputs
     if (!username || !password || !securityToken || !clientId || !clientSecret) {
       console.error('Missing required credentials');
-      throw new Error('All credentials are required');
+      return new Response(
+        JSON.stringify({ error: 'All credentials are required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Authenticating user:', username);
-    console.log('Client ID length:', clientId.length);
-    console.log('Security Token length:', securityToken.length);
 
     // Combine password and security token as required by Salesforce
     const passwordWithToken = `${password}${securityToken}`;
@@ -45,20 +49,19 @@ serve(async (req) => {
 
     const data = await response.json()
     console.log('Salesforce response status:', response.status);
-    console.log('Response data:', {
-      error: data.error,
-      error_description: data.error_description,
-      // Don't log sensitive data like tokens
-    });
 
     if (!response.ok) {
-      console.error('Salesforce error:', {
+      console.error('Salesforce authentication error:', {
         status: response.status,
         error: data.error,
         description: data.error_description
       });
+      
       return new Response(
-        JSON.stringify(data),
+        JSON.stringify({
+          error: data.error,
+          error_description: data.error_description
+        }),
         { 
           status: response.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -75,11 +78,10 @@ serve(async (req) => {
     )
   } catch (error) {
     console.error('Error in salesforce-auth function:', error);
-    console.error('Stack trace:', error.stack);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error.stack
+        error: 'Internal server error',
+        details: error.message 
       }),
       {
         status: 500,
