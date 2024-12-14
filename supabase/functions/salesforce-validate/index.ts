@@ -15,14 +15,16 @@ serve(async (req) => {
     const { access_token, instance_url } = await req.json();
 
     if (!access_token || !instance_url) {
+      console.log('Missing required parameters:', { access_token: !!access_token, instance_url: !!instance_url });
       return new Response(
         JSON.stringify({ 
           error: 'Missing required parameters',
-          isValid: false 
+          isValid: false,
+          success: false
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
+          status: 200,
         }
       );
     }
@@ -50,17 +52,18 @@ serve(async (req) => {
         JSON.stringify({ 
           error: 'Token validation failed',
           details: errorData,
-          isValid: false 
+          isValid: false,
+          success: false
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200, // Return 200 even for invalid tokens, but with isValid: false
+          status: 200,
         }
       );
     }
 
     return new Response(
-      JSON.stringify({ isValid: true }),
+      JSON.stringify({ isValid: true, success: true }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -72,11 +75,12 @@ serve(async (req) => {
       JSON.stringify({ 
         error: 'Internal server error',
         details: error.message,
-        isValid: false 
+        isValid: false,
+        success: false
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200, // Always return 200 but with error details
+        status: 200,
       }
     );
   }
