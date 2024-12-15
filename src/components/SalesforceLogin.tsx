@@ -13,10 +13,25 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Clear any existing OAuth state on component mount
+  // Check for existing valid connection on mount
   useEffect(() => {
-    resetOAuthState();
-  }, []);
+    const checkExistingConnection = () => {
+      const token = localStorage.getItem('sf_access_token');
+      const timestamp = localStorage.getItem('sf_token_timestamp');
+      
+      if (token && timestamp) {
+        const tokenAge = Date.now() - parseInt(timestamp);
+        if (tokenAge < 7200000) { // Less than 2 hours old
+          console.log('Found valid existing connection');
+          onSuccess?.();
+          return;
+        }
+      }
+      resetOAuthState();
+    };
+
+    checkExistingConnection();
+  }, [onSuccess]);
 
   const resetOAuthState = () => {
     // Clear any stored OAuth-related data
