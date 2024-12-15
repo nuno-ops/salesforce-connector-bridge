@@ -1,14 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Update redirect URI to point to our application
-const REDIRECT_URI = `${window.location.origin}/salesforce/callback`;
+// Hardcode the redirect URI to match Salesforce Connected App configuration
+const REDIRECT_URI = 'https://flyerclub.my.salesforce.com/salesforce/callback';
 
 export const initiateOAuthFlow = (clientId: string) => {
   // Store client ID temporarily for the callback
   localStorage.setItem('sf_temp_client_id', clientId);
   
   // Construct the authorization URL for production Salesforce
-  const authUrl = new URL('https://login.salesforce.com/services/oauth2/authorize');
+  const authUrl = new URL('https://flyerclub.my.salesforce.com/services/oauth2/authorize');
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('client_id', clientId);
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
