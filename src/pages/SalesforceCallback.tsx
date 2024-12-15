@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { handleOAuthCallback } from '@/components/salesforce/useSalesforceAuth';
 import { Loader2 } from 'lucide-react';
 
@@ -15,9 +15,16 @@ const SalesforceCallback = () => {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const error = params.get('error');
+        const errorDescription = params.get('error_description');
+
+        console.log('=== Callback Page Parameters ===');
+        console.log('Code:', code);
+        console.log('Error:', error);
+        console.log('Error Description:', errorDescription);
+        console.log('Full URL:', window.location.href);
 
         if (error) {
-          throw new Error(error);
+          throw new Error(`Salesforce Error: ${error} - ${errorDescription}`);
         }
 
         if (!code) {
@@ -43,7 +50,7 @@ const SalesforceCallback = () => {
         toast({
           variant: "destructive",
           title: "Connection failed",
-          description: error.message || "Failed to complete Salesforce connection.",
+          description: error instanceof Error ? error.message : "Failed to complete Salesforce connection.",
         });
         navigate('/');
       } finally {
