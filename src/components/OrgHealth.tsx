@@ -7,8 +7,12 @@ import { CostSavingsReport } from './CostSavingsReport';
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from './org-health/utils';
 import { useOrgHealthData } from './org-health/useOrgHealthData';
 import { calculateMonthlyMetrics } from './org-health/MetricsCalculator';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 export const OrgHealth = () => {
+  const { toast } = useToast();
   const {
     limits,
     sandboxes,
@@ -18,6 +22,42 @@ export const OrgHealth = () => {
     metrics,
     isLoading
   } = useOrgHealthData();
+
+  useEffect(() => {
+    const testScraping = async () => {
+      const access_token = localStorage.getItem('sf_access_token');
+      const instance_url = localStorage.getItem('sf_instance_url');
+
+      if (!access_token || !instance_url) {
+        console.log('No Salesforce credentials found');
+        return;
+      }
+
+      try {
+        console.log('Testing Salesforce scraping...');
+        const { data, error } = await supabase.functions.invoke('salesforce-scrape', {
+          body: { access_token, instance_url }
+        });
+
+        if (error) throw error;
+        console.log('Scraped data:', data);
+
+        toast({
+          title: "Scraping Test",
+          description: "Check console for scraped data",
+        });
+      } catch (error) {
+        console.error('Scraping error:', error);
+        toast({
+          title: "Scraping Error",
+          description: error instanceof Error ? error.message : "Failed to scrape Salesforce data",
+          variant: "destructive"
+        });
+      }
+    };
+
+    testScraping();
+  }, [toast]);
 
   if (isLoading) {
     return (

@@ -1,0 +1,25 @@
+project_id = "pnzdzneuynkyzfjwheej"
+
+[functions.salesforce-auth]
+verify_jwt = false
+
+[functions.salesforce-limits]
+verify_jwt = false
+
+[functions.salesforce-licenses]
+verify_jwt = false
+
+[functions.salesforce-metrics]
+verify_jwt = false
+
+[functions.salesforce-sandboxes]
+verify_jwt = false
+
+[functions.salesforce-users]
+verify_jwt = false
+
+[functions.salesforce-validate]
+verify_jwt = false
+
+[functions.salesforce-scrape]
+verify_jwt = false
