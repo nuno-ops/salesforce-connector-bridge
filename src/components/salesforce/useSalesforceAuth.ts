@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Hardcode the redirect URI to match exactly what's configured in Salesforce
-const REDIRECT_URI = 'https://flyerclub.lightning.force.com/salesforce/callback';
+// Update the redirect URI to use the application's domain
+const REDIRECT_URI = `${window.location.origin}/salesforce/callback`;
 
 export const initiateOAuthFlow = (clientId: string) => {
   // Store client ID temporarily for the callback
@@ -14,6 +14,10 @@ export const initiateOAuthFlow = (clientId: string) => {
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
   authUrl.searchParams.append('scope', 'api refresh_token offline_access');
   authUrl.searchParams.append('state', crypto.randomUUID()); // For CSRF protection
+
+  // Log the redirect URL for debugging
+  console.log('Redirecting to:', authUrl.toString());
+  console.log('Redirect URI:', REDIRECT_URI);
 
   // Redirect to Salesforce login
   window.location.href = authUrl.toString();
