@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Update redirect URI to match local development URL
-const REDIRECT_URI = 'http://localhost:8080/salesforce/callback';
+// Update redirect URI to match production bridge URL
+const REDIRECT_URI = 'https://salesforce-connector-bridge.lovable.app/';
 
 export const initiateOAuthFlow = (clientId: string) => {
   // Store client ID temporarily for the callback
