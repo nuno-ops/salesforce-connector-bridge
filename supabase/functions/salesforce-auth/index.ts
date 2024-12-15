@@ -30,11 +30,20 @@ serve(async (req) => {
       );
     }
 
-    // Combine password and security token as required by Salesforce
+    // Combine password and security token
     const passwordWithToken = `${password}${securityToken}`;
-    console.log('Password + Token length:', passwordWithToken.length);
-    console.log('Individual lengths - Password:', password.length, 'Token:', securityToken.length);
+    
+    // Log credential lengths for debugging (no sensitive data)
+    console.log('Credentials structure:', {
+      username: username,
+      passwordLength: password.length,
+      tokenLength: securityToken.length,
+      combinedLength: passwordWithToken.length,
+      clientIdLength: clientId.length,
+      clientSecretLength: clientSecret.length
+    });
 
+    // Prepare form data
     const formData = new URLSearchParams();
     formData.append('grant_type', 'password');
     formData.append('client_id', clientId);
@@ -44,14 +53,8 @@ serve(async (req) => {
 
     console.log('Making request to Salesforce OAuth endpoint...');
     console.log('Request URL:', 'https://login.salesforce.com/services/oauth2/token');
-    console.log('Form data structure:', {
-      grant_type: 'password',
-      client_id: `${clientId.substring(0, 4)}...`,
-      client_secret: `${clientSecret.substring(0, 4)}...`,
-      username: username,
-      password_length: passwordWithToken.length
-    });
 
+    // Make request to Salesforce
     const response = await fetch('https://login.salesforce.com/services/oauth2/token', {
       method: 'POST',
       headers: {
