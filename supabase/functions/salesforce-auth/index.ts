@@ -22,7 +22,14 @@ serve(async (req) => {
       throw new Error('Missing required parameters')
     }
 
-    console.log('Exchanging authorization code for access token...')
+console.log('Exchanging authorization code for access token with parameters:');
+console.log({
+  grant_type: grantType,
+  code: code,
+  client_id: clientId,
+  client_secret: clientSecret,
+  redirect_uri: redirectUri.trim(),
+});
 
     // Prepare form data for token request
     const formData = new URLSearchParams()
@@ -30,7 +37,7 @@ serve(async (req) => {
     formData.append('code', code)
     formData.append('client_id', clientId)
     formData.append('client_secret', clientSecret)
-    formData.append('redirect_uri', 'https://flyerclub.my.salesforce.com/salesforce/callback'); // Hardcoded for consistency
+    formData.append('redirect_uri', redirectUri.trim());
 
     // Exchange authorization code for access token
     const response = await fetch('https://login.salesforce.com/services/oauth2/token', {
