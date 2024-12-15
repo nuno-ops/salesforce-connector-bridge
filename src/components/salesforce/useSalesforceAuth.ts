@@ -19,8 +19,8 @@ export const initiateOAuthFlow = (clientId: string) => {
   console.log('Redirecting to:', authUrl.toString());
   console.log('Redirect URI:', REDIRECT_URI);
 
-  // Redirect to Salesforce login
-  window.location.href = authUrl.toString();
+  // Open in a new window/tab instead of redirecting within the iframe
+  window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
 };
 
 export const handleOAuthCallback = async (code: string) => {
