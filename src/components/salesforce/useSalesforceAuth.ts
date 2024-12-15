@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Update the redirect URI to use the application's domain
-const REDIRECT_URI = `${window.location.origin}/salesforce/callback`;
+// Hardcode the redirect URI to match Salesforce Connected App configuration
+const REDIRECT_URI = 'https://flyerclub.my.salesforce.com/salesforce/callback';
 
 export const initiateOAuthFlow = (clientId: string) => {
   // Store client ID temporarily for the callback
