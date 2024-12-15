@@ -25,13 +25,17 @@ serve(async (req) => {
     const url = `${instance_url}/lightning/o/SalesforceContract/list?filterName=ActiveContracts`;
     console.log('Attempting to scrape URL:', url);
 
+    // Set the necessary headers for the request
+    const requestHeaders = {
+      'Authorization': `Bearer ${access_token}`,
+      'Cookie': `sid=${access_token}` // Salesforce uses both Bearer token and cookie auth
+    };
+
+    // Make the request to Firecrawl API with the headers included in the request
     const response = await firecrawl.crawlUrl(url, {
       limit: 1,
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Cookie': `sid=${access_token}` // Salesforce uses both Bearer token and cookie auth
-      }
-    });
+      // Other options as needed
+    }, requestHeaders);
 
     console.log('Firecrawl response:', response);
 
