@@ -13,7 +13,10 @@ serve(async (req) => {
 
   try {
     // Parse incoming request body
-    const { code, clientId, clientSecret, redirectUri, grantType } = await req.json();
+    const { code, clientId, clientSecret, redirectUri } = await req.json();
+
+    // Set the grant_type to authorization_code explicitly
+    const grantType = 'authorization_code';
 
     // Log incoming parameters for debugging
     console.log('Incoming request parameters:', {
@@ -25,8 +28,8 @@ serve(async (req) => {
     });
 
     // Validate required parameters
-    if (!code || !clientId || !clientSecret || !redirectUri || !grantType) {
-      console.error('Missing required parameters:', { code, clientId, redirectUri, grantType });
+    if (!code || !clientId || !clientSecret || !redirectUri) {
+      console.error('Missing required parameters:', { code, clientId, redirectUri });
       return new Response(
         JSON.stringify({ error: 'Missing required parameters', success: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -41,7 +44,7 @@ serve(async (req) => {
     formData.append('code', code);
     formData.append('client_id', clientId);
     formData.append('client_secret', clientSecret);
-    formData.append('redirect_uri', redirectUri.trim());
+    formData.append('redirect_uri', redirectUri); // Must match connected app callback exactly
 
     // Log the full request before sending it to Salesforce
     console.log('POST request details:', {
