@@ -14,13 +14,15 @@ serve(async (req) => {
   try {
     const { code, clientId, clientSecret, redirectUri, grantType } = await req.json()
 
+    // Log incoming parameters for debugging
+    console.log('Incoming request parameters:', { code, clientId, redirectUri, grantType });
+
     // Validate required parameters
     if (!code || !clientId || !clientSecret || !redirectUri || !grantType) {
       throw new Error('Missing required parameters')
     }
 
     console.log('Exchanging authorization code for access token...')
-    console.log('Redirect URI:', redirectUri)
 
     // Prepare form data for token request
     const formData = new URLSearchParams()
@@ -28,7 +30,7 @@ serve(async (req) => {
     formData.append('code', code)
     formData.append('client_id', clientId)
     formData.append('client_secret', clientSecret)
-    formData.append('redirect_uri', redirectUri)
+    formData.append('redirect_uri', 'https://flyerclub.my.salesforce.com/salesforce/callback'); // Hardcoded for consistency
 
     // Exchange authorization code for access token
     const response = await fetch('https://login.salesforce.com/services/oauth2/token', {
@@ -39,8 +41,15 @@ serve(async (req) => {
       body: formData.toString(),
     })
 
-    const data = await response.json()
-    console.log('Token exchange response status:', response.status)
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('Failed to parse response JSON:', jsonError);
+      throw new Error('Invalid response from Salesforce token endpoint');
+    }
+
+    console.log('Token exchange response:', { status: response.status, body: data });
 
     if (!response.ok) {
       console.error('Token exchange error:', {
