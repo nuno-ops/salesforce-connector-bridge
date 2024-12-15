@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Update redirect URI to match Lovable's public URL for this project
-const REDIRECT_URI = 'https://lovable.dev/projects/3ec2123c-3113-4939-b3ab-13443cec0999/salesforce/callback';
+// Update redirect URI to match local development URL
+const REDIRECT_URI = 'http://localhost:8080/salesforce/callback';
 
 export const initiateOAuthFlow = (clientId: string) => {
   // Store client ID temporarily for the callback
