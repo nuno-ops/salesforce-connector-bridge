@@ -1,17 +1,18 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const REDIRECT_URI = `${window.location.origin}/salesforce/callback`;
+// Hardcode the redirect URI to match exactly what's configured in Salesforce
+const REDIRECT_URI = 'https://flyerclub.lightning.force.com/salesforce/callback';
 
 export const initiateOAuthFlow = (clientId: string) => {
-  // Store client ID and secret in localStorage for the callback
+  // Store client ID temporarily for the callback
   localStorage.setItem('sf_temp_client_id', clientId);
   
-  // Construct the authorization URL
+  // Construct the authorization URL for production Salesforce
   const authUrl = new URL('https://login.salesforce.com/services/oauth2/authorize');
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('client_id', clientId);
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
-  authUrl.searchParams.append('scope', 'api refresh_token');
+  authUrl.searchParams.append('scope', 'api refresh_token offline_access');
   authUrl.searchParams.append('state', crypto.randomUUID()); // For CSRF protection
 
   // Redirect to Salesforce login
