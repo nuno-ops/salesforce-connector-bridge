@@ -8,7 +8,7 @@ export const initiateOAuthFlow = (clientId: string) => {
   localStorage.setItem('sf_temp_client_id', clientId);
   
   // Construct the authorization URL for production Salesforce
-  const authUrl = new URL('https://login.salesforce.com/services/oauth2/authorize');
+  const authUrl = new URL('https://flyerclub.my.salesforce.com/services/oauth2/authorize');
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('client_id', clientId);
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
