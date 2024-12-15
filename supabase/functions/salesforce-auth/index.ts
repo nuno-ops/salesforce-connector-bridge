@@ -12,44 +12,42 @@ serve(async (req) => {
   }
 
   try {
-    const { username, password, securityToken, clientId, clientSecret } = await req.json();
-    console.log('Received authentication request for user:', username);
+    const { code, clientId, clientSecret, redirectUri, grantType } = await req.json();
 
     // Validate inputs
-    if (!username || !password || !securityToken || !clientId || !clientSecret) {
+    if (!clientId || !clientSecret) {
       console.error('Missing required credentials');
       return new Response(
         JSON.stringify({ 
-          error: 'All credentials are required',
+          error: 'Client ID and Secret are required',
           success: false 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
+          status: 400
         }
       );
     }
 
-    // Combine password and security token
-    const passwordWithToken = `${password}${securityToken}`;
-    
     // Log credential lengths for debugging (no sensitive data)
     console.log('Credentials structure:', {
-      username: username,
-      passwordLength: password.length,
-      tokenLength: securityToken.length,
-      combinedLength: passwordWithToken.length,
       clientIdLength: clientId.length,
-      clientSecretLength: clientSecret.length
+      clientSecretLength: clientSecret.length,
+      grantType,
+      hasCode: Boolean(code),
+      redirectUri
     });
 
     // Prepare form data
     const formData = new URLSearchParams();
-    formData.append('grant_type', 'password');
+    formData.append('grant_type', grantType);
     formData.append('client_id', clientId);
     formData.append('client_secret', clientSecret);
-    formData.append('username', username);
-    formData.append('password', passwordWithToken);
+
+    if (grantType === 'authorization_code') {
+      formData.append('code', code);
+      formData.append('redirect_uri', redirectUri);
+    }
 
     console.log('Making request to Salesforce OAuth endpoint...');
     console.log('Request URL:', 'https://login.salesforce.com/services/oauth2/token');
@@ -81,7 +79,7 @@ serve(async (req) => {
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
+          status: response.status
         }
       );
     }
@@ -104,7 +102,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 500,
       }
     );
   }

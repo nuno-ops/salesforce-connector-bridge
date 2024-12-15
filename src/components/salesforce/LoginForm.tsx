@@ -5,9 +5,6 @@ import { Loader2 } from 'lucide-react';
 
 interface LoginFormProps {
   onSubmit: (credentials: {
-    username: string;
-    password: string;
-    securityToken: string;
     clientId: string;
     clientSecret: string;
   }) => Promise<void>;
@@ -16,9 +13,6 @@ interface LoginFormProps {
 
 export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
   const [credentials, setCredentials] = useState({
-    username: '',
-    password: '',
-    securityToken: '',
     clientId: '',
     clientSecret: '',
   });
@@ -62,52 +56,6 @@ export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
           placeholder="Connected App Client Secret"
           required
           value={credentials.clientSecret}
-          onChange={handleChange}
-          className="w-full"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="username" className="text-sm font-medium">
-          Username
-        </label>
-        <Input
-          id="username"
-          name="username"
-          type="email"
-          placeholder="your.email@company.com"
-          required
-          value={credentials.username}
-          onChange={handleChange}
-          className="w-full"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          Password
-        </label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          required
-          value={credentials.password}
-          onChange={handleChange}
-          className="w-full"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="securityToken" className="text-sm font-medium">
-          Security Token
-        </label>
-        <Input
-          id="securityToken"
-          name="securityToken"
-          type="password"
-          required
-          value={credentials.securityToken}
           onChange={handleChange}
           className="w-full"
         />

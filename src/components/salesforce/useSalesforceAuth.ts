@@ -1,5 +1,55 @@
 import { supabase } from '@/integrations/supabase/client';
 
+const REDIRECT_URI = `${window.location.origin}/salesforce/callback`;
+
+export const initiateOAuthFlow = (clientId: string) => {
+  // Store client ID and secret in localStorage for the callback
+  localStorage.setItem('sf_temp_client_id', clientId);
+  
+  // Construct the authorization URL
+  const authUrl = new URL('https://login.salesforce.com/services/oauth2/authorize');
+  authUrl.searchParams.append('response_type', 'code');
+  authUrl.searchParams.append('client_id', clientId);
+  authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
+  authUrl.searchParams.append('scope', 'api refresh_token');
+  authUrl.searchParams.append('state', crypto.randomUUID()); // For CSRF protection
+
+  // Redirect to Salesforce login
+  window.location.href = authUrl.toString();
+};
+
+export const handleOAuthCallback = async (code: string) => {
+  const clientId = localStorage.getItem('sf_temp_client_id');
+  const clientSecret = localStorage.getItem('sf_temp_client_secret');
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing client credentials');
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('salesforce-auth', {
+      body: { 
+        code,
+        clientId,
+        clientSecret,
+        redirectUri: REDIRECT_URI,
+        grantType: 'authorization_code'
+      }
+    });
+
+    if (error) throw error;
+
+    // Clear temporary storage
+    localStorage.removeItem('sf_temp_client_id');
+    localStorage.removeItem('sf_temp_client_secret');
+
+    return data;
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    throw error;
+  }
+};
+
 export const validateToken = async (access_token: string, instance_url: string) => {
   if (!access_token || !instance_url) {
     console.error('Missing token or instance URL');
@@ -11,82 +61,10 @@ export const validateToken = async (access_token: string, instance_url: string) 
       body: { access_token, instance_url }
     });
 
-    if (error) {
-      console.error('Token validation error:', error);
-      throw error;
-    }
-
-    console.log('Token validation response:', data);
+    if (error) throw error;
     return data.isValid;
   } catch (error) {
     console.error('Token validation error:', error);
-    if (error.response?.status === 401) {
-      localStorage.removeItem('sf_access_token');
-      localStorage.removeItem('sf_instance_url');
-      localStorage.removeItem('sf_token_timestamp');
-    }
     return false;
-  }
-};
-
-export const authenticateSalesforce = async (credentials: {
-  username: string;
-  password: string;
-  securityToken: string;
-  clientId: string;
-  clientSecret: string;
-}) => {
-  try {
-    console.log('Starting Salesforce authentication...');
-    console.log('Credentials being used:', {
-      username: credentials.username,
-      passwordLength: credentials.password?.length || 0,
-      tokenLength: credentials.securityToken?.length || 0,
-      clientIdLength: credentials.clientId?.length || 0,
-      clientSecretLength: credentials.clientSecret?.length || 0
-    });
-    
-    if (!credentials.username || !credentials.password || !credentials.securityToken || 
-        !credentials.clientId || !credentials.clientSecret) {
-      throw new Error('All credentials are required');
-    }
-
-    // Log the structure of the request (without sensitive data)
-    console.log('Sending authentication request with credentials structure:', {
-      username: 'present',
-      password: credentials.password ? 'present' : 'missing',
-      securityToken: credentials.securityToken ? 'present' : 'missing',
-      clientId: credentials.clientId ? 'present' : 'missing',
-      clientSecret: credentials.clientSecret ? 'present' : 'missing'
-    });
-
-    const { data, error } = await supabase.functions.invoke('salesforce-auth', {
-      body: credentials
-    });
-
-    if (error) {
-      console.error('Supabase function error:', error);
-      throw error;
-    }
-
-    console.log('Authentication response:', data);
-
-    if (!data.success) {
-      throw new Error(data.error_description || data.error || 'Authentication failed');
-    }
-
-    if (!data.access_token || !data.instance_url) {
-      throw new Error('Invalid response from authentication service');
-    }
-
-    const isValid = await validateToken(data.access_token, data.instance_url);
-    if (!isValid) {
-      throw new Error('Invalid token received from authentication');
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Authentication error:', error);
-    throw error;
   }
 };
