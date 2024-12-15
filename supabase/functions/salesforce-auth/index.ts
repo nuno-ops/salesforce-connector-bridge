@@ -1,114 +1,130 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
+// Replace these with your actual Salesforce Connected App credentials
+const CLIENT_ID = '3MVG9HB6vm3GZZR_g7DCdRFENCjjYIENLJAjXWjSoYtB7lypY.ZE04YZJEGcRPC3TnStfc4f2YcVL84nl7NAR';
+const CLIENT_SECRET = 'YOUR_CLIENT_SECRET'; // Replace with your actual Client Secret
+const REDIRECT_URI = 'https://lovable.dev/projects/3ec2123c-3113-4939-b3ab-13443cec0999/salesforce/callback';
+const SALESFORCE_AUTH_URL = 'https://login.salesforce.com/services/oauth2/authorize';
+const SALESFORCE_TOKEN_URL = 'https://login.salesforce.com/services/oauth2/token';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Utility function to generate a random state parameter for CSRF protection
+function generateState(): string {
+  return crypto.randomUUID();
+}
+
+// Function to construct the Salesforce authorization URL
+function getAuthorizationUrl(state: string): string {
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    scope: 'api refresh_token offline_access',
+    state: state,
+  });
+
+  return `${SALESFORCE_AUTH_URL}?${params.toString()}`;
+}
+
 serve(async (req) => {
+  const url = new URL(req.url);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    // Parse incoming request body
-    const { code, clientId, clientSecret, redirectUri } = await req.json();
+  // Endpoint to initiate OAuth flow
+  if (req.method === 'GET' && url.pathname === '/auth') {
+    const state = generateState();
 
-    // Set the grant_type to authorization_code explicitly
-    const grantType = 'authorization_code';
+    // TODO: Store the state parameter in a session or database to validate later
+    // This example does not implement state storage for simplicity
 
-    // Log incoming parameters for debugging
-    console.log('Incoming request parameters:', {
-      code,
-      clientId,
-      clientSecret: '********', // Mask sensitive data
-      redirectUri,
-      grantType,
-    });
+    const authorizationUrl = getAuthorizationUrl(state);
 
-    // Validate required parameters
-    if (!code || !clientId || !clientSecret || !redirectUri) {
-      console.error('Missing required parameters:', { code, clientId, redirectUri });
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameters', success: false }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    // Redirect the user to Salesforce's authorization URL
+    return Response.redirect(authorizationUrl, 302);
+  }
+
+  // Callback endpoint to handle Salesforce's redirect
+  if (req.method === 'GET' && url.pathname === '/salesforce/callback') {
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+
+    if (!code) {
+      return new Response('Missing code parameter', { status: 400 });
     }
 
-    console.log('Preparing to exchange authorization code for access token...');
+    // TODO: Retrieve and validate the state parameter from session or database
+    // to ensure it matches the one sent in the /auth request
 
-    // Prepare form data for the Salesforce token exchange
-    const formData = new URLSearchParams();
-    formData.append('grant_type', grantType);
-    formData.append('code', code);
-    formData.append('client_id', clientId);
-    formData.append('client_secret', clientSecret);
-    formData.append('redirect_uri', redirectUri); // Must match connected app callback exactly
+    console.log('Received OAuth callback:', { code, state });
 
-    // Log the full request before sending it to Salesforce
-    console.log('POST request details:', {
-      url: 'https://login.salesforce.com/services/oauth2/token',
-      method: 'POST',
-      body: formData.toString(),
+    // Exchange the authorization code for access and refresh tokens
+    const formData = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: code,
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      redirect_uri: REDIRECT_URI,
     });
 
-    // Send the request to Salesforce's token endpoint
-    const response = await fetch('https://login.salesforce.com/services/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString(),
-    });
-
-    let data;
     try {
-      // Parse the response from Salesforce
-      data = await response.json();
-    } catch (jsonError) {
-      console.error('Failed to parse response from Salesforce:', jsonError);
-      throw new Error('Invalid response from Salesforce token endpoint');
-    }
-
-    // Log the response from Salesforce
-    console.log('Salesforce token endpoint response:', { status: response.status, body: data });
-
-    // Handle error responses from Salesforce
-    if (!response.ok) {
-      console.error('Error during token exchange:', {
-        status: response.status,
-        error: data.error,
-        description: data.error_description,
+      const tokenResponse = await fetch(SALESFORCE_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
       });
 
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok) {
+        console.error('Error exchanging code for tokens:', tokenData);
+        return new Response(
+          JSON.stringify({
+            error: tokenData.error,
+            error_description: tokenData.error_description,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: tokenResponse.status }
+        );
+      }
+
+      console.log('Successfully obtained tokens:', tokenData);
+
+      // TODO: Store tokens securely (e.g., in a database or encrypted storage)
+      // For demonstration purposes, we'll just return the tokens in the response
+
+      // Respond to the user
+      return new Response(
+        JSON.stringify({ ...tokenData, success: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+
+    } catch (error) {
+      console.error('Exception during token exchange:', error);
       return new Response(
         JSON.stringify({
-          error: data.error,
-          error_description: data.error_description,
-          success: false,
+          error: 'Internal server error',
+          details: error.message,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
-
-    // Return the successful token response
-    console.log('Token exchange successful:', data);
-    return new Response(
-      JSON.stringify({ ...data, success: true }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
-
-  } catch (error) {
-    // Catch unexpected errors and log them
-    console.error('Unexpected error in salesforce-auth function:', error);
-    return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        details: error.message,
-        success: false,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
   }
+
+  // Serve the frontend interface
+  if (req.method === 'GET' && url.pathname === '/') {
+    const html = await Deno.readTextFile('./index.html');
+    return new Response(html, { headers: { 'Content-Type': 'text/html' }, status: 200 });
+  }
+
+  // Handle 404 for other routes
+  return new Response('Not Found', { status: 404 });
 });
