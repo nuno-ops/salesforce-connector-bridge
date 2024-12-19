@@ -20,6 +20,13 @@ export const calculateMonthlyMetrics = (metrics: MonthlyMetrics | null) => {
     const convertedLeads = monthLeads.filter(lead => lead.IsConverted).length;
     const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
+    console.log('Monthly Lead Metrics:', {
+      month: format(month, 'MMM yy'),
+      totalLeads,
+      convertedLeads,
+      conversionRate
+    });
+
     return {
       month: format(month, 'MMM yy'),
       value: Math.round(conversionRate * 10) / 10
