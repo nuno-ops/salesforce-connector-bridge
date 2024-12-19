@@ -37,9 +37,12 @@ serve(async (req) => {
       }
     )
 
-    console.log('Total leads response status:', totalLeadsResponse.status)
+    if (!totalLeadsResponse.ok) {
+      throw new Error(`Total leads query failed: ${totalLeadsResponse.statusText}`)
+    }
+
     const totalLeads = await totalLeadsResponse.json()
-    console.log('Total leads response data:', JSON.stringify(totalLeads, null, 2))
+    console.log('Total leads response:', totalLeads)
 
     // Query for converted leads
     const convertedLeadsQuery = `
@@ -65,51 +68,57 @@ serve(async (req) => {
       }
     )
 
-    console.log('Converted leads response status:', convertedLeadsResponse.status)
-    const convertedLeads = await convertedLeadsResponse.json()
-    console.log('Converted leads response data:', JSON.stringify(convertedLeads, null, 2))
+    if (!convertedLeadsResponse.ok) {
+      throw new Error(`Converted leads query failed: ${convertedLeadsResponse.statusText}`)
+    }
 
-    // Combine lead data
+    const convertedLeads = await convertedLeadsResponse.json()
+    console.log('Converted leads response:', convertedLeads)
+
+    // Initialize metrics map with total leads
     const leadMetrics = new Map()
     
-    // Initialize with total leads
-    totalLeads.records.forEach(record => {
-      const key = `${record.Year}-${record.Month}`
-      leadMetrics.set(key, {
-        Year: record.Year,
-        Month: record.Month,
-        TotalLeads: record.TotalLeads,
-        ConvertedLeads: 0
-      })
-    })
-
-    // Add converted leads
-    convertedLeads.records.forEach(record => {
-      const key = `${record.Year}-${record.Month}`
-      if (leadMetrics.has(key)) {
-        const existing = leadMetrics.get(key)
-        existing.ConvertedLeads = record.ConvertedLeads
-      } else {
+    if (totalLeads.records) {
+      totalLeads.records.forEach(record => {
+        const key = `${record.Year}-${record.Month}`
         leadMetrics.set(key, {
           Year: record.Year,
           Month: record.Month,
-          TotalLeads: 0,
-          ConvertedLeads: record.ConvertedLeads
+          TotalLeads: record.TotalLeads,
+          ConvertedLeads: 0
         })
-      }
-    })
+      })
+    }
 
-    // Query to get opportunities
+    // Add converted leads data
+    if (convertedLeads.records) {
+      convertedLeads.records.forEach(record => {
+        const key = `${record.Year}-${record.Month}`
+        if (leadMetrics.has(key)) {
+          const existing = leadMetrics.get(key)
+          existing.ConvertedLeads = record.ConvertedLeads
+        } else {
+          leadMetrics.set(key, {
+            Year: record.Year,
+            Month: record.Month,
+            TotalLeads: 0,
+            ConvertedLeads: record.ConvertedLeads
+          })
+        }
+      })
+    }
+
+    // Query for opportunities
     const oppsQuery = `
       SELECT 
-        CALENDAR_MONTH(CloseDate) Month,
         CALENDAR_YEAR(CloseDate) Year,
+        CALENDAR_MONTH(CloseDate) Month,
         COUNT(Id) TotalOpps,
         COUNT(CASE WHEN IsWon = true THEN Id END) WonOpps
       FROM Opportunity 
       WHERE CloseDate = LAST_N_DAYS:180 
       AND IsClosed = true
-      GROUP BY CALENDAR_MONTH(CloseDate), CALENDAR_YEAR(CloseDate)
+      GROUP BY CALENDAR_YEAR(CloseDate), CALENDAR_MONTH(CloseDate)
       ORDER BY Year DESC, Month DESC
     `
 
@@ -124,16 +133,19 @@ serve(async (req) => {
       }
     )
 
-    console.log('Opportunities response status:', oppsResponse.status)
+    if (!oppsResponse.ok) {
+      throw new Error(`Opportunities query failed: ${oppsResponse.statusText}`)
+    }
+
     const opps = await oppsResponse.json()
-    console.log('Opportunities response data:', JSON.stringify(opps, null, 2))
+    console.log('Opportunities response:', opps)
 
     const response = {
       leads: Array.from(leadMetrics.values()),
       opportunities: opps.records || []
     }
 
-    console.log('Final response:', JSON.stringify(response, null, 2))
+    console.log('Final response:', response)
 
     return new Response(
       JSON.stringify(response),
