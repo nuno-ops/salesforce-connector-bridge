@@ -17,13 +17,13 @@ serve(async (req) => {
     // Query for total leads
     const totalLeadsQuery = `
       SELECT 
-        CALENDAR_YEAR(CreatedDate) Year,
-        CALENDAR_MONTH(CreatedDate) Month,
-        COUNT(Id) TotalLeads
+        CALENDAR_YEAR(CreatedDate) expr0,
+        CALENDAR_MONTH(CreatedDate) expr1,
+        COUNT(Id) expr2
       FROM Lead 
       WHERE CreatedDate = LAST_N_DAYS:180 
       GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)
-      ORDER BY Year DESC, Month DESC
+      ORDER BY expr0 DESC, expr1 DESC
     `
 
     console.log('Executing total leads query:', totalLeadsQuery)
@@ -47,14 +47,14 @@ serve(async (req) => {
     // Query for converted leads
     const convertedLeadsQuery = `
       SELECT 
-        CALENDAR_YEAR(CreatedDate) Year,
-        CALENDAR_MONTH(CreatedDate) Month,
-        COUNT(Id) ConvertedLeads
+        CALENDAR_YEAR(CreatedDate) expr0,
+        CALENDAR_MONTH(CreatedDate) expr1,
+        COUNT(Id) expr2
       FROM Lead 
       WHERE CreatedDate = LAST_N_DAYS:180 
       AND IsConverted = TRUE
       GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)
-      ORDER BY Year DESC, Month DESC
+      ORDER BY expr0 DESC, expr1 DESC
     `
 
     console.log('Executing converted leads query:', convertedLeadsQuery)
@@ -80,11 +80,11 @@ serve(async (req) => {
     
     if (totalLeads.records) {
       totalLeads.records.forEach(record => {
-        const key = `${record.Year}-${record.Month}`
+        const key = `${record.expr0}-${record.expr1}`
         leadMetrics.set(key, {
-          Year: record.Year,
-          Month: record.Month,
-          TotalLeads: record.TotalLeads,
+          Year: record.expr0,
+          Month: record.expr1,
+          TotalLeads: record.expr2,
           ConvertedLeads: 0
         })
       })
@@ -93,16 +93,16 @@ serve(async (req) => {
     // Add converted leads data
     if (convertedLeads.records) {
       convertedLeads.records.forEach(record => {
-        const key = `${record.Year}-${record.Month}`
+        const key = `${record.expr0}-${record.expr1}`
         if (leadMetrics.has(key)) {
           const existing = leadMetrics.get(key)
-          existing.ConvertedLeads = record.ConvertedLeads
+          existing.ConvertedLeads = record.expr2
         } else {
           leadMetrics.set(key, {
-            Year: record.Year,
-            Month: record.Month,
+            Year: record.expr0,
+            Month: record.expr1,
             TotalLeads: 0,
-            ConvertedLeads: record.ConvertedLeads
+            ConvertedLeads: record.expr2
           })
         }
       })
@@ -111,15 +111,15 @@ serve(async (req) => {
     // Query for opportunities
     const oppsQuery = `
       SELECT 
-        CALENDAR_YEAR(CloseDate) Year,
-        CALENDAR_MONTH(CloseDate) Month,
-        COUNT(Id) TotalOpps,
-        COUNT(CASE WHEN IsWon = true THEN Id END) WonOpps
+        CALENDAR_YEAR(CloseDate) expr0,
+        CALENDAR_MONTH(CloseDate) expr1,
+        COUNT(Id) expr2,
+        COUNT(CASE WHEN IsWon = true THEN Id END) expr3
       FROM Opportunity 
       WHERE CloseDate = LAST_N_DAYS:180 
       AND IsClosed = true
       GROUP BY CALENDAR_YEAR(CloseDate), CALENDAR_MONTH(CloseDate)
-      ORDER BY Year DESC, Month DESC
+      ORDER BY expr0 DESC, expr1 DESC
     `
 
     console.log('Executing opportunities query:', oppsQuery)
@@ -140,9 +140,17 @@ serve(async (req) => {
     const opps = await oppsResponse.json()
     console.log('Opportunities response:', opps)
 
+    // Transform opportunities data
+    const opportunityMetrics = opps.records ? opps.records.map(record => ({
+      Year: record.expr0,
+      Month: record.expr1,
+      TotalOpps: record.expr2,
+      WonOpps: record.expr3
+    })) : []
+
     const response = {
       leads: Array.from(leadMetrics.values()),
-      opportunities: opps.records || []
+      opportunities: opportunityMetrics
     }
 
     console.log('Final response:', response)
@@ -151,6 +159,7 @@ serve(async (req) => {
       JSON.stringify(response),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       }
     )
   } catch (error) {
