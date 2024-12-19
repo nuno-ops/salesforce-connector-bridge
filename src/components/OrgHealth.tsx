@@ -6,6 +6,7 @@ import { useContractsData } from './org-health/useContractsData';
 import { MetricsSection } from './org-health/MetricsSection';
 import { LimitsSection } from './org-health/LimitsSection';
 import { LicensesSection } from './org-health/LicensesSection';
+import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from './org-health/utils';
 
 export const OrgHealth = () => {
   const {
