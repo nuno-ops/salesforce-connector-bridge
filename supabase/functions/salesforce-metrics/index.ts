@@ -12,25 +12,23 @@ serve(async (req) => {
 
   try {
     const { access_token, instance_url } = await req.json()
-    console.log('Received request with instance URL:', instance_url);
+    console.log('Received request with instance URL:', instance_url)
 
-    // Query to get leads grouped by month
-    const leadsQuery = `
+    // Query for total leads
+    const totalLeadsQuery = `
       SELECT 
-        CALENDAR_MONTH(CreatedDate) Month,
         CALENDAR_YEAR(CreatedDate) Year,
-        COUNT(Id) TotalLeads,
-        COUNT(CASE WHEN IsConverted = true THEN Id END) ConvertedLeads
+        CALENDAR_MONTH(CreatedDate) Month,
+        COUNT(Id) TotalLeads
       FROM Lead 
       WHERE CreatedDate = LAST_N_DAYS:180 
-      GROUP BY CALENDAR_MONTH(CreatedDate), CALENDAR_YEAR(CreatedDate)
+      GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)
       ORDER BY Year DESC, Month DESC
     `
 
-    console.log('Executing leads query:', leadsQuery);
-
-    const leadsResponse = await fetch(
-      `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(leadsQuery)}`,
+    console.log('Executing total leads query:', totalLeadsQuery)
+    const totalLeadsResponse = await fetch(
+      `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(totalLeadsQuery)}`,
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -39,11 +37,69 @@ serve(async (req) => {
       }
     )
 
-    console.log('Leads response status:', leadsResponse.status);
-    const leads = await leadsResponse.json()
-    console.log('Leads response data:', JSON.stringify(leads, null, 2));
+    console.log('Total leads response status:', totalLeadsResponse.status)
+    const totalLeads = await totalLeadsResponse.json()
+    console.log('Total leads response data:', JSON.stringify(totalLeads, null, 2))
 
-    // Query to get opportunities grouped by month
+    // Query for converted leads
+    const convertedLeadsQuery = `
+      SELECT 
+        CALENDAR_YEAR(CreatedDate) Year,
+        CALENDAR_MONTH(CreatedDate) Month,
+        COUNT(Id) ConvertedLeads
+      FROM Lead 
+      WHERE CreatedDate = LAST_N_DAYS:180 
+      AND IsConverted = TRUE
+      GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)
+      ORDER BY Year DESC, Month DESC
+    `
+
+    console.log('Executing converted leads query:', convertedLeadsQuery)
+    const convertedLeadsResponse = await fetch(
+      `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(convertedLeadsQuery)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    console.log('Converted leads response status:', convertedLeadsResponse.status)
+    const convertedLeads = await convertedLeadsResponse.json()
+    console.log('Converted leads response data:', JSON.stringify(convertedLeads, null, 2))
+
+    // Combine lead data
+    const leadMetrics = new Map()
+    
+    // Initialize with total leads
+    totalLeads.records.forEach(record => {
+      const key = `${record.Year}-${record.Month}`
+      leadMetrics.set(key, {
+        Year: record.Year,
+        Month: record.Month,
+        TotalLeads: record.TotalLeads,
+        ConvertedLeads: 0
+      })
+    })
+
+    // Add converted leads
+    convertedLeads.records.forEach(record => {
+      const key = `${record.Year}-${record.Month}`
+      if (leadMetrics.has(key)) {
+        const existing = leadMetrics.get(key)
+        existing.ConvertedLeads = record.ConvertedLeads
+      } else {
+        leadMetrics.set(key, {
+          Year: record.Year,
+          Month: record.Month,
+          TotalLeads: 0,
+          ConvertedLeads: record.ConvertedLeads
+        })
+      }
+    })
+
+    // Query to get opportunities
     const oppsQuery = `
       SELECT 
         CALENDAR_MONTH(CloseDate) Month,
@@ -57,8 +113,7 @@ serve(async (req) => {
       ORDER BY Year DESC, Month DESC
     `
 
-    console.log('Executing opportunities query:', oppsQuery);
-
+    console.log('Executing opportunities query:', oppsQuery)
     const oppsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(oppsQuery)}`,
       {
@@ -69,16 +124,16 @@ serve(async (req) => {
       }
     )
 
-    console.log('Opportunities response status:', oppsResponse.status);
+    console.log('Opportunities response status:', oppsResponse.status)
     const opps = await oppsResponse.json()
-    console.log('Opportunities response data:', JSON.stringify(opps, null, 2));
+    console.log('Opportunities response data:', JSON.stringify(opps, null, 2))
 
     const response = {
-      leads: leads.records || [],
-      opportunities: opps.records || [],
-    };
+      leads: Array.from(leadMetrics.values()),
+      opportunities: opps.records || []
+    }
 
-    console.log('Final response:', JSON.stringify(response, null, 2));
+    console.log('Final response:', JSON.stringify(response, null, 2))
 
     return new Response(
       JSON.stringify(response),
@@ -87,7 +142,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error in salesforce-metrics function:', error);
+    console.error('Error in salesforce-metrics function:', error)
     return new Response(
       JSON.stringify({ 
         error: error.message,
