@@ -12,6 +12,7 @@ serve(async (req) => {
 
   try {
     const { access_token, instance_url } = await req.json()
+    console.log('Received request with instance URL:', instance_url);
 
     // Query to get leads grouped by month
     const leadsQuery = `
@@ -26,16 +27,21 @@ serve(async (req) => {
       ORDER BY Year DESC, Month DESC
     `
 
+    console.log('Executing leads query:', leadsQuery);
+
     const leadsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(leadsQuery)}`,
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
         },
       }
     )
 
+    console.log('Leads response status:', leadsResponse.status);
     const leads = await leadsResponse.json()
+    console.log('Leads response data:', JSON.stringify(leads, null, 2));
 
     // Query to get opportunities grouped by month
     const oppsQuery = `
@@ -51,33 +57,42 @@ serve(async (req) => {
       ORDER BY Year DESC, Month DESC
     `
 
+    console.log('Executing opportunities query:', oppsQuery);
+
     const oppsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(oppsQuery)}`,
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
         },
       }
     )
 
+    console.log('Opportunities response status:', oppsResponse.status);
     const opps = await oppsResponse.json()
+    console.log('Opportunities response data:', JSON.stringify(opps, null, 2));
 
-    console.log('Leads data:', leads.records)
-    console.log('Opportunities data:', opps.records)
+    const response = {
+      leads: leads.records || [],
+      opportunities: opps.records || [],
+    };
+
+    console.log('Final response:', JSON.stringify(response, null, 2));
 
     return new Response(
-      JSON.stringify({
-        leads: leads.records,
-        opportunities: opps.records,
-      }),
+      JSON.stringify(response),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in salesforce-metrics function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
