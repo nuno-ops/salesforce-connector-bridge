@@ -108,13 +108,12 @@ serve(async (req) => {
       })
     }
 
-    // Query for opportunities
-    const oppsQuery = `
+    // Query for total opportunities
+    const totalOppsQuery = `
       SELECT 
         CALENDAR_YEAR(CloseDate) yearClosed,
         CALENDAR_MONTH(CloseDate) monthClosed,
-        COUNT(Id) totalOpps,
-        COUNT(CASE WHEN IsWon = true THEN Id END) wonOpps
+        COUNT(Id) totalCount
       FROM Opportunity 
       WHERE CloseDate = LAST_N_DAYS:180 
       AND IsClosed = true
@@ -122,9 +121,9 @@ serve(async (req) => {
       ORDER BY CALENDAR_YEAR(CloseDate) DESC, CALENDAR_MONTH(CloseDate) DESC
     `
 
-    console.log('Executing opportunities query:', oppsQuery)
-    const oppsResponse = await fetch(
-      `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(oppsQuery)}`,
+    console.log('Executing total opportunities query:', totalOppsQuery)
+    const totalOppsResponse = await fetch(
+      `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(totalOppsQuery)}`,
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -133,24 +132,81 @@ serve(async (req) => {
       }
     )
 
-    if (!oppsResponse.ok) {
-      throw new Error(`Opportunities query failed: ${oppsResponse.statusText}`)
+    if (!totalOppsResponse.ok) {
+      throw new Error(`Total opportunities query failed: ${totalOppsResponse.statusText}`)
     }
 
-    const opps = await oppsResponse.json()
-    console.log('Opportunities response:', opps)
+    const totalOpps = await totalOppsResponse.json()
+    console.log('Total opportunities response:', totalOpps)
 
-    // Transform opportunities data
-    const opportunityMetrics = opps.records ? opps.records.map(record => ({
-      Year: record.yearClosed,
-      Month: record.monthClosed,
-      TotalOpps: record.totalOpps,
-      WonOpps: record.wonOpps
-    })) : []
+    // Query for won opportunities
+    const wonOppsQuery = `
+      SELECT 
+        CALENDAR_YEAR(CloseDate) yearClosed,
+        CALENDAR_MONTH(CloseDate) monthClosed,
+        COUNT(Id) wonCount
+      FROM Opportunity 
+      WHERE CloseDate = LAST_N_DAYS:180 
+      AND IsClosed = true
+      AND IsWon = true
+      GROUP BY CALENDAR_YEAR(CloseDate), CALENDAR_MONTH(CloseDate)
+      ORDER BY CALENDAR_YEAR(CloseDate) DESC, CALENDAR_MONTH(CloseDate) DESC
+    `
+
+    console.log('Executing won opportunities query:', wonOppsQuery)
+    const wonOppsResponse = await fetch(
+      `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(wonOppsQuery)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (!wonOppsResponse.ok) {
+      throw new Error(`Won opportunities query failed: ${wonOppsResponse.statusText}`)
+    }
+
+    const wonOpps = await wonOppsResponse.json()
+    console.log('Won opportunities response:', wonOpps)
+
+    // Initialize opportunity metrics map
+    const oppMetrics = new Map()
+    
+    if (totalOpps.records) {
+      totalOpps.records.forEach(record => {
+        const key = `${record.yearClosed}-${record.monthClosed}`
+        oppMetrics.set(key, {
+          Year: record.yearClosed,
+          Month: record.monthClosed,
+          TotalOpps: record.totalCount,
+          WonOpps: 0
+        })
+      })
+    }
+
+    // Add won opportunities data
+    if (wonOpps.records) {
+      wonOpps.records.forEach(record => {
+        const key = `${record.yearClosed}-${record.monthClosed}`
+        if (oppMetrics.has(key)) {
+          const existing = oppMetrics.get(key)
+          existing.WonOpps = record.wonCount
+        } else {
+          oppMetrics.set(key, {
+            Year: record.yearClosed,
+            Month: record.monthClosed,
+            TotalOpps: 0,
+            WonOpps: record.wonCount
+          })
+        }
+      })
+    }
 
     const response = {
       leads: Array.from(leadMetrics.values()),
-      opportunities: opportunityMetrics
+      opportunities: Array.from(oppMetrics.values())
     }
 
     console.log('Final response:', response)
