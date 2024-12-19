@@ -11,6 +11,7 @@ export const useOrgHealthData = () => {
   const [permissionSetLicenses, setPermissionSetLicenses] = useState<PermissionSetLicense[]>([]);
   const [metrics, setMetrics] = useState<MonthlyMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -21,18 +22,15 @@ export const useOrgHealthData = () => {
 
       if (!access_token || !instance_url || !timestamp) {
         setIsLoading(false);
+        setError('Salesforce credentials not found');
         return;
       }
 
       // Check token age
       const tokenAge = Date.now() - parseInt(timestamp);
       if (tokenAge > 7200000) { // 2 hours
-        toast({
-          variant: "destructive",
-          title: "Session expired",
-          description: "Your Salesforce session has expired. Please reconnect.",
-        });
-        // Clear storage and return
+        setError('Your Salesforce session has expired. Please reconnect.');
+        // Clear storage
         localStorage.removeItem('sf_access_token');
         localStorage.removeItem('sf_instance_url');
         localStorage.removeItem('sf_token_timestamp');
@@ -41,6 +39,8 @@ export const useOrgHealthData = () => {
       }
 
       try {
+        console.log('Fetching organization data...');
+        
         // Fetch limits
         const limitsResponse = await supabase.functions.invoke('salesforce-limits', {
           body: { access_token, instance_url }
@@ -74,9 +74,16 @@ export const useOrgHealthData = () => {
 
         if (metricsResponse.error) throw metricsResponse.error;
         setMetrics(metricsResponse.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        if (error.message?.includes('INVALID_SESSION_ID')) {
+        
+        console.log('All organization data loaded successfully');
+        setError(null);
+        
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        const errorMessage = err instanceof Error ? err.message : "Failed to load organization data";
+        setError(errorMessage);
+        
+        if (errorMessage.includes('INVALID_SESSION_ID')) {
           localStorage.removeItem('sf_access_token');
           localStorage.removeItem('sf_instance_url');
           localStorage.removeItem('sf_token_timestamp');
@@ -89,7 +96,7 @@ export const useOrgHealthData = () => {
           toast({
             variant: "destructive",
             title: "Error loading organization data",
-            description: error instanceof Error ? error.message : "Failed to load Salesforce organization data.",
+            description: errorMessage,
           });
         }
       } finally {
@@ -107,6 +114,7 @@ export const useOrgHealthData = () => {
     packageLicenses,
     permissionSetLicenses,
     metrics,
-    isLoading
+    isLoading,
+    error
   };
 };
