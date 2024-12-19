@@ -1,13 +1,40 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface CostSavingsReportProps {
-  userLicenses: any[];
-  packageLicenses: any[];
-  permissionSetLicenses: any[];
+  userLicenses: Array<{
+    name: string;
+    total: number;
+    used: number;
+  }>;
+  packageLicenses: Array<{
+    name: string;
+    total: number;
+    used: number;
+    status: string;
+  }>;
+  permissionSetLicenses: Array<{
+    name: string;
+    total: number;
+    used: number;
+  }>;
   inactiveUsers: any[];
   sandboxes: any[];
   apiUsage: number;
   storageUsage: number;
+  contracts: Array<{
+    Id: string;
+    StartDate: string;
+    EndDate: string;
+    SalesforceContractStatus: string;
+    SubscriptionDaysLeft: number;
+  }>;
+  invoices: Array<{
+    Id: string;
+    DueDate: string;
+    SalesforceInvoiceStatus: string;
+    TotalAmount: number;
+    SalesforceContractId: string;
+  }>;
 }
 
 export const CostSavingsReport = ({

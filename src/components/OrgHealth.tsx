@@ -9,10 +9,28 @@ import { useOrgHealthData } from './org-health/useOrgHealthData';
 import { calculateMonthlyMetrics } from './org-health/MetricsCalculator';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+interface Contract {
+  Id: string;
+  StartDate: string;
+  EndDate: string;
+  SalesforceContractStatus: string;
+  SubscriptionDaysLeft: number;
+}
+
+interface Invoice {
+  Id: string;
+  DueDate: string;
+  SalesforceInvoiceStatus: string;
+  TotalAmount: number;
+  SalesforceContractId: string;
+}
 
 export const OrgHealth = () => {
   const { toast } = useToast();
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const {
     limits,
     sandboxes,
@@ -24,7 +42,7 @@ export const OrgHealth = () => {
   } = useOrgHealthData();
 
   useEffect(() => {
-    const testScraping = async () => {
+    const fetchContractsAndInvoices = async () => {
       const access_token = localStorage.getItem('sf_access_token');
       const instance_url = localStorage.getItem('sf_instance_url');
 
@@ -34,29 +52,31 @@ export const OrgHealth = () => {
       }
 
       try {
-        console.log('Testing Salesforce scraping...');
-        const { data, error } = await supabase.functions.invoke('salesforce-scrape', {
+        console.log('Fetching contracts and invoices...');
+        const { data, error } = await supabase.functions.invoke('salesforce-contracts', {
           body: { access_token, instance_url }
         });
 
         if (error) throw error;
-        console.log('Scraped data:', data);
-
+        
+        setContracts(data.contracts || []);
+        setInvoices(data.invoices || []);
+        
         toast({
-          title: "Scraping Test",
-          description: "Check console for scraped data",
+          title: "Contracts and Invoices Loaded",
+          description: `Found ${data.contracts.length} contracts and ${data.invoices.length} invoices.`,
         });
       } catch (error) {
-        console.error('Scraping error:', error);
+        console.error('Error fetching contracts and invoices:', error);
         toast({
-          title: "Scraping Error",
-          description: error instanceof Error ? error.message : "Failed to scrape Salesforce data",
+          title: "Error Loading Data",
+          description: error instanceof Error ? error.message : "Failed to load contracts and invoices",
           variant: "destructive"
         });
       }
     };
 
-    testScraping();
+    fetchContractsAndInvoices();
   }, [toast]);
 
   if (isLoading) {
@@ -85,6 +105,8 @@ export const OrgHealth = () => {
         sandboxes={sandboxes}
         apiUsage={apiUsagePercentage}
         storageUsage={storageUsagePercentage}
+        contracts={contracts}
+        invoices={invoices}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
