@@ -45,6 +45,17 @@ export const OrgHealth = () => {
     contractsError
   });
 
+  console.log('Raw data:', {
+    limits,
+    sandboxes,
+    userLicenses,
+    packageLicenses,
+    permissionSetLicenses,
+    metrics,
+    contracts,
+    invoices
+  });
+
   const isLoading = isLoadingOrgData || isLoadingContracts;
   const error = orgDataError || contractsError;
 
@@ -82,6 +93,14 @@ export const OrgHealth = () => {
   console.log('Calculating usage percentages');
   const apiUsagePercentage = ((limits.DailyApiRequests.Max - limits.DailyApiRequests.Remaining) / limits.DailyApiRequests.Max) * 100;
   const storageUsagePercentage = ((limits.DataStorageMB.Max - limits.DataStorageMB.Remaining) / limits.DataStorageMB.Max) * 100;
+
+  console.log('Preparing to render components with data:', {
+    apiUsagePercentage,
+    storageUsagePercentage,
+    formattedUserLicenses: formatLicenseData(userLicenses),
+    formattedPackageLicenses: formatPackageLicenseData(packageLicenses),
+    formattedPermissionSetLicenses: formatPermissionSetLicenseData(permissionSetLicenses)
+  });
 
   console.log('Rendering full component');
   return (
