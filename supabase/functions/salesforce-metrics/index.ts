@@ -17,13 +17,13 @@ serve(async (req) => {
     // Query for total leads
     const totalLeadsQuery = `
       SELECT 
-        CALENDAR_YEAR(CreatedDate) expr0,
-        CALENDAR_MONTH(CreatedDate) expr1,
-        COUNT(Id) expr2
+        CALENDAR_YEAR(CreatedDate) yearCreated,
+        CALENDAR_MONTH(CreatedDate) monthCreated,
+        COUNT(Id) totalCount
       FROM Lead 
       WHERE CreatedDate = LAST_N_DAYS:180 
       GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)
-      ORDER BY expr0 DESC, expr1 DESC
+      ORDER BY CALENDAR_YEAR(CreatedDate) DESC, CALENDAR_MONTH(CreatedDate) DESC
     `
 
     console.log('Executing total leads query:', totalLeadsQuery)
@@ -47,14 +47,14 @@ serve(async (req) => {
     // Query for converted leads
     const convertedLeadsQuery = `
       SELECT 
-        CALENDAR_YEAR(CreatedDate) expr0,
-        CALENDAR_MONTH(CreatedDate) expr1,
-        COUNT(Id) expr2
+        CALENDAR_YEAR(CreatedDate) yearCreated,
+        CALENDAR_MONTH(CreatedDate) monthCreated,
+        COUNT(Id) convertedCount
       FROM Lead 
       WHERE CreatedDate = LAST_N_DAYS:180 
       AND IsConverted = TRUE
       GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)
-      ORDER BY expr0 DESC, expr1 DESC
+      ORDER BY CALENDAR_YEAR(CreatedDate) DESC, CALENDAR_MONTH(CreatedDate) DESC
     `
 
     console.log('Executing converted leads query:', convertedLeadsQuery)
@@ -80,11 +80,11 @@ serve(async (req) => {
     
     if (totalLeads.records) {
       totalLeads.records.forEach(record => {
-        const key = `${record.expr0}-${record.expr1}`
+        const key = `${record.yearCreated}-${record.monthCreated}`
         leadMetrics.set(key, {
-          Year: record.expr0,
-          Month: record.expr1,
-          TotalLeads: record.expr2,
+          Year: record.yearCreated,
+          Month: record.monthCreated,
+          TotalLeads: record.totalCount,
           ConvertedLeads: 0
         })
       })
@@ -93,16 +93,16 @@ serve(async (req) => {
     // Add converted leads data
     if (convertedLeads.records) {
       convertedLeads.records.forEach(record => {
-        const key = `${record.expr0}-${record.expr1}`
+        const key = `${record.yearCreated}-${record.monthCreated}`
         if (leadMetrics.has(key)) {
           const existing = leadMetrics.get(key)
-          existing.ConvertedLeads = record.expr2
+          existing.ConvertedLeads = record.convertedCount
         } else {
           leadMetrics.set(key, {
-            Year: record.expr0,
-            Month: record.expr1,
+            Year: record.yearCreated,
+            Month: record.monthCreated,
             TotalLeads: 0,
-            ConvertedLeads: record.expr2
+            ConvertedLeads: record.convertedCount
           })
         }
       })
@@ -111,15 +111,15 @@ serve(async (req) => {
     // Query for opportunities
     const oppsQuery = `
       SELECT 
-        CALENDAR_YEAR(CloseDate) expr0,
-        CALENDAR_MONTH(CloseDate) expr1,
-        COUNT(Id) expr2,
-        COUNT(CASE WHEN IsWon = true THEN Id END) expr3
+        CALENDAR_YEAR(CloseDate) yearClosed,
+        CALENDAR_MONTH(CloseDate) monthClosed,
+        COUNT(Id) totalOpps,
+        COUNT(CASE WHEN IsWon = true THEN Id END) wonOpps
       FROM Opportunity 
       WHERE CloseDate = LAST_N_DAYS:180 
       AND IsClosed = true
       GROUP BY CALENDAR_YEAR(CloseDate), CALENDAR_MONTH(CloseDate)
-      ORDER BY expr0 DESC, expr1 DESC
+      ORDER BY CALENDAR_YEAR(CloseDate) DESC, CALENDAR_MONTH(CloseDate) DESC
     `
 
     console.log('Executing opportunities query:', oppsQuery)
@@ -142,10 +142,10 @@ serve(async (req) => {
 
     // Transform opportunities data
     const opportunityMetrics = opps.records ? opps.records.map(record => ({
-      Year: record.expr0,
-      Month: record.expr1,
-      TotalOpps: record.expr2,
-      WonOpps: record.expr3
+      Year: record.yearClosed,
+      Month: record.monthClosed,
+      TotalOpps: record.totalOpps,
+      WonOpps: record.wonOpps
     })) : []
 
     const response = {
