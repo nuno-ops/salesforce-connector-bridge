@@ -13,18 +13,19 @@ serve(async (req) => {
   try {
     const { access_token, instance_url } = await req.json()
 
-    // Fetch Leads for last 180 days (6 months) by Created Date
+    // Query to get leads grouped by month
     const leadsQuery = `
       SELECT 
-        Id, 
-        IsConverted, 
-        CreatedDate, 
-        ConvertedDate, 
-        Status 
+        CALENDAR_MONTH(CreatedDate) Month,
+        CALENDAR_YEAR(CreatedDate) Year,
+        COUNT(Id) TotalLeads,
+        COUNT(CASE WHEN IsConverted = true THEN Id END) ConvertedLeads
       FROM Lead 
       WHERE CreatedDate = LAST_N_DAYS:180 
-      ORDER BY CreatedDate DESC
+      GROUP BY CALENDAR_MONTH(CreatedDate), CALENDAR_YEAR(CreatedDate)
+      ORDER BY Year DESC, Month DESC
     `
+
     const leadsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(leadsQuery)}`,
       {
@@ -36,19 +37,20 @@ serve(async (req) => {
 
     const leads = await leadsResponse.json()
 
-    // Fetch Opportunities for last 180 days (6 months) by Close Date
+    // Query to get opportunities grouped by month
     const oppsQuery = `
       SELECT 
-        Id, 
-        StageName, 
-        IsClosed, 
-        IsWon, 
-        CreatedDate, 
-        CloseDate 
+        CALENDAR_MONTH(CloseDate) Month,
+        CALENDAR_YEAR(CloseDate) Year,
+        COUNT(Id) TotalOpps,
+        COUNT(CASE WHEN IsWon = true THEN Id END) WonOpps
       FROM Opportunity 
       WHERE CloseDate = LAST_N_DAYS:180 
-      ORDER BY CloseDate DESC
+      AND IsClosed = true
+      GROUP BY CALENDAR_MONTH(CloseDate), CALENDAR_YEAR(CloseDate)
+      ORDER BY Year DESC, Month DESC
     `
+
     const oppsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(oppsQuery)}`,
       {
@@ -60,7 +62,8 @@ serve(async (req) => {
 
     const opps = await oppsResponse.json()
 
-    console.log(`Found ${leads.records.length} leads and ${opps.records.length} opportunities`)
+    console.log('Leads data:', leads.records)
+    console.log('Opportunities data:', opps.records)
 
     return new Response(
       JSON.stringify({

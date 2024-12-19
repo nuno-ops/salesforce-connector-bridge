@@ -1,53 +1,56 @@
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { MonthlyMetrics } from './types';
+import { format, subMonths } from 'date-fns';
 
-export const calculateMonthlyMetrics = (metrics: MonthlyMetrics | null) => {
+interface SalesforceMetric {
+  Month: number;
+  Year: number;
+  TotalLeads?: number;
+  ConvertedLeads?: number;
+  TotalOpps?: number;
+  WonOpps?: number;
+}
+
+export const calculateMonthlyMetrics = (metrics: { leads: SalesforceMetric[], opportunities: SalesforceMetric[] } | null) => {
   if (!metrics) return { leadConversion: [], oppWinRate: [] };
 
   const now = new Date();
-  const months = Array.from({ length: 6 }, (_, i) => subMonths(now, i));
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const date = subMonths(now, i);
+    return {
+      month: date.getMonth() + 1, // JavaScript months are 0-based
+      year: date.getFullYear(),
+      date: date
+    };
+  });
 
-  const monthlyLeadMetrics = months.map(month => {
-    const start = startOfMonth(month);
-    const end = endOfMonth(month);
+  const monthlyLeadMetrics = months.map(({ month, year, date }) => {
+    const monthData = metrics.leads.find(m => m.Month === month && m.Year === year);
     
-    const monthLeads = metrics.leads.filter(lead => {
-      const createdDate = new Date(lead.CreatedDate);
-      return createdDate >= start && createdDate <= end;
-    });
-
-    const totalLeads = monthLeads.length;
-    const convertedLeads = monthLeads.filter(lead => lead.IsConverted).length;
+    const totalLeads = monthData?.TotalLeads || 0;
+    const convertedLeads = monthData?.ConvertedLeads || 0;
     const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
     console.log('Monthly Lead Metrics:', {
-      month: format(month, 'MMM yy'),
+      month: format(date, 'MMM yy'),
       totalLeads,
       convertedLeads,
       conversionRate
     });
 
     return {
-      month: format(month, 'MMM yy'),
+      month: format(date, 'MMM yy'),
       value: Math.round(conversionRate * 10) / 10
     };
   }).reverse();
 
-  const monthlyOppMetrics = months.map(month => {
-    const start = startOfMonth(month);
-    const end = endOfMonth(month);
+  const monthlyOppMetrics = months.map(({ month, year, date }) => {
+    const monthData = metrics.opportunities.find(m => m.Month === month && m.Year === year);
     
-    const monthOpps = metrics.opportunities.filter(opp => {
-      const closeDate = new Date(opp.CloseDate);
-      return closeDate >= start && closeDate <= end;
-    });
-
-    const closedOpps = monthOpps.filter(opp => opp.IsClosed).length;
-    const wonOpps = monthOpps.filter(opp => opp.IsWon).length;
-    const winRate = closedOpps > 0 ? (wonOpps / closedOpps) * 100 : 0;
+    const totalOpps = monthData?.TotalOpps || 0;
+    const wonOpps = monthData?.WonOpps || 0;
+    const winRate = totalOpps > 0 ? (wonOpps / totalOpps) * 100 : 0;
 
     return {
-      month: format(month, 'MMM yy'),
+      month: format(date, 'MMM yy'),
       value: Math.round(winRate * 10) / 10
     };
   }).reverse();
