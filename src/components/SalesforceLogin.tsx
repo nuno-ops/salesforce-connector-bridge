@@ -50,11 +50,14 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
     setIsLoading(true);
 
     try {
-      // Reset any existing OAuth state before starting new flow
-      resetOAuthState();
-      
-      // Store client secret temporarily for the callback
+      // Store credentials before initiating OAuth flow
+      localStorage.setItem('sf_temp_client_id', credentials.clientId);
       localStorage.setItem('sf_temp_client_secret', credentials.clientSecret);
+      
+      console.log('Stored credentials in localStorage:', {
+        clientId: credentials.clientId,
+        hasSecret: !!credentials.clientSecret
+      });
       
       // Initiate OAuth flow
       initiateOAuthFlow(credentials.clientId);
