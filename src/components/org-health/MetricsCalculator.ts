@@ -9,13 +9,14 @@ export const calculateMonthlyMetrics = (metrics: MonthlyMetrics | null) => {
 
   console.log('Processing metrics for months:', months.map(m => format(m, 'MMM yy')));
   console.log('Total leads available:', metrics.leads.length);
+  console.log('Sample lead dates:', metrics.leads.slice(0, 3).map(lead => lead.CreatedDate));
 
   const monthlyLeadMetrics = months.map(month => {
     const start = startOfMonth(month);
     const end = endOfMonth(month);
     
     const monthLeads = metrics.leads.filter(lead => {
-      const createdDate = parseISO(lead.CreatedDate);
+      const createdDate = new Date(lead.CreatedDate);
       console.log('Lead date comparison:', {
         leadDate: format(createdDate, 'yyyy-MM-dd'),
         startDate: format(start, 'yyyy-MM-dd'),
@@ -47,7 +48,7 @@ export const calculateMonthlyMetrics = (metrics: MonthlyMetrics | null) => {
     const end = endOfMonth(month);
     
     const monthOpps = metrics.opportunities.filter(opp => {
-      const closeDate = parseISO(opp.CloseDate);
+      const closeDate = new Date(opp.CloseDate);
       return closeDate >= start && closeDate <= end;
     });
 
