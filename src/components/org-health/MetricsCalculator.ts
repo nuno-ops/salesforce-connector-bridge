@@ -7,18 +7,34 @@ export const calculateMonthlyMetrics = (metrics: MonthlyMetrics | null) => {
   const now = new Date();
   const months = Array.from({ length: 6 }, (_, i) => subMonths(now, i));
 
+  console.log('Processing metrics for months:', months.map(m => format(m, 'MMM yy')));
+  console.log('Total leads available:', metrics.leads.length);
+
   const monthlyLeadMetrics = months.map(month => {
     const start = startOfMonth(month);
     const end = endOfMonth(month);
     
     const monthLeads = metrics.leads.filter(lead => {
       const createdDate = parseISO(lead.CreatedDate);
+      console.log('Lead date comparison:', {
+        leadDate: format(createdDate, 'yyyy-MM-dd'),
+        startDate: format(start, 'yyyy-MM-dd'),
+        endDate: format(end, 'yyyy-MM-dd'),
+        isInRange: createdDate >= start && createdDate <= end
+      });
       return createdDate >= start && createdDate <= end;
     });
 
     const totalLeads = monthLeads.length;
     const convertedLeads = monthLeads.filter(lead => lead.IsConverted).length;
     const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+
+    console.log('Month metrics:', {
+      month: format(month, 'MMM yy'),
+      totalLeads,
+      convertedLeads,
+      conversionRate
+    });
 
     return {
       month: format(month, 'MMM yy'),
