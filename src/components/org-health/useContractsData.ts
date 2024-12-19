@@ -27,6 +27,7 @@ export const useContractsData = () => {
 
   useEffect(() => {
     const fetchContractsAndInvoices = async () => {
+      console.log('Starting to fetch contracts and invoices');
       const access_token = localStorage.getItem('sf_access_token');
       const instance_url = localStorage.getItem('sf_instance_url');
 
@@ -40,32 +41,39 @@ export const useContractsData = () => {
       setError(null);
       
       try {
-        console.log('Fetching contracts and invoices...');
+        console.log('Making request to salesforce-contracts endpoint');
         const { data, error: supabaseError } = await supabase.functions.invoke('salesforce-contracts', {
           body: { access_token, instance_url }
         });
 
-        if (supabaseError) throw supabaseError;
+        if (supabaseError) {
+          console.error('Supabase function error:', supabaseError);
+          throw supabaseError;
+        }
         
         if (!data) {
+          console.error('No data received from Salesforce');
           throw new Error('No data received from Salesforce');
         }
         
+        console.log('Received contracts data:', {
+          contractsCount: data.contracts?.length || 0,
+          invoicesCount: data.invoices?.length || 0,
+          firstContract: data.contracts?.[0],
+          firstInvoice: data.invoices?.[0]
+        });
+        
         setContracts(data.contracts || []);
         setInvoices(data.invoices || []);
-        
-        console.log('Contracts and invoices loaded successfully:', {
-          contractsCount: data.contracts?.length || 0,
-          invoicesCount: data.invoices?.length || 0
-        });
         
         toast({
           title: "Contracts and Invoices Loaded",
           description: `Found ${data.contracts?.length || 0} contracts and ${data.invoices?.length || 0} invoices.`,
         });
       } catch (err) {
-        console.error('Error fetching contracts and invoices:', err);
+        console.error('Error in fetchContractsAndInvoices:', err);
         const errorMessage = err instanceof Error ? err.message : "Failed to load contracts and invoices";
+        console.log('Setting error state:', errorMessage);
         setError(errorMessage);
         toast({
           title: "Error Loading Data",
@@ -73,6 +81,7 @@ export const useContractsData = () => {
           variant: "destructive"
         });
       } finally {
+        console.log('Finishing contracts/invoices fetch');
         setIsLoading(false);
       }
     };
