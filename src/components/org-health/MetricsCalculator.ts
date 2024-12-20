@@ -16,7 +16,7 @@ export const calculateMonthlyMetrics = (metrics: { leads: SalesforceMetric[], op
   const months = Array.from({ length: 6 }, (_, i) => {
     const date = subMonths(now, i);
     return {
-      month: date.getMonth() + 1, // JavaScript months are 0-based
+      month: date.getMonth() + 1,
       year: date.getFullYear(),
       date: date
     };
@@ -28,13 +28,6 @@ export const calculateMonthlyMetrics = (metrics: { leads: SalesforceMetric[], op
     const totalLeads = monthData?.TotalLeads || 0;
     const convertedLeads = monthData?.ConvertedLeads || 0;
     const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
-
-    console.log('Monthly Lead Metrics:', {
-      month: format(date, 'MMM yy'),
-      totalLeads,
-      convertedLeads,
-      conversionRate
-    });
 
     return {
       month: format(date, 'MMM yy'),

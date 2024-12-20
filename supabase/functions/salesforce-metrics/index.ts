@@ -12,7 +12,6 @@ serve(async (req) => {
 
   try {
     const { access_token, instance_url } = await req.json()
-    console.log('Received request with instance URL:', instance_url)
 
     // Query for total leads
     const totalLeadsQuery = `
@@ -26,7 +25,6 @@ serve(async (req) => {
       ORDER BY CALENDAR_YEAR(CreatedDate) DESC, CALENDAR_MONTH(CreatedDate) DESC
     `
 
-    console.log('Executing total leads query:', totalLeadsQuery)
     const totalLeadsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(totalLeadsQuery)}`,
       {
@@ -42,7 +40,6 @@ serve(async (req) => {
     }
 
     const totalLeads = await totalLeadsResponse.json()
-    console.log('Total leads response:', totalLeads)
 
     // Query for converted leads
     const convertedLeadsQuery = `
@@ -57,7 +54,6 @@ serve(async (req) => {
       ORDER BY CALENDAR_YEAR(CreatedDate) DESC, CALENDAR_MONTH(CreatedDate) DESC
     `
 
-    console.log('Executing converted leads query:', convertedLeadsQuery)
     const convertedLeadsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(convertedLeadsQuery)}`,
       {
@@ -73,7 +69,6 @@ serve(async (req) => {
     }
 
     const convertedLeads = await convertedLeadsResponse.json()
-    console.log('Converted leads response:', convertedLeads)
 
     // Initialize metrics map with total leads
     const leadMetrics = new Map()
@@ -121,7 +116,6 @@ serve(async (req) => {
       ORDER BY CALENDAR_YEAR(CloseDate) DESC, CALENDAR_MONTH(CloseDate) DESC
     `
 
-    console.log('Executing total opportunities query:', totalOppsQuery)
     const totalOppsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(totalOppsQuery)}`,
       {
@@ -137,7 +131,6 @@ serve(async (req) => {
     }
 
     const totalOpps = await totalOppsResponse.json()
-    console.log('Total opportunities response:', totalOpps)
 
     // Query for won opportunities
     const wonOppsQuery = `
@@ -153,7 +146,6 @@ serve(async (req) => {
       ORDER BY CALENDAR_YEAR(CloseDate) DESC, CALENDAR_MONTH(CloseDate) DESC
     `
 
-    console.log('Executing won opportunities query:', wonOppsQuery)
     const wonOppsResponse = await fetch(
       `${instance_url}/services/data/v57.0/query?q=${encodeURIComponent(wonOppsQuery)}`,
       {
@@ -169,7 +161,6 @@ serve(async (req) => {
     }
 
     const wonOpps = await wonOppsResponse.json()
-    console.log('Won opportunities response:', wonOpps)
 
     // Initialize opportunity metrics map
     const oppMetrics = new Map()
@@ -183,11 +174,6 @@ serve(async (req) => {
           TotalOpps: record.totalCount,
           WonOpps: 0
         })
-        console.log('Monthly Opportunity Metrics:', {
-          month: `${record.yearClosed}-${record.monthClosed}`,
-          totalOpps: record.totalCount,
-          wonOpps: 0
-        })
       })
     }
 
@@ -198,24 +184,12 @@ serve(async (req) => {
         if (oppMetrics.has(key)) {
           const existing = oppMetrics.get(key)
           existing.WonOpps = record.wonCount
-          console.log('Updated Monthly Opportunity Metrics:', {
-            month: `${record.yearClosed}-${record.monthClosed}`,
-            totalOpps: existing.TotalOpps,
-            wonOpps: record.wonCount,
-            winRate: `${((record.wonCount / existing.TotalOpps) * 100).toFixed(1)}%`
-          })
         } else {
           oppMetrics.set(key, {
             Year: record.yearClosed,
             Month: record.monthClosed,
             TotalOpps: 0,
             WonOpps: record.wonCount
-          })
-          console.log('New Monthly Opportunity Metrics:', {
-            month: `${record.yearClosed}-${record.monthClosed}`,
-            totalOpps: 0,
-            wonOpps: record.wonCount,
-            winRate: '0%'
           })
         }
       })
@@ -226,8 +200,6 @@ serve(async (req) => {
       opportunities: Array.from(oppMetrics.values())
     }
 
-    console.log('Final response:', response)
-
     return new Response(
       JSON.stringify(response),
       {
@@ -236,12 +208,8 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error in salesforce-metrics function:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        stack: error.stack
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
