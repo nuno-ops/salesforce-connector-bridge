@@ -183,6 +183,11 @@ serve(async (req) => {
           TotalOpps: record.totalCount,
           WonOpps: 0
         })
+        console.log('Monthly Opportunity Metrics:', {
+          month: `${record.yearClosed}-${record.monthClosed}`,
+          totalOpps: record.totalCount,
+          wonOpps: 0
+        })
       })
     }
 
@@ -193,12 +198,24 @@ serve(async (req) => {
         if (oppMetrics.has(key)) {
           const existing = oppMetrics.get(key)
           existing.WonOpps = record.wonCount
+          console.log('Updated Monthly Opportunity Metrics:', {
+            month: `${record.yearClosed}-${record.monthClosed}`,
+            totalOpps: existing.TotalOpps,
+            wonOpps: record.wonCount,
+            winRate: `${((record.wonCount / existing.TotalOpps) * 100).toFixed(1)}%`
+          })
         } else {
           oppMetrics.set(key, {
             Year: record.yearClosed,
             Month: record.monthClosed,
             TotalOpps: 0,
             WonOpps: record.wonCount
+          })
+          console.log('New Monthly Opportunity Metrics:', {
+            month: `${record.yearClosed}-${record.monthClosed}`,
+            totalOpps: 0,
+            wonOpps: record.wonCount,
+            winRate: '0%'
           })
         }
       })
