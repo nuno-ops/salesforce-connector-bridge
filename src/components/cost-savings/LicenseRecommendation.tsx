@@ -16,10 +16,16 @@ const LICENSE_USE_CASES = {
   'Salesforce Identity': [
     'Single Sign-On (SSO) access to connected apps',
     'Basic Salesforce authentication',
-    'Custom authentication provider integration'
+    'Custom authentication provider integration',
+    'Employee portal access',
+    'Partner community authentication',
+    'Multi-factor authentication management'
   ],
   'Salesforce Integration': [
-    'API-only access for system integrations',
+    'API-only access for system integrations with tools like:',
+    '- Zapier for workflow automation',
+    '- Make.com (formerly Integromat) for complex integrations',
+    '- MuleSoft for enterprise integration',
     'Data synchronization between systems',
     'Automated processes and batch operations'
   ],

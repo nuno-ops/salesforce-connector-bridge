@@ -71,7 +71,7 @@ export const CostSavingsReport = ({
     })
     .map(license => ({
       license,
-      priority: ((license.total - license.used) / license.total) >= 0.3 ? 'high' : 'medium'
+      priority: ((license.total - license.used) / license.total) >= 0.3 ? 'high' as const : 'medium' as const
     }));
 
   // Get package recommendations
@@ -83,7 +83,7 @@ export const CostSavingsReport = ({
     })
     .map(pkg => ({
       package: pkg,
-      priority: ((pkg.total - pkg.used) / pkg.total) >= 0.4 ? 'high' : 'medium'
+      priority: ((pkg.total - pkg.used) / pkg.total) >= 0.4 ? 'high' as const : 'medium' as const
     }));
 
   // Check sandbox usage
@@ -145,7 +145,7 @@ export const CostSavingsReport = ({
               <div className="ml-2">
                 <div className="font-medium">Optimize Storage Usage</div>
                 <AlertDescription className="mt-1 text-sm">
-                  Storage usage is at {storageUsage}%. Consider implementing a data archival strategy 
+                  Storage usage is at {storageUsage.toFixed(2)}%. Consider implementing a data archival strategy 
                   or reviewing attachment storage policies to avoid additional storage costs.
                 </AlertDescription>
               </div>
