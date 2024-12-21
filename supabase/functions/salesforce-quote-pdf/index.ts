@@ -23,10 +23,6 @@ serve(async (req) => {
     console.log('Instance URL:', instance_url);
     console.log('Access Token exists:', !!access_token);
 
-    // Use the provided test SID
-    const testSid = '00DHs000001QJeN!AQEAQEtyagoOspBzZhcQgil5mVaBi68yowbdFJpHj8ubwPkkVX_b0YSL1S3BtLF_6QNigp4PnfcK3GYc10gN2aEOi17GWX0W';
-    console.log('Using test SID:', testSid);
-
     // Construct the Aura endpoint URL
     const auraEndpoint = `${instance_url}/aura`;
     console.log('Aura Endpoint:', auraEndpoint);
@@ -46,13 +42,11 @@ serve(async (req) => {
     console.log('=== Request Details ===');
     console.log('Request payload:', JSON.stringify(message, null, 2));
 
-    // Prepare headers with the test SID
+    // Prepare headers with OAuth token
     const headers = {
       'Authorization': `Bearer ${access_token}`,
       'Content-Type': 'application/json',
-      'X-SFDC-Session': testSid,
-      'X-Requested-With': 'XMLHttpRequest',
-      'Cookie': `sid=${testSid}`
+      'X-Requested-With': 'XMLHttpRequest'
     };
 
     console.log('Request headers:', JSON.stringify(headers, null, 2));
