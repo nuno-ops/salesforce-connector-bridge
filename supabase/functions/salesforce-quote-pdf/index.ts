@@ -20,17 +20,14 @@ serve(async (req) => {
     // Construct the Aura endpoint URL
     const auraEndpoint = `${instance_url}/aura`;
 
-    // Construct the message
+    // Construct the message with the correct descriptor and params
     const message = {
       "actions": [{
         "id": "123;a",
-        "descriptor": "aura://ComponentController/ACTION$getComponent",
-        "callingDescriptor": "UNKNOWN",
+        "descriptor": "ui-online-sales-components-aura-controller.OnlineSalesHomePage.getQuotePdfData",
+        "callingDescriptor": "markup://one:one",
         "params": {
-          "name": "ui-online-sales-components-aura-controller.OnlineSalesHomePage",
-          "attributes": {
-            "quoteId": quote_id
-          }
+          "quoteId": quote_id
         }
       }]
     };
