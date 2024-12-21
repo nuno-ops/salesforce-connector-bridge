@@ -3,10 +3,22 @@ import { SalesforceLogin } from "@/components/SalesforceLogin";
 import { SalesforceUsers } from "@/components/SalesforceUsers";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { OrgHealth } from "@/components/OrgHealth";
+import { CostSavingsReport } from "@/components/CostSavingsReport";
+import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
+import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 
 const Index = () => {
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
+  const {
+    userLicenses = [],
+    packageLicenses = [],
+    permissionSetLicenses = [],
+    sandboxes = [],
+    limits,
+    isLoading,
+  } = useOrgHealthData();
 
   useEffect(() => {
     const checkConnection = () => {
@@ -52,7 +64,7 @@ const Index = () => {
         {!isConnected ? (
           <SalesforceLogin onSuccess={() => setIsConnected(true)} />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-8">
             <div className="flex justify-end">
               <Button 
                 variant="outline" 
@@ -62,6 +74,31 @@ const Index = () => {
                 Disconnect from Salesforce
               </Button>
             </div>
+
+            {/* Cost Optimization Dashboard */}
+            <OptimizationDashboard
+              userLicenses={userLicenses}
+              packageLicenses={packageLicenses}
+              sandboxes={sandboxes}
+              storageUsage={limits?.storage?.percentUsed || 0}
+            />
+
+            {/* Cost Savings Report */}
+            <CostSavingsReport
+              userLicenses={userLicenses}
+              packageLicenses={packageLicenses}
+              permissionSetLicenses={permissionSetLicenses}
+              sandboxes={sandboxes}
+              apiUsage={limits?.api?.percentUsed || 0}
+              storageUsage={limits?.storage?.percentUsed || 0}
+              contracts={[]}
+              invoices={[]}
+            />
+
+            {/* Org Health Section with Quote PDF Download */}
+            <OrgHealth />
+
+            {/* Users Section */}
             <SalesforceUsers />
           </div>
         )}
