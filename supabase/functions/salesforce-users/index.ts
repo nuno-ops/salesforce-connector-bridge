@@ -25,10 +25,16 @@ serve(async (req) => {
       );
     }
 
+    const query = `
+      SELECT Id, Username, LastLoginDate, UserType
+      FROM User 
+      WHERE IsActive = true 
+      AND CreatedById != null 
+      AND UserType != 'Guest'
+    `;
+
     const response = await fetch(
-      `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(
-        'SELECT Id, Name, Email, Username, LastLoginDate FROM User'
-      )}`,
+      `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(query)}`,
       {
         headers: {
           'Authorization': `Bearer ${access_token}`,
