@@ -7,6 +7,7 @@ import { OrgHealth } from "@/components/OrgHealth";
 import { CostSavingsReport } from "@/components/CostSavingsReport";
 import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
 import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
+import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
 
 const Index = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -19,6 +20,21 @@ const Index = () => {
     limits,
     isLoading,
   } = useOrgHealthData();
+
+  // Calculate storage usage percentage
+  const calculateStorageUsage = () => {
+    if (!limits) return 0;
+    const totalStorage = limits.DataStorageMB.Max + limits.FileStorageMB.Max;
+    const usedStorage = totalStorage - (limits.DataStorageMB.Remaining + limits.FileStorageMB.Remaining);
+    return (usedStorage / totalStorage) * 100;
+  };
+
+  // Calculate API usage percentage
+  const calculateApiUsage = () => {
+    if (!limits) return 0;
+    const used = limits.DailyApiRequests.Max - limits.DailyApiRequests.Remaining;
+    return (used / limits.DailyApiRequests.Max) * 100;
+  };
 
   useEffect(() => {
     const checkConnection = () => {
@@ -58,6 +74,13 @@ const Index = () => {
     setIsConnected(false);
   };
 
+  // Format license data
+  const formattedUserLicenses = formatLicenseData(userLicenses);
+  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
+  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
+  const storageUsage = calculateStorageUsage();
+  const apiUsage = calculateApiUsage();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sf-light to-white p-4">
       <div className="w-full max-w-4xl space-y-8">
@@ -77,20 +100,20 @@ const Index = () => {
 
             {/* Cost Optimization Dashboard */}
             <OptimizationDashboard
-              userLicenses={userLicenses}
-              packageLicenses={packageLicenses}
+              userLicenses={formattedUserLicenses}
+              packageLicenses={formattedPackageLicenses}
               sandboxes={sandboxes}
-              storageUsage={limits?.storage?.percentUsed || 0}
+              storageUsage={storageUsage}
             />
 
             {/* Cost Savings Report */}
             <CostSavingsReport
-              userLicenses={userLicenses}
-              packageLicenses={packageLicenses}
-              permissionSetLicenses={permissionSetLicenses}
+              userLicenses={formattedUserLicenses}
+              packageLicenses={formattedPackageLicenses}
+              permissionSetLicenses={formattedPermissionSetLicenses}
               sandboxes={sandboxes}
-              apiUsage={limits?.api?.percentUsed || 0}
-              storageUsage={limits?.storage?.percentUsed || 0}
+              apiUsage={apiUsage}
+              storageUsage={storageUsage}
               contracts={[]}
               invoices={[]}
             />
