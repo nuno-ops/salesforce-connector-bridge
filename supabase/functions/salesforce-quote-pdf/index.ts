@@ -34,12 +34,14 @@ serve(async (req) => {
 
     console.log('Sending request to Salesforce with payload:', JSON.stringify(message));
 
-    // Make the request to Salesforce
+    // Make the request to Salesforce with enhanced headers
     const response = await fetch(auraEndpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/json',
+        'X-SFDC-Session': access_token, // Add session ID header
+        'X-Requested-With': 'XMLHttpRequest', // Common header for AJAX requests
       },
       body: JSON.stringify(message)
     });
