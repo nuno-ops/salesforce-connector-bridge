@@ -29,8 +29,7 @@ serve(async (req) => {
       SELECT Id, Username, LastLoginDate, UserType
       FROM User 
       WHERE IsActive = true 
-      AND CreatedById != null 
-      AND CreatedById != ''
+      AND CreatedBy.Name != null 
       AND UserType != 'Guest'
     `;
 
