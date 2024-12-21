@@ -24,7 +24,7 @@ serve(async (req) => {
     console.log('Access Token exists:', !!access_token);
 
     // Use the provided test SID
-    const testSid = '00DHs000001QJeN!AQEAQOJsgmO.qL7MuGW4hFT2UXVGOKi24EmDmhUtaFSyv4CkSyUqzcIgcd1WtxjgFtd8Kn0.9zG2fxXstZ5BYRO7TPSomudp';
+    const testSid = '00DHs000001QJeN!AQEAQEtyagoOspBzZhcQgil5mVaBi68yowbdFJpHj8ubwPkkVX_b0YSL1S3BtLF_6QNigp4PnfcK3GYc10gN2aEOi17GWX0W';
     console.log('Using test SID:', testSid);
 
     // Construct the Aura endpoint URL
