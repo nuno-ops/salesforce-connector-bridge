@@ -13,18 +13,21 @@ export const LicensesSection = ({
   permissionSetLicenses 
 }: LicensesSectionProps) => {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6">
       <LicenseCard 
         title="User Licenses" 
-        licenses={formatLicenseData(userLicenses)} 
+        licenses={formatLicenseData(userLicenses)}
+        type="user"
       />
       <LicenseCard 
         title="Package Licenses" 
-        licenses={formatPackageLicenseData(packageLicenses)} 
+        licenses={formatPackageLicenseData(packageLicenses)}
+        type="package"
       />
       <LicenseCard 
         title="Permission Set Licenses" 
-        licenses={formatPermissionSetLicenseData(permissionSetLicenses)} 
+        licenses={formatPermissionSetLicenseData(permissionSetLicenses)}
+        type="permissionSet"
       />
     </div>
   );
