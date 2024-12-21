@@ -31,14 +31,14 @@ serve(async (req) => {
     const auraEndpoint = `${instance_url}/aura`;
     console.log('Aura Endpoint:', auraEndpoint);
 
-    // Construct the message
+    // Construct the message with updated descriptor and structure
     const message = {
       "actions": [{
-        "id": "123;a",
-        "descriptor": "ui-online-sales-components-aura-controller.OnlineSalesHomePage.getQuotePdfData",
-        "callingDescriptor": "markup://one:one",
+        "id": "776;a",
+        "descriptor": "serviceComponent://ui.online.sales.components.aura.controller.OnlineSalesHomePageController/ACTION$getQuotePdfData",
+        "callingDescriptor": "UNKNOWN",
         "params": {
-          "quoteId": quote_id
+          "quoteIdOrUuid": quote_id
         }
       }]
     };
