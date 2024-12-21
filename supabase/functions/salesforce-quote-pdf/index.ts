@@ -14,45 +14,55 @@ serve(async (req) => {
   try {
     const { access_token, instance_url, quote_id } = await req.json();
     
-    console.log('Fetching PDF for quote:', quote_id);
+    console.log('Starting PDF fetch for quote:', quote_id);
     console.log('Instance URL:', instance_url);
 
     // Construct the Aura endpoint URL
-    const auraEndpoint = `${instance_url}/aura?r=25&ui-online-sales-components-aura-controller.OnlineSalesHomePage.getQuotePdfData=1`;
+    const auraEndpoint = `${instance_url}/aura`;
 
-    // Construct the payload
-    const payload = {
-      actions: [
-        {
-          id: "1",
-          descriptor: "ui-online-sales-components-aura-controller.OnlineSalesHomePage.getQuotePdfData",
-          callingDescriptor: "markup://one:one",
-          params: { quoteId: quote_id }
+    // Construct the message
+    const message = {
+      "actions": [{
+        "id": "123;a",
+        "descriptor": "aura://ComponentController/ACTION$getComponent",
+        "callingDescriptor": "UNKNOWN",
+        "params": {
+          "name": "ui-online-sales-components-aura-controller.OnlineSalesHomePage",
+          "attributes": {
+            "quoteId": quote_id
+          }
         }
-      ]
+      }]
     };
+
+    console.log('Sending request to Salesforce with payload:', JSON.stringify(message));
 
     // Make the request to Salesforce
     const response = await fetch(auraEndpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${access_token}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(message)
     });
 
+    console.log('Salesforce response status:', response.status);
+    
     if (!response.ok) {
-      throw new Error(`Salesforce API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Salesforce error response:', errorText);
+      throw new Error(`Salesforce API error: ${response.status} ${response.statusText}\nResponse: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Salesforce response:', data);
+    console.log('Salesforce response data:', JSON.stringify(data));
 
     // Extract PDF data from response
     const pdfData = data.actions?.[0]?.returnValue?.pdf;
     
     if (!pdfData) {
+      console.error('No PDF data in response:', data);
       throw new Error('No PDF data found in response');
     }
 
@@ -61,7 +71,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error('Error fetching quote PDF:', error);
+    console.error('Error in edge function:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
