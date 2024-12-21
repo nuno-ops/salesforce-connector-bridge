@@ -6,6 +6,7 @@ import { useContractsData } from './org-health/useContractsData';
 import { MetricsSection } from './org-health/MetricsSection';
 import { LimitsSection } from './org-health/LimitsSection';
 import { LicensesSection } from './org-health/LicensesSection';
+import { OptimizationDashboard } from './cost-savings/OptimizationDashboard';
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from './org-health/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -64,6 +65,13 @@ export const OrgHealth = () => {
 
   return (
     <div className="space-y-8">
+      <OptimizationDashboard
+        userLicenses={formatLicenseData(userLicenses)}
+        packageLicenses={formatPackageLicenseData(packageLicenses)}
+        sandboxes={sandboxes}
+        storageUsage={storageUsagePercentage}
+      />
+
       <CostSavingsReport
         userLicenses={formatLicenseData(userLicenses)}
         packageLicenses={formatPackageLicenseData(packageLicenses)}
