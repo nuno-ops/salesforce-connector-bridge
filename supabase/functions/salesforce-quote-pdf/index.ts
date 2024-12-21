@@ -13,9 +13,38 @@ serve(async (req) => {
 
   try {
     const { access_token, instance_url, quote_id } = await req.json();
-    
+
+    if (!access_token || !instance_url || !quote_id) {
+      throw new Error('Missing required parameters');
+    }
+
     console.log('Starting PDF fetch for quote:', quote_id);
     console.log('Instance URL:', instance_url);
+
+    // First, get a valid VF session ID by making a request to Salesforce
+    const vfSessionResponse = await fetch(`${instance_url}/services/data/v57.0/query?q=SELECT+Id+FROM+Account+LIMIT+1`, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!vfSessionResponse.ok) {
+      throw new Error(`Failed to get VF session: ${vfSessionResponse.status} ${vfSessionResponse.statusText}`);
+    }
+
+    // Extract the VF session ID from cookies
+    const cookies = vfSessionResponse.headers.get('set-cookie');
+    console.log('Received cookies:', cookies);
+    
+    let sid = '';
+    if (cookies) {
+      const sidMatch = cookies.match(/sid=([^;]+)/);
+      if (sidMatch) {
+        sid = sidMatch[1];
+        console.log('Extracted SID:', sid);
+      }
+    }
 
     // Construct the Aura endpoint URL
     const auraEndpoint = `${instance_url}/aura`;
@@ -34,14 +63,15 @@ serve(async (req) => {
 
     console.log('Sending request to Salesforce with payload:', JSON.stringify(message));
 
-    // Make the request to Salesforce with enhanced headers
+    // Make the request to Salesforce with enhanced headers and cookies
     const response = await fetch(auraEndpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/json',
-        'X-SFDC-Session': access_token, // Add session ID header
-        'X-Requested-With': 'XMLHttpRequest', // Common header for AJAX requests
+        'X-SFDC-Session': sid || access_token, // Use VF session ID if available, fallback to access token
+        'X-Requested-With': 'XMLHttpRequest',
+        'Cookie': sid ? `sid=${sid}` : '', // Include session cookie if available
       },
       body: JSON.stringify(message)
     });
