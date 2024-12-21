@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrgHealth } from './OrgHealth';
-import { format, subDays } from 'date-fns';
-import { Button } from './ui/button';
+import { subDays } from 'date-fns';
+import { InactiveUsersSection } from './users/InactiveUsersSection';
 
 interface SalesforceUser {
   Id: string;
@@ -25,11 +17,6 @@ export const SalesforceUsers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [instanceUrl, setInstanceUrl] = useState('');
   const { toast } = useToast();
-
-  const maskUsername = (username: string) => {
-    if (username.length <= 4) return username;
-    return username.slice(0, 4) + '*'.repeat(username.length - 4);
-  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -95,51 +82,7 @@ export const SalesforceUsers = () => {
   return (
     <div className="space-y-8">
       <OrgHealth />
-      
-      {users.length > 0 && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold">Inactive Users</h2>
-            <p className="text-muted-foreground">
-              The following users haven't logged into Salesforce for more than 30 days. 
-              Consider reviewing their access needs and license assignments.
-            </p>
-          </div>
-          
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.Id}>
-                    <TableCell>{maskUsername(user.Username)}</TableCell>
-                    <TableCell>
-                      {user.LastLoginDate 
-                        ? format(new Date(user.LastLoginDate), 'PPp')
-                        : 'Never'}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
-                      >
-                        View User <ExternalLink className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      )}
+      <InactiveUsersSection users={users} instanceUrl={instanceUrl} />
     </div>
   );
 };
