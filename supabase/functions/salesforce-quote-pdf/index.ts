@@ -21,13 +21,14 @@ serve(async (req) => {
     console.log('=== PDF Download Debug Info ===');
     console.log('Quote ID:', quote_id);
     console.log('Instance URL:', instance_url);
-    console.log('Access Token exists:', !!access_token);
+    console.log('Access Token:', access_token); // Added token logging
+    console.log('Authorization Header:', `Bearer ${access_token}`); // Added full header logging
 
     // Construct the Aura endpoint URL
     const auraEndpoint = `${instance_url}/aura`;
     console.log('Aura Endpoint:', auraEndpoint);
 
-    // Construct the message with updated descriptor and structure
+    // Construct the message
     const message = {
       "actions": [{
         "id": "776;a",
