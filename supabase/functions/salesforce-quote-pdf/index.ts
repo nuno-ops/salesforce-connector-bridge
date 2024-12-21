@@ -23,43 +23,9 @@ serve(async (req) => {
     console.log('Instance URL:', instance_url);
     console.log('Access Token exists:', !!access_token);
 
-    // First, get a valid VF session ID by making a request to Salesforce
-    console.log('Fetching VF session...');
-    const vfSessionResponse = await fetch(`${instance_url}/services/data/v57.0/query?q=SELECT+Id+FROM+Account+LIMIT+1`, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!vfSessionResponse.ok) {
-      console.error('VF Session Response Status:', vfSessionResponse.status);
-      console.error('VF Session Response Status Text:', vfSessionResponse.statusText);
-      throw new Error(`Failed to get VF session: ${vfSessionResponse.status} ${vfSessionResponse.statusText}`);
-    }
-
-    // Extract and log all cookies and headers
-    const cookies = vfSessionResponse.headers.get('set-cookie');
-    console.log('=== Response Headers ===');
-    for (const [key, value] of vfSessionResponse.headers.entries()) {
-      console.log(`${key}: ${value}`);
-    }
-    
-    console.log('=== Cookie Details ===');
-    console.log('Raw cookies:', cookies);
-    
-    let sid = '';
-    if (cookies) {
-      const sidMatch = cookies.match(/sid=([^;]+)/);
-      if (sidMatch) {
-        sid = sidMatch[1];
-        console.log('Extracted SID:', sid);
-      } else {
-        console.log('No SID found in cookies');
-      }
-    } else {
-      console.log('No cookies received from Salesforce');
-    }
+    // Use the provided test SID
+    const testSid = '00DHs000001QJeN!AQEAQOJsgmO.qL7MuGW4hFT2UXVGOKi24EmDmhUtaFSyv4CkSyUqzcIgcd1WtxjgFtd8Kn0.9zG2fxXstZ5BYRO7TPSomudp';
+    console.log('Using test SID:', testSid);
 
     // Construct the Aura endpoint URL
     const auraEndpoint = `${instance_url}/aura`;
@@ -80,17 +46,14 @@ serve(async (req) => {
     console.log('=== Request Details ===');
     console.log('Request payload:', JSON.stringify(message, null, 2));
 
-    // Prepare headers with detailed logging
+    // Prepare headers with the test SID
     const headers = {
       'Authorization': `Bearer ${access_token}`,
       'Content-Type': 'application/json',
-      'X-SFDC-Session': sid || access_token,
+      'X-SFDC-Session': testSid,
       'X-Requested-With': 'XMLHttpRequest',
+      'Cookie': `sid=${testSid}`
     };
-
-    if (sid) {
-      headers['Cookie'] = `sid=${sid}`;
-    }
 
     console.log('Request headers:', JSON.stringify(headers, null, 2));
 
