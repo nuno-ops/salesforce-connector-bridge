@@ -130,7 +130,7 @@ export const SalesforceUsers = () => {
                         size="sm"
                         onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
                       >
-                        View Profile <ExternalLink className="ml-2 h-4 w-4" />
+                        View User <ExternalLink className="ml-2 h-4 w-4" />
                       </Button>
                     </TableCell>
                   </TableRow>

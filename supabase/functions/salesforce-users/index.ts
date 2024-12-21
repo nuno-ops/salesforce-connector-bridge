@@ -30,6 +30,7 @@ serve(async (req) => {
       FROM User 
       WHERE IsActive = true 
       AND CreatedById != null 
+      AND CreatedById != ''
       AND UserType != 'Guest'
     `;
 
