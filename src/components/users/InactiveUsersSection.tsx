@@ -1,4 +1,4 @@
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
@@ -24,7 +24,7 @@ interface InactiveUsersSectionProps {
 }
 
 export const InactiveUsersSection = ({ users, instanceUrl }: InactiveUsersSectionProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const maskUsername = (username: string) => {
     if (username.length <= 4) return username;
