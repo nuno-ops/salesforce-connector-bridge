@@ -13,10 +13,12 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.error('Missing authorization header')
       throw new Error('No authorization header')
     }
 
     // Fetch organization data from Salesforce
+    console.log('=== Fetching Salesforce Organization Data ===')
     const response = await fetch('https://login.salesforce.com/services/data/v59.0/query?q=SELECT Id,Name,OrganizationType FROM Organization', {
       headers: {
         'Authorization': authHeader,
@@ -25,6 +27,7 @@ Deno.serve(async (req) => {
     })
 
     if (!response.ok) {
+      console.error('Salesforce API error:', response.statusText)
       throw new Error(`Salesforce API error: ${response.statusText}`)
     }
 
@@ -32,10 +35,12 @@ Deno.serve(async (req) => {
     console.log('Organization data:', data)
 
     if (!data.records || data.records.length === 0) {
+      console.error('No organization data found in Salesforce response')
       throw new Error('No organization data found')
     }
 
     const org = data.records[0]
+    console.log('Organization type:', org.OrganizationType)
     
     // Define default costs per organization type
     const defaultCosts = {
@@ -45,39 +50,64 @@ Deno.serve(async (req) => {
       'Unlimited Edition': 330
     }
 
+    // Get license cost based on org type, fallback to 100 if type not found
+    const licenseCost = defaultCosts[org.OrganizationType as keyof typeof defaultCosts] || 100
+    console.log('Determined license cost:', licenseCost)
+
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase credentials')
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase credentials')
+      throw new Error('Missing Supabase credentials')
+    }
     
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Check if org settings already exist
-    const { data: existingSettings } = await supabase
+    console.log('Checking for existing organization settings...')
+    const { data: existingSettings, error: selectError } = await supabase
       .from('organization_settings')
       .select('*')
       .eq('org_id', org.Id)
-      .maybeSingle()
+      .single()
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error('Error checking existing settings:', selectError)
+      throw selectError
+    }
 
     if (!existingSettings) {
-      // Insert new organization settings
+      console.log('No existing settings found, creating new record...')
       const { error: insertError } = await supabase
         .from('organization_settings')
         .insert({
           org_id: org.Id,
           org_type: org.OrganizationType,
-          license_cost_per_user: defaultCosts[org.OrganizationType as keyof typeof defaultCosts] || 100
+          license_cost_per_user: licenseCost
         })
 
-      if (insertError) throw insertError
-      console.log('Created new organization settings')
+      if (insertError) {
+        console.error('Error inserting settings:', insertError)
+        throw insertError
+      }
+      console.log('Successfully created new organization settings')
+    } else {
+      console.log('Found existing settings:', existingSettings)
     }
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({
+      organization: data.records[0],
+      settings: existingSettings || {
+        org_id: org.Id,
+        org_type: org.OrganizationType,
+        license_cost_per_user: licenseCost
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in salesforce-org function:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
