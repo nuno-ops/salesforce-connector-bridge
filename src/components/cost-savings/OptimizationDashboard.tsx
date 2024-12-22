@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TrendingUp, DollarSign, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface OptimizationDashboardProps {
   userLicenses: Array<{
@@ -34,29 +34,33 @@ export const OptimizationDashboard = ({
   useEffect(() => {
     const fetchOrgSettings = async () => {
       try {
-        // Fetch organization settings from Supabase
-        const { data: settings, error } = await supabase
-          .from('organization_settings')
-          .select('*')
-          .single();
+        const access_token = localStorage.getItem('sf_access_token');
+        const instance_url = localStorage.getItem('sf_instance_url');
 
-        if (error) throw error;
-
-        if (settings) {
-          setLicensePrice(settings.license_cost_per_user);
+        if (!access_token || !instance_url) {
+          console.log('Missing Salesforce credentials');
+          return;
         }
 
-        // Fetch organization type from Salesforce
-        const token = localStorage.getItem('sf_access_token');
-        if (!token) return;
-
-        const { error: fnError } = await supabase.functions.invoke('salesforce-org', {
-          headers: {
-            Authorization: `Bearer ${token}`
+        // First try to fetch from Salesforce
+        console.log('Fetching organization data from Salesforce...');
+        const { data: orgData, error: orgError } = await supabase.functions.invoke('salesforce-org', {
+          body: { 
+            access_token,
+            instance_url
           }
         });
 
-        if (fnError) throw fnError;
+        if (orgError) {
+          console.error('Error fetching from Salesforce:', orgError);
+          throw orgError;
+        }
+
+        if (orgData?.settings?.license_cost_per_user) {
+          console.log('Setting license price from Salesforce data:', orgData.settings.license_cost_per_user);
+          setLicensePrice(orgData.settings.license_cost_per_user);
+        }
+
       } catch (error) {
         console.error('Error fetching organization settings:', error);
         toast({
@@ -72,20 +76,25 @@ export const OptimizationDashboard = ({
 
   const handlePriceChange = async (newPrice: number) => {
     try {
-      const { data: settings } = await supabase
+      const { data: settings, error: selectError } = await supabase
         .from('organization_settings')
         .select('*')
-        .single();
+        .limit(1)
+        .maybeSingle();
+
+      if (selectError) {
+        throw selectError;
+      }
 
       if (settings) {
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('organization_settings')
           .update({ license_cost_per_user: newPrice })
           .eq('id', settings.id);
 
-        if (error) throw error;
-        setLicensePrice(newPrice);
+        if (updateError) throw updateError;
         
+        setLicensePrice(newPrice);
         toast({
           title: "Success",
           description: "License cost updated successfully"

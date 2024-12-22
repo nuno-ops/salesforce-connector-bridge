@@ -6,45 +6,43 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.error('Missing authorization header')
-      throw new Error('No authorization header')
+    const { access_token, instance_url } = await req.json()
+    console.log('Received request with instance URL:', instance_url)
+
+    if (!access_token || !instance_url) {
+      throw new Error('Missing access token or instance URL')
     }
 
     // Fetch organization data from Salesforce
-    console.log('Fetching Salesforce Organization Data...')
-    const response = await fetch('https://login.salesforce.com/services/data/v59.0/query?q=SELECT Id,Name,OrganizationType FROM Organization', {
+    console.log('Fetching Salesforce organization data...')
+    const orgResponse = await fetch(`${instance_url}/services/data/v59.0/query?q=SELECT Id,Name,OrganizationType FROM Organization`, {
       headers: {
-        'Authorization': authHeader,
+        'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/json',
       },
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Salesforce API error:', response.status, errorText)
-      throw new Error(`Salesforce API error: ${response.status} - ${errorText}`)
+    if (!orgResponse.ok) {
+      const errorText = await orgResponse.text()
+      console.error('Salesforce API error:', orgResponse.status, errorText)
+      throw new Error(`Salesforce API error: ${orgResponse.status} - ${errorText}`)
     }
 
-    const data = await response.json()
-    console.log('Salesforce Organization data received:', data)
+    const orgData = await orgResponse.json()
+    console.log('Salesforce organization data:', orgData)
 
-    if (!data.records || data.records.length === 0) {
-      console.error('No organization data found in Salesforce response')
+    if (!orgData.records || orgData.records.length === 0) {
       throw new Error('No organization data found')
     }
 
-    const org = data.records[0]
-    console.log('Organization details:', {
-      id: org.Id,
-      type: org.OrganizationType
-    })
+    const org = orgData.records[0]
+    console.log('Organization details:', org)
     
     // Define default costs per organization type
     const defaultCosts = {
@@ -55,71 +53,52 @@ Deno.serve(async (req) => {
     }
 
     // Get license cost based on org type, fallback to 100 if type not found
-    const licenseCost = defaultCosts[org.OrganizationType as keyof typeof defaultCosts] || 100
-    console.log('Determined license cost:', licenseCost)
+    const licenseCost = defaultCosts[org.OrganizationType] || 100
 
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase credentials')
       throw new Error('Missing Supabase credentials')
     }
-    
+
     const supabase = createClient(supabaseUrl, supabaseKey)
-    console.log('Supabase client created successfully')
+    console.log('Created Supabase client')
 
-    // Check if org settings already exist
-    console.log('Checking for existing organization settings...')
-    const { data: existingSettings, error: selectError } = await supabase
+    // Delete any existing settings for this org
+    console.log('Removing any existing settings...')
+    const { error: deleteError } = await supabase
       .from('organization_settings')
-      .select('*')
+      .delete()
       .eq('org_id', org.Id)
-      .maybeSingle()
 
-    console.log('Database query results:', {
-      existingSettings,
-      hasError: !!selectError
-    })
-
-    if (selectError) {
-      console.error('Error checking existing settings:', selectError)
-      throw selectError
+    if (deleteError) {
+      console.error('Error deleting existing settings:', deleteError)
+      throw deleteError
     }
 
-    if (!existingSettings) {
-      console.log('Creating new organization settings...')
-      const newSettings = {
+    // Create new settings
+    console.log('Creating new organization settings...')
+    const { data: settings, error: insertError } = await supabase
+      .from('organization_settings')
+      .insert([{
         org_id: org.Id,
         org_type: org.OrganizationType,
         license_cost_per_user: licenseCost
-      }
-      console.log('New settings to be inserted:', newSettings)
+      }])
+      .select()
+      .single()
 
-      const { data: insertedData, error: insertError } = await supabase
-        .from('organization_settings')
-        .insert([newSettings])
-        .select()
-        .single()
-
-      if (insertError) {
-        console.error('Error inserting settings:', insertError)
-        throw insertError
-      }
-
-      console.log('Successfully created new organization settings:', insertedData)
-      return new Response(JSON.stringify({
-        organization: org,
-        settings: insertedData
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    if (insertError) {
+      console.error('Error inserting settings:', insertError)
+      throw insertError
     }
 
-    console.log('Returning existing settings:', existingSettings)
+    console.log('Successfully created settings:', settings)
     return new Response(JSON.stringify({
       organization: org,
-      settings: existingSettings
+      settings: settings
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
