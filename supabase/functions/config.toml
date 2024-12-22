@@ -1,4 +1,1 @@
 project_id = "pnzdzneuynkyzfjwheej"
-
-[salesforce-org]
-verify_jwt = true

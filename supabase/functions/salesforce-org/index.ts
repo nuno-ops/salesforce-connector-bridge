@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch organization data from Salesforce
-    console.log('=== Fetching Salesforce Organization Data ===')
+    console.log('Fetching Salesforce Organization Data...')
     const response = await fetch('https://login.salesforce.com/services/data/v59.0/query?q=SELECT Id,Name,OrganizationType FROM Organization', {
       headers: {
         'Authorization': authHeader,
@@ -27,12 +27,13 @@ Deno.serve(async (req) => {
     })
 
     if (!response.ok) {
-      console.error('Salesforce API error:', response.statusText)
-      throw new Error(`Salesforce API error: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('Salesforce API error:', response.status, errorText)
+      throw new Error(`Salesforce API error: ${response.status} - ${errorText}`)
     }
 
     const data = await response.json()
-    console.log('Organization data:', data)
+    console.log('Salesforce Organization data received:', data)
 
     if (!data.records || data.records.length === 0) {
       console.error('No organization data found in Salesforce response')
@@ -40,7 +41,10 @@ Deno.serve(async (req) => {
     }
 
     const org = data.records[0]
-    console.log('Organization type:', org.OrganizationType)
+    console.log('Organization details:', {
+      id: org.Id,
+      type: org.OrganizationType
+    })
     
     // Define default costs per organization type
     const defaultCosts = {
@@ -63,6 +67,7 @@ Deno.serve(async (req) => {
     }
     
     const supabase = createClient(supabaseUrl, supabaseKey)
+    console.log('Supabase client created successfully')
 
     // Check if org settings already exist
     console.log('Checking for existing organization settings...')
@@ -72,7 +77,10 @@ Deno.serve(async (req) => {
       .eq('org_id', org.Id)
       .maybeSingle()
 
-    console.log('Existing settings query result:', { existingSettings, selectError })
+    console.log('Database query results:', {
+      existingSettings,
+      hasError: !!selectError
+    })
 
     if (selectError) {
       console.error('Error checking existing settings:', selectError)
@@ -80,14 +88,17 @@ Deno.serve(async (req) => {
     }
 
     if (!existingSettings) {
-      console.log('No existing settings found, creating new record...')
+      console.log('Creating new organization settings...')
+      const newSettings = {
+        org_id: org.Id,
+        org_type: org.OrganizationType,
+        license_cost_per_user: licenseCost
+      }
+      console.log('New settings to be inserted:', newSettings)
+
       const { data: insertedData, error: insertError } = await supabase
         .from('organization_settings')
-        .insert({
-          org_id: org.Id,
-          org_type: org.OrganizationType,
-          license_cost_per_user: licenseCost
-        })
+        .insert([newSettings])
         .select()
         .single()
 
@@ -95,18 +106,19 @@ Deno.serve(async (req) => {
         console.error('Error inserting settings:', insertError)
         throw insertError
       }
+
       console.log('Successfully created new organization settings:', insertedData)
       return new Response(JSON.stringify({
-        organization: data.records[0],
+        organization: org,
         settings: insertedData
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    console.log('Found existing settings:', existingSettings)
+    console.log('Returning existing settings:', existingSettings)
     return new Response(JSON.stringify({
-      organization: data.records[0],
+      organization: org,
       settings: existingSettings
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -114,7 +126,10 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error in salesforce-org function:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: error.stack
+    }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
