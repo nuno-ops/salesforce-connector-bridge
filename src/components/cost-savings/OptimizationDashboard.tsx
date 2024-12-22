@@ -1,5 +1,10 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { TrendingUp, DollarSign, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface OptimizationDashboardProps {
   userLicenses: Array<{
@@ -23,36 +28,100 @@ export const OptimizationDashboard = ({
   sandboxes,
   storageUsage
 }: OptimizationDashboardProps) => {
-  // Calculate potential savings
-  const calculateLicenseSavings = () => {
-    // Assume average license cost of $150/month for estimation
-    const monthlyLicenseCost = 150;
-    let totalUnused = 0;
+  const [licensePrice, setLicensePrice] = useState<number>(100);
+  const { toast } = useToast();
 
+  useEffect(() => {
+    const fetchOrgSettings = async () => {
+      try {
+        // Fetch organization settings from Supabase
+        const { data: settings, error } = await supabase
+          .from('organization_settings')
+          .select('*')
+          .single();
+
+        if (error) throw error;
+
+        if (settings) {
+          setLicensePrice(settings.license_cost_per_user);
+        }
+
+        // Fetch organization type from Salesforce
+        const token = localStorage.getItem('sf_access_token');
+        if (!token) return;
+
+        const { error: fnError } = await supabase.functions.invoke('salesforce-org', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (fnError) throw fnError;
+      } catch (error) {
+        console.error('Error fetching organization settings:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch organization settings"
+        });
+      }
+    };
+
+    fetchOrgSettings();
+  }, [toast]);
+
+  const handlePriceChange = async (newPrice: number) => {
+    try {
+      const { data: settings } = await supabase
+        .from('organization_settings')
+        .select('*')
+        .single();
+
+      if (settings) {
+        const { error } = await supabase
+          .from('organization_settings')
+          .update({ license_cost_per_user: newPrice })
+          .eq('id', settings.id);
+
+        if (error) throw error;
+        setLicensePrice(newPrice);
+        
+        toast({
+          title: "Success",
+          description: "License cost updated successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error updating license cost:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update license cost"
+      });
+    }
+  };
+
+  // Calculate potential savings based on the current license price
+  const calculateLicenseSavings = () => {
+    let totalUnused = 0;
     userLicenses.forEach(license => {
       const unused = license.total - license.used;
       if (unused > 0) totalUnused += unused;
     });
-
-    return totalUnused * monthlyLicenseCost * 12; // Annual savings
+    return totalUnused * licensePrice * 12; // Annual savings
   };
 
   const calculateSandboxSavings = () => {
-    // Assume full sandbox costs $5000/month more than partial
     const fullSandboxes = sandboxes.filter(sb => 
       sb.LicenseType.toLowerCase().includes('full')
     ).length;
-    
-    // Recommend keeping only one full sandbox
     const excessFullSandboxes = Math.max(0, fullSandboxes - 1);
-    return excessFullSandboxes * 5000 * 12; // Annual savings
+    return excessFullSandboxes * 5000 * 12;
   };
 
   const calculateStorageSavings = () => {
-    // If storage usage is high, estimate savings from optimization
     if (storageUsage > 75) {
-      // Assume $250 per GB per month savings for optimization
-      const estimatedGBSavings = 2; // Conservative estimate
+      const estimatedGBSavings = 2;
       return estimatedGBSavings * 250 * 12;
     }
     return 0;
@@ -90,6 +159,22 @@ export const OptimizationDashboard = ({
 
   return (
     <div className="space-y-6 mb-8">
+      {/* License Cost Configuration */}
+      <Card className="p-4">
+        <div className="space-y-2">
+          <Label htmlFor="licensePrice">License Cost per User (USD/month)</Label>
+          <div className="flex gap-2">
+            <Input
+              id="licensePrice"
+              type="number"
+              value={licensePrice}
+              onChange={(e) => handlePriceChange(parseFloat(e.target.value))}
+              className="max-w-[200px]"
+            />
+          </div>
+        </div>
+      </Card>
+
       {/* Total Savings Card */}
       <Card className="bg-gradient-to-r from-sf-blue to-sf-hover">
         <CardContent className="p-6">
