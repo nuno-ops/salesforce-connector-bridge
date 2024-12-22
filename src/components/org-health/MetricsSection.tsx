@@ -10,7 +10,7 @@ interface MetricsSectionProps {
 }
 
 export const MetricsSection = ({ metrics }: MetricsSectionProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics);
 
   return (

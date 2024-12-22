@@ -10,7 +10,7 @@ interface LimitsSectionProps {
 }
 
 export const LimitsSection = ({ limits }: LimitsSectionProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="space-y-2">

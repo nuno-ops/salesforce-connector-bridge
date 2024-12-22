@@ -16,7 +16,7 @@ interface SandboxListProps {
 }
 
 export const SandboxList = ({ sandboxes }: SandboxListProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="space-y-2">
