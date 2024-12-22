@@ -70,42 +70,48 @@ Deno.serve(async (req) => {
       .from('organization_settings')
       .select('*')
       .eq('org_id', org.Id)
-      .single()
+      .maybeSingle()
 
-    if (selectError && selectError.code !== 'PGRST116') {
+    console.log('Existing settings query result:', { existingSettings, selectError })
+
+    if (selectError) {
       console.error('Error checking existing settings:', selectError)
       throw selectError
     }
 
     if (!existingSettings) {
       console.log('No existing settings found, creating new record...')
-      const { error: insertError } = await supabase
+      const { data: insertedData, error: insertError } = await supabase
         .from('organization_settings')
         .insert({
           org_id: org.Id,
           org_type: org.OrganizationType,
           license_cost_per_user: licenseCost
         })
+        .select()
+        .single()
 
       if (insertError) {
         console.error('Error inserting settings:', insertError)
         throw insertError
       }
-      console.log('Successfully created new organization settings')
-    } else {
-      console.log('Found existing settings:', existingSettings)
+      console.log('Successfully created new organization settings:', insertedData)
+      return new Response(JSON.stringify({
+        organization: data.records[0],
+        settings: insertedData
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
+    console.log('Found existing settings:', existingSettings)
     return new Response(JSON.stringify({
       organization: data.records[0],
-      settings: existingSettings || {
-        org_id: org.Id,
-        org_type: org.OrganizationType,
-        license_cost_per_user: licenseCost
-      }
+      settings: existingSettings
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+
   } catch (error) {
     console.error('Error in salesforce-org function:', error)
     return new Response(JSON.stringify({ error: error.message }), {
