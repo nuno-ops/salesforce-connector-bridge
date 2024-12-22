@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
       throw new Error('No authorization header')
     }
 
+    // Fetch organization data from Salesforce
     const response = await fetch('https://login.salesforce.com/services/data/v59.0/query?q=SELECT Id,Name,OrganizationType FROM Organization', {
       headers: {
         'Authorization': authHeader,
@@ -30,6 +31,20 @@ Deno.serve(async (req) => {
     const data = await response.json()
     console.log('Organization data:', data)
 
+    if (!data.records || data.records.length === 0) {
+      throw new Error('No organization data found')
+    }
+
+    const org = data.records[0]
+    
+    // Define default costs per organization type
+    const defaultCosts = {
+      'Base Edition': 25,
+      'Professional Edition': 100,
+      'Enterprise Edition': 165,
+      'Unlimited Edition': 330
+    }
+
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -37,27 +52,25 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    if (data.records && data.records[0]) {
-      const org = data.records[0]
-      const defaultCosts = {
-        'Base Edition': 25,
-        'Professional Edition': 100,
-        'Enterprise Edition': 165,
-        'Unlimited Edition': 330
-      }
+    // Check if org settings already exist
+    const { data: existingSettings } = await supabase
+      .from('organization_settings')
+      .select('*')
+      .eq('org_id', org.Id)
+      .maybeSingle()
 
-      // Upsert organization settings
-      const { error } = await supabase
+    if (!existingSettings) {
+      // Insert new organization settings
+      const { error: insertError } = await supabase
         .from('organization_settings')
-        .upsert({
+        .insert({
           org_id: org.Id,
           org_type: org.OrganizationType,
           license_cost_per_user: defaultCosts[org.OrganizationType as keyof typeof defaultCosts] || 100
-        }, {
-          onConflict: 'org_id'
         })
 
-      if (error) throw error
+      if (insertError) throw insertError
+      console.log('Created new organization settings')
     }
 
     return new Response(JSON.stringify(data), {
