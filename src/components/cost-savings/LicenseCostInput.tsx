@@ -14,7 +14,8 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
 
   const handlePriceChange = async (value: string) => {
     try {
-      const newPrice = value === '' ? null : parseFloat(value);
+      // Convert empty string to 0, otherwise parse the float
+      const newPrice = value === '' ? 0 : parseFloat(value);
 
       const { data: settings, error: selectError } = await supabase
         .from('organization_settings')
@@ -32,7 +33,7 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
 
         if (updateError) throw updateError;
         
-        onPriceChange(newPrice || 0);
+        onPriceChange(newPrice);
         toast({
           title: "Success",
           description: "License cost updated successfully"
