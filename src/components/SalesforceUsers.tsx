@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { OrgHealth } from './OrgHealth';
 import { InactiveUsersSection } from './users/InactiveUsersSection';
 import { 
   calculateInactiveUsers, 
@@ -100,7 +99,6 @@ export const SalesforceUsers = () => {
 
   return (
     <div className="space-y-8">
-      <OrgHealth />
       <InactiveUsersSection 
         users={users} 
         instanceUrl={instanceUrl}
