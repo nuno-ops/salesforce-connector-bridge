@@ -63,6 +63,9 @@ export const CostSavingsReport = ({
     }))
   );
 
+  // Get the first category key for default tab
+  const defaultCategory = Object.keys(categorizedLicenses)[0]?.toLowerCase().replace(/\s+/g, '-') || 'other-licenses';
+
   // Get recommendations for each category
   const getLicenseRecommendations = (licenses: LicenseData[]) => {
     return licenses.filter(license => {
@@ -118,7 +121,7 @@ export const CostSavingsReport = ({
           </motion.div>
 
           {/* License Recommendations by Category */}
-          <Tabs defaultValue="core" className="w-full">
+          <Tabs defaultValue={defaultCategory} className="w-full">
             <TabsList className="w-full grid grid-cols-3 lg:grid-cols-5 h-auto gap-2 bg-muted/50 p-1">
               {Object.keys(categorizedLicenses).map(category => (
                 <TabsTrigger 

@@ -100,7 +100,6 @@ const Index = () => {
           sandboxes={sandboxes}
           storageUsage={storageUsage}
         />
-        <SalesforceUsers />
         <CostSavingsReport
           userLicenses={formattedUserLicenses}
           packageLicenses={formattedPackageLicenses}
@@ -111,6 +110,7 @@ const Index = () => {
           contracts={[]}
           invoices={[]}
         />
+        <SalesforceUsers />
         <OrgHealth />
       </div>
     </MainLayout>
