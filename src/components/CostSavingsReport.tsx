@@ -6,6 +6,7 @@ import { PackageRecommendation } from "./cost-savings/PackageRecommendation";
 import { ContractRecommendation } from "./cost-savings/ContractRecommendation";
 import { groupLicensesByCategory, LicenseData } from "./cost-savings/utils/licenseTypes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
 
 interface CostSavingsReportProps {
   userLicenses: Array<{
@@ -92,24 +93,39 @@ export const CostSavingsReport = ({
   );
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle>Other Cost Optimization Recommendations</CardTitle>
+    <Card className="mb-8 shadow-lg border-t-4 border-t-sf-blue">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-sf-blue to-sf-hover bg-clip-text text-transparent">
+          Cost Optimization Recommendations
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Review and act on opportunities to optimize your Salesforce investment
+        </p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Contract Recommendations */}
-          <ContractRecommendation 
-            contracts={contracts} 
-            invoices={invoices}
-            userLicenses={userLicenses}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <ContractRecommendation 
+              contracts={contracts} 
+              invoices={invoices}
+              userLicenses={userLicenses}
+            />
+          </motion.div>
 
           {/* License Recommendations by Category */}
           <Tabs defaultValue="core" className="w-full">
-            <TabsList className="w-full">
+            <TabsList className="w-full grid grid-cols-3 lg:grid-cols-5 h-auto gap-2 bg-muted/50 p-1">
               {Object.keys(categorizedLicenses).map(category => (
-                <TabsTrigger key={category} value={category.toLowerCase().replace(/\s+/g, '-')}>
+                <TabsTrigger 
+                  key={category} 
+                  value={category.toLowerCase().replace(/\s+/g, '-')}
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200"
+                >
                   {category}
                 </TabsTrigger>
               ))}
@@ -121,63 +137,96 @@ export const CostSavingsReport = ({
                 <TabsContent 
                   key={category} 
                   value={category.toLowerCase().replace(/\s+/g, '-')}
-                  className="space-y-4"
+                  className="space-y-4 mt-4"
                 >
-                  {recommendations.length > 0 ? (
-                    recommendations.map((rec, index) => (
-                      <LicenseRecommendation
-                        key={`${category}-license-${index}`}
-                        license={rec.license}
-                        priority={rec.priority}
-                      />
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No optimization opportunities found for {category} licenses.
-                    </p>
-                  )}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-4"
+                  >
+                    {recommendations.length > 0 ? (
+                      recommendations.map((rec, index) => (
+                        <motion.div
+                          key={`${category}-license-${index}`}
+                          initial={{ x: -20 }}
+                          animate={{ x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <LicenseRecommendation
+                            license={rec.license}
+                            priority={rec.priority}
+                          />
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-sm text-muted-foreground">
+                          No optimization opportunities found for {category} licenses.
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
                 </TabsContent>
               );
             })}
           </Tabs>
 
           {/* Package Recommendations */}
-          {packageRecommendations.map((rec, index) => (
-            <PackageRecommendation
-              key={`package-${index}`}
-              package={rec.package}
-              priority={rec.priority}
-            />
-          ))}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="space-y-4"
+          >
+            {packageRecommendations.map((rec, index) => (
+              <PackageRecommendation
+                key={`package-${index}`}
+                package={rec.package}
+                priority={rec.priority}
+              />
+            ))}
+          </motion.div>
 
-          {/* Sandbox Recommendations */}
-          {fullSandboxes.length > 1 && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <div className="ml-2">
-                <div className="font-medium">Optimize Sandbox Usage</div>
-                <AlertDescription className="mt-1 text-sm">
-                  You have {fullSandboxes.length} full sandboxes. Consider downgrading some to partial 
-                  or developer sandboxes to reduce costs. Full sandboxes are typically only needed for 
-                  final testing phases and complete data copies.
-                </AlertDescription>
-              </div>
-            </Alert>
-          )}
+          {/* Sandbox and Storage Recommendations */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="space-y-4"
+          >
+            {fullSandboxes.length > 1 && (
+              <Alert variant="destructive" className="border-l-4 border-l-destructive">
+                <AlertCircle className="h-4 w-4" />
+                <div className="ml-2">
+                  <div className="font-medium">Optimize Sandbox Usage</div>
+                  <AlertDescription className="mt-1 text-sm">
+                    You have {fullSandboxes.length} full sandboxes. Consider downgrading some to partial 
+                    or developer sandboxes to reduce costs. Full sandboxes are typically only needed for 
+                    final testing phases and complete data copies.
+                  </AlertDescription>
+                </div>
+              </Alert>
+            )}
 
-          {/* Storage Recommendations */}
-          {storageUsage > 75 && (
-            <Alert variant={storageUsage > 90 ? 'destructive' : 'default'}>
-              <AlertCircle className="h-4 w-4" />
-              <div className="ml-2">
-                <div className="font-medium">Optimize Storage Usage</div>
-                <AlertDescription className="mt-1 text-sm">
-                  Storage usage is at {storageUsage.toFixed(2)}%. Consider implementing a data archival strategy 
-                  or reviewing attachment storage policies to avoid additional storage costs.
-                </AlertDescription>
-              </div>
-            </Alert>
-          )}
+            {storageUsage > 75 && (
+              <Alert 
+                variant={storageUsage > 90 ? 'destructive' : 'default'}
+                className={`border-l-4 ${
+                  storageUsage > 90 ? 'border-l-destructive' : 'border-l-sf-blue'
+                }`}
+              >
+                <AlertCircle className="h-4 w-4" />
+                <div className="ml-2">
+                  <div className="font-medium">Optimize Storage Usage</div>
+                  <AlertDescription className="mt-1 text-sm">
+                    Storage usage is at {storageUsage.toFixed(2)}%. Consider implementing a data archival strategy 
+                    or reviewing attachment storage policies to avoid additional storage costs.
+                  </AlertDescription>
+                </div>
+              </Alert>
+            )}
+          </motion.div>
         </div>
       </CardContent>
     </Card>
