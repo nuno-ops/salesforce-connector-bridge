@@ -43,8 +43,25 @@ export const calculateInactiveUserSavings = (
 export const calculateIntegrationUserSavings = (
   users: User[],
   oauthTokens: OAuthToken[],
-  licensePrice: number
+  licensePrice: number,
+  userLicenses: License[] = []
 ): { savings: number; count: number } => {
+  // Find Integration User license info
+  const integrationLicense = userLicenses.find(license => 
+    license.name.toLowerCase().includes('integration') || 
+    license.name.toLowerCase().includes('api only')
+  );
+
+  // Calculate available integration user licenses
+  const availableIntegrationLicenses = integrationLicense 
+    ? integrationLicense.total - integrationLicense.used 
+    : 0;
+
+  // If no integration licenses available, return early
+  if (availableIntegrationLicenses <= 0) {
+    return { savings: 0, count: 0 };
+  }
+
   // Group OAuth tokens by user
   const userOAuthUsage = new Map<string, OAuthToken[]>();
   oauthTokens.forEach(token => {
@@ -64,9 +81,15 @@ export const calculateIntegrationUserSavings = (
            userTokens.some(token => token.UseCount > 1000);
   });
 
+  // Limit the number of suggested conversions to available licenses
+  const recommendedCount = Math.min(
+    potentialIntegrationUsers.length,
+    availableIntegrationLicenses
+  );
+
   return {
-    savings: potentialIntegrationUsers.length * licensePrice * 12, // Annual savings
-    count: potentialIntegrationUsers.length
+    savings: recommendedCount * licensePrice * 12, // Annual savings
+    count: recommendedCount
   };
 };
 

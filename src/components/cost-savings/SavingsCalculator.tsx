@@ -12,6 +12,7 @@ interface SavingsCalculatorProps {
   licensePrice: number;
   sandboxes: any[];
   storageUsage: number;
+  userLicenses: any[];
 }
 
 export const useSavingsCalculations = ({
@@ -19,10 +20,16 @@ export const useSavingsCalculations = ({
   oauthTokens,
   licensePrice,
   sandboxes,
-  storageUsage
+  storageUsage,
+  userLicenses
 }: SavingsCalculatorProps) => {
   const inactiveUserSavings = calculateInactiveUserSavings(users, licensePrice);
-  const integrationUserSavings = calculateIntegrationUserSavings(users, oauthTokens, licensePrice);
+  const integrationUserSavings = calculateIntegrationUserSavings(
+    users, 
+    oauthTokens, 
+    licensePrice,
+    userLicenses
+  );
   const sandboxSavingsCalc = calculateSandboxSavings(sandboxes);
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
 

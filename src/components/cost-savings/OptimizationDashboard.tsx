@@ -38,7 +38,8 @@ export const OptimizationDashboard = ({
     oauthTokens,
     licensePrice,
     sandboxes,
-    storageUsage
+    storageUsage,
+    userLicenses
   });
 
   return (
