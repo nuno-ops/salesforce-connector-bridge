@@ -86,10 +86,18 @@ export const OptimizationDashboard = ({
   const scrollToLicenseOptimization = (tabValue: string) => {
     const element = document.getElementById('license-optimization');
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      // Calculate the position to scroll to (element's position - 100px offset)
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - 100; // 100px offset from the top
+
+      // Smooth scroll to the calculated position
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+
       // Add a small delay to ensure the section is visible before expanding and clicking the tab
       setTimeout(() => {
-        // Set isOpen to true in InactiveUsersSection
         const event = new CustomEvent('expandLicenseSection', { detail: { tabValue } });
         window.dispatchEvent(event);
       }, 100);
