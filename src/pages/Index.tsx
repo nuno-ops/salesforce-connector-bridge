@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { OrgHealth } from "@/components/OrgHealth";
 import { CostSavingsReport } from "@/components/CostSavingsReport";
 import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
+import { MainLayout } from "@/components/layouts/MainLayout";
 import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
 
@@ -46,7 +47,6 @@ const Index = () => {
         return;
       }
 
-      // Check if token is older than 2 hours (7200000 milliseconds)
       const tokenAge = Date.now() - parseInt(timestamp);
       if (tokenAge > 7200000) {
         handleDisconnect();
@@ -62,7 +62,6 @@ const Index = () => {
     };
 
     checkConnection();
-    // Check connection status every minute
     const interval = setInterval(checkConnection, 60000);
     return () => clearInterval(interval);
   }, [toast]);
@@ -81,52 +80,31 @@ const Index = () => {
   const storageUsage = calculateStorageUsage();
   const apiUsage = calculateApiUsage();
 
+  if (!isConnected) {
+    return <SalesforceLogin onSuccess={() => setIsConnected(true)} />;
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sf-light to-white p-4">
-      <div className="w-full max-w-4xl space-y-8">
-        {!isConnected ? (
-          <SalesforceLogin onSuccess={() => setIsConnected(true)} />
-        ) : (
-          <div className="space-y-8">
-            <div className="flex justify-end">
-              <Button 
-                variant="outline" 
-                onClick={handleDisconnect}
-                className="mb-4"
-              >
-                Disconnect from Salesforce
-              </Button>
-            </div>
-
-            {/* Cost Optimization Dashboard */}
-            <OptimizationDashboard
-              userLicenses={formattedUserLicenses}
-              packageLicenses={formattedPackageLicenses}
-              sandboxes={sandboxes}
-              storageUsage={storageUsage}
-            />
-
-            {/* Cost Savings Report */}
-            <CostSavingsReport
-              userLicenses={formattedUserLicenses}
-              packageLicenses={formattedPackageLicenses}
-              permissionSetLicenses={formattedPermissionSetLicenses}
-              sandboxes={sandboxes}
-              apiUsage={apiUsage}
-              storageUsage={storageUsage}
-              contracts={[]}
-              invoices={[]}
-            />
-
-            {/* Users Section */}
-            <SalesforceUsers />
-
-            {/* Org Health Section */}
-            <OrgHealth />
-          </div>
-        )}
-      </div>
-    </div>
+    <MainLayout onDisconnect={handleDisconnect}>
+      <OptimizationDashboard
+        userLicenses={formattedUserLicenses}
+        packageLicenses={formattedPackageLicenses}
+        sandboxes={sandboxes}
+        storageUsage={storageUsage}
+      />
+      <CostSavingsReport
+        userLicenses={formattedUserLicenses}
+        packageLicenses={formattedPackageLicenses}
+        permissionSetLicenses={formattedPermissionSetLicenses}
+        sandboxes={sandboxes}
+        apiUsage={apiUsage}
+        storageUsage={storageUsage}
+        contracts={[]}
+        invoices={[]}
+      />
+      <SalesforceUsers />
+      <OrgHealth />
+    </MainLayout>
   );
 };
 
