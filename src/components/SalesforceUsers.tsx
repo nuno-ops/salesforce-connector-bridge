@@ -3,17 +3,34 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrgHealth } from './OrgHealth';
-import { subDays } from 'date-fns';
 import { InactiveUsersSection } from './users/InactiveUsersSection';
+import { 
+  calculateInactiveUsers, 
+  analyzeIntegrationOpportunities,
+  calculateTotalSavings 
+} from './cost-savings/utils/licenseCalculations';
 
 interface SalesforceUser {
   Id: string;
   Username: string;
   LastLoginDate: string;
+  UserType: string;
+  Profile: {
+    Name: string;
+  };
+}
+
+interface OAuthToken {
+  Id: string;
+  AppName: string;
+  LastUsedDate: string;
+  UseCount: number;
+  UserId: string;
 }
 
 export const SalesforceUsers = () => {
   const [users, setUsers] = useState<SalesforceUser[]>([]);
+  const [oauthTokens, setOauthTokens] = useState<OAuthToken[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [instanceUrl, setInstanceUrl] = useState('');
   const { toast } = useToast();
@@ -42,18 +59,20 @@ export const SalesforceUsers = () => {
 
         if (error) throw error;
 
-        // Filter users who haven't logged in for more than 30 days
-        const thirtyDaysAgo = subDays(new Date(), 30);
-        const inactiveUsers = data.records.filter(user => {
-          if (!user.LastLoginDate) return true;
-          return new Date(user.LastLoginDate) < thirtyDaysAgo;
-        });
+        const inactiveUsers = calculateInactiveUsers(data.users);
+        const potentialIntegrationUsers = analyzeIntegrationOpportunities(
+          data.users,
+          data.oauthTokens,
+          inactiveUsers
+        );
 
-        setUsers(inactiveUsers);
-        if (inactiveUsers.length > 0) {
+        setUsers(data.users);
+        setOauthTokens(data.oauthTokens);
+
+        if (inactiveUsers.length > 0 || potentialIntegrationUsers.length > 0) {
           toast({
-            title: "Inactive Users Found",
-            description: `Found ${inactiveUsers.length} users who haven't logged in for over 30 days.`,
+            title: "License Optimization Opportunities Found",
+            description: `Found ${inactiveUsers.length} inactive users and ${potentialIntegrationUsers.length} potential integration user conversions.`,
           });
         }
       } catch (error) {
@@ -82,7 +101,11 @@ export const SalesforceUsers = () => {
   return (
     <div className="space-y-8">
       <OrgHealth />
-      <InactiveUsersSection users={users} instanceUrl={instanceUrl} />
+      <InactiveUsersSection 
+        users={users} 
+        instanceUrl={instanceUrl}
+        oauthTokens={oauthTokens}
+      />
     </div>
   );
 };

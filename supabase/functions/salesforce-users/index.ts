@@ -6,7 +6,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -25,46 +24,73 @@ serve(async (req) => {
       );
     }
 
-    const query = `
-      SELECT Id, Username, LastLoginDate, UserType
+    // Query for users
+    const userQuery = `
+      SELECT Id, Username, LastLoginDate, UserType, Profile.Name
       FROM User 
       WHERE IsActive = true 
       AND CreatedBy.Name != null 
       AND UserType != 'Guest'
     `;
 
-    const response = await fetch(
-      `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(query)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${access_token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Query for OAuth tokens
+    const oauthQuery = `
+      SELECT Id, AppName, LastUsedDate, UseCount, UserId
+      FROM OAuthToken
+      WHERE LastUsedDate >= LAST_N_DAYS:90
+    `;
 
-    if (!response.ok) {
-      console.error('Salesforce API error:', response.status);
-      const errorData = await response.text();
+    // Execute both queries in parallel
+    const [usersResponse, oauthResponse] = await Promise.all([
+      fetch(
+        `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(userQuery)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      ),
+      fetch(
+        `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(oauthQuery)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    ]);
+
+    if (!usersResponse.ok || !oauthResponse.ok) {
+      console.error('Salesforce API error:', usersResponse.status, oauthResponse.status);
+      const errorData = await usersResponse.text();
       console.error('Error details:', errorData);
       
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to fetch users',
+          error: 'Failed to fetch data',
           details: errorData
         }),
         { 
-          status: response.status,
+          status: usersResponse.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
-    const data = await response.json();
-    console.log('Successfully fetched users data');
+    const [userData, oauthData] = await Promise.all([
+      usersResponse.json(),
+      oauthResponse.json()
+    ]);
+
+    console.log('Successfully fetched users and OAuth data');
     
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify({
+        users: userData.records,
+        oauthTokens: oauthData.records
+      }),
       { 
         headers: { 
           ...corsHeaders,
