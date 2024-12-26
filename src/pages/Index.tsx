@@ -8,6 +8,7 @@ import { MainLayout } from "@/components/layouts/MainLayout";
 import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
 import { LandingPage } from "@/components/landing/LandingPage";
+import { OrgHealth } from "@/components/OrgHealth";
 
 const Index = () => {
   const [showLanding, setShowLanding] = useState(true);
@@ -92,23 +93,26 @@ const Index = () => {
 
   return (
     <MainLayout onDisconnect={handleDisconnect}>
-      <OptimizationDashboard
-        userLicenses={formattedUserLicenses}
-        packageLicenses={formattedPackageLicenses}
-        sandboxes={sandboxes}
-        storageUsage={storageUsage}
-      />
-      <CostSavingsReport
-        userLicenses={formattedUserLicenses}
-        packageLicenses={formattedPackageLicenses}
-        permissionSetLicenses={formattedPermissionSetLicenses}
-        sandboxes={sandboxes}
-        apiUsage={apiUsage}
-        storageUsage={storageUsage}
-        contracts={[]}
-        invoices={[]}
-      />
-      <SalesforceUsers />
+      <div className="space-y-8">
+        <OptimizationDashboard
+          userLicenses={formattedUserLicenses}
+          packageLicenses={formattedPackageLicenses}
+          sandboxes={sandboxes}
+          storageUsage={storageUsage}
+        />
+        <OrgHealth />
+        <CostSavingsReport
+          userLicenses={formattedUserLicenses}
+          packageLicenses={formattedPackageLicenses}
+          permissionSetLicenses={formattedPermissionSetLicenses}
+          sandboxes={sandboxes}
+          apiUsage={apiUsage}
+          storageUsage={storageUsage}
+          contracts={[]}
+          invoices={[]}
+        />
+        <SalesforceUsers />
+      </div>
     </MainLayout>
   );
 };

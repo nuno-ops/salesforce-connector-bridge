@@ -34,7 +34,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   }, [onSuccess]);
 
   const resetOAuthState = () => {
-    // Clear any stored OAuth-related data
     localStorage.removeItem('sf_temp_client_id');
     localStorage.removeItem('sf_temp_client_secret');
     localStorage.removeItem('sf_access_token');
@@ -50,7 +49,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
     setIsLoading(true);
 
     try {
-      // Store credentials before initiating OAuth flow
       localStorage.setItem('sf_temp_client_id', credentials.clientId);
       localStorage.setItem('sf_temp_client_secret', credentials.clientSecret);
       
@@ -59,7 +57,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
         hasSecret: !!credentials.clientSecret
       });
       
-      // Initiate OAuth flow
       initiateOAuthFlow(credentials.clientId);
     } catch (error) {
       console.error('Login error:', error);
@@ -73,32 +70,34 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   };
 
   return (
-    <Card className="w-full max-w-md p-6 animate-fadeIn">
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Connect to Salesforce</h1>
-          <p className="text-sm text-sf-gray">
-            Enter your Salesforce Connected App credentials
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sf-light to-white p-4">
+      <Card className="w-full max-w-md p-6 animate-fadeIn">
+        <div className="space-y-6">
+          <div className="space-y-2 text-center">
+            <h1 className="text-2xl font-bold tracking-tight">Connect to Salesforce</h1>
+            <p className="text-sm text-sf-gray">
+              Enter your Salesforce Connected App credentials
+            </p>
+          </div>
+
+          <LoginForm onSubmit={handleSubmit} isLoading={isLoading} />
+
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={resetOAuthState}
+              disabled={isLoading}
+            >
+              Reset Connection
+            </Button>
+
+            <p className="text-xs text-center text-sf-gray">
+              Make sure you have created a Connected App in Salesforce and have the correct credentials
+            </p>
+          </div>
         </div>
-
-        <LoginForm onSubmit={handleSubmit} isLoading={isLoading} />
-
-        <div className="space-y-4">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={resetOAuthState}
-            disabled={isLoading}
-          >
-            Reset Connection
-          </Button>
-
-          <p className="text-xs text-center text-sf-gray">
-            Make sure you have created a Connected App in Salesforce and have the correct credentials
-          </p>
-        </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 };
