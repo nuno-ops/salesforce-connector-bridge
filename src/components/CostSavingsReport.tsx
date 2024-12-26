@@ -4,6 +4,8 @@ import { AlertCircle } from "lucide-react";
 import { LicenseRecommendation } from "./cost-savings/LicenseRecommendation";
 import { PackageRecommendation } from "./cost-savings/PackageRecommendation";
 import { ContractRecommendation } from "./cost-savings/ContractRecommendation";
+import { groupLicensesByCategory, LicenseData } from "./cost-savings/utils/licenseTypes";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CostSavingsReportProps {
   userLicenses: Array<{
@@ -51,29 +53,26 @@ export const CostSavingsReport = ({
   contracts,
   invoices
 }: CostSavingsReportProps) => {
-  // Filter out free licenses like Chatter and exclude Integration licenses (now shown in Integration Users tab)
-  const paidLicenses = userLicenses.filter(license => {
-    const name = license.name.toLowerCase();
-    return (
-      !name.includes('chatter') &&
-      !name.includes('guest') &&
-      !name.includes('high volume') &&
-      !name.includes('integration') &&
-      license.total > 0
-    );
-  });
+  // Group licenses by category
+  const categorizedLicenses = groupLicensesByCategory(
+    userLicenses.map(license => ({
+      name: license.name,
+      total: license.total,
+      used: license.used
+    }))
+  );
 
-  // Get licenses with significant unused allocation
-  const licenseRecommendations = paidLicenses
-    .filter(license => {
+  // Get recommendations for each category
+  const getLicenseRecommendations = (licenses: LicenseData[]) => {
+    return licenses.filter(license => {
       const unusedLicenses = license.total - license.used;
       const unusedPercentage = (unusedLicenses / license.total) * 100;
       return unusedPercentage >= 20 && unusedLicenses >= 2;
-    })
-    .map(license => ({
+    }).map(license => ({
       license,
       priority: ((license.total - license.used) / license.total) >= 0.3 ? 'high' as const : 'medium' as const
     }));
+  };
 
   // Get package recommendations
   const packageRecommendations = packageLicenses
@@ -106,14 +105,41 @@ export const CostSavingsReport = ({
             userLicenses={userLicenses}
           />
 
-          {/* License Recommendations */}
-          {licenseRecommendations.map((rec, index) => (
-            <LicenseRecommendation
-              key={`license-${index}`}
-              license={rec.license}
-              priority={rec.priority}
-            />
-          ))}
+          {/* License Recommendations by Category */}
+          <Tabs defaultValue="core" className="w-full">
+            <TabsList className="w-full">
+              {Object.keys(categorizedLicenses).map(category => (
+                <TabsTrigger key={category} value={category.toLowerCase().replace(/\s+/g, '-')}>
+                  {category}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {Object.entries(categorizedLicenses).map(([category, licenses]) => {
+              const recommendations = getLicenseRecommendations(licenses);
+              return (
+                <TabsContent 
+                  key={category} 
+                  value={category.toLowerCase().replace(/\s+/g, '-')}
+                  className="space-y-4"
+                >
+                  {recommendations.length > 0 ? (
+                    recommendations.map((rec, index) => (
+                      <LicenseRecommendation
+                        key={`${category}-license-${index}`}
+                        license={rec.license}
+                        priority={rec.priority}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No optimization opportunities found for {category} licenses.
+                    </p>
+                  )}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
 
           {/* Package Recommendations */}
           {packageRecommendations.map((rec, index) => (
@@ -151,18 +177,6 @@ export const CostSavingsReport = ({
                 </AlertDescription>
               </div>
             </Alert>
-          )}
-
-          {/* No Recommendations Message */}
-          {licenseRecommendations.length === 0 && 
-           packageRecommendations.length === 0 && 
-           fullSandboxes.length <= 1 && 
-           storageUsage <= 75 && 
-           contracts.filter(c => c.SubscriptionDaysLeft <= 90).length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No immediate cost optimization opportunities identified. Your Salesforce instance appears 
-              to be well-optimized.
-            </p>
           )}
         </div>
       </CardContent>
