@@ -51,13 +51,14 @@ export const CostSavingsReport = ({
   contracts,
   invoices
 }: CostSavingsReportProps) => {
-  // Filter out free licenses like Chatter
+  // Filter out free licenses like Chatter and exclude Integration licenses (now shown in Integration Users tab)
   const paidLicenses = userLicenses.filter(license => {
     const name = license.name.toLowerCase();
     return (
       !name.includes('chatter') &&
       !name.includes('guest') &&
       !name.includes('high volume') &&
+      !name.includes('integration') &&
       license.total > 0
     );
   });
@@ -94,7 +95,7 @@ export const CostSavingsReport = ({
   return (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle>Cost Optimization Recommendations</CardTitle>
+        <CardTitle>Other Cost Optimization Recommendations</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

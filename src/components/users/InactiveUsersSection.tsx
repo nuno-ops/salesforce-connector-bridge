@@ -13,32 +13,112 @@ import {
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
-interface SalesforceUser {
-  Id: string;
-  Username: string;
-  LastLoginDate: string;
-  UserType: string;
-  Profile: {
-    Name: string;
-  };
-}
+// Breaking down the component into smaller parts
+const IntegrationGuidance = () => (
+  <Alert className="mt-4">
+    <AlertCircle className="h-4 w-4" />
+    <div className="ml-2">
+      <div className="font-medium">Integration User License Usage Guide</div>
+      <AlertDescription className="mt-1 text-sm">
+        <p className="mb-2">Integration user licenses are ideal for:</p>
+        <ul className="list-disc pl-4 space-y-1">
+          <li>API-only access for system integrations with tools like:
+            <ul className="list-disc pl-4 mt-1">
+              <li>Zapier for workflow automation</li>
+              <li>Make.com (formerly Integromat) for complex integrations</li>
+              <li>MuleSoft for enterprise integration</li>
+            </ul>
+          </li>
+          <li>Data synchronization between systems</li>
+          <li>Automated processes and batch operations</li>
+        </ul>
+      </AlertDescription>
+    </div>
+  </Alert>
+);
 
-interface OAuthToken {
-  Id: string;
-  AppName: string;
-  LastUsedDate: string;
-  UseCount: number;
-  UserId: string;
-}
+const UserTable = ({ users, instanceUrl, getUserOAuthApps, maskUsername }) => (
+  <div className="rounded-md border">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Username</TableHead>
+          <TableHead>Last Login</TableHead>
+          <TableHead>User Type</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {users.map((user) => (
+          <TableRow key={user.Id}>
+            <TableCell>{maskUsername(user.Username)}</TableCell>
+            <TableCell>
+              {user.LastLoginDate 
+                ? format(new Date(user.LastLoginDate), 'PPp')
+                : 'Never'}
+            </TableCell>
+            <TableCell>{user.UserType}</TableCell>
+            <TableCell>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
+              >
+                View User <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+);
 
-interface InactiveUsersSectionProps {
-  users: SalesforceUser[];
-  instanceUrl: string;
-  oauthTokens: OAuthToken[];
-}
+const IntegrationTable = ({ users, instanceUrl, getUserOAuthApps, maskUsername }) => (
+  <div className="rounded-md border">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Username</TableHead>
+          <TableHead>User Type</TableHead>
+          <TableHead>Connected Apps</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {users.map((user) => (
+          <TableRow key={user.Id}>
+            <TableCell>{maskUsername(user.Username)}</TableCell>
+            <TableCell>{user.UserType}</TableCell>
+            <TableCell>
+              <div className="flex gap-1 flex-wrap">
+                {getUserOAuthApps(user.Id).map((app, index) => (
+                  <Badge key={index} variant="secondary">
+                    {app}
+                  </Badge>
+                ))}
+              </div>
+            </TableCell>
+            <TableCell>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
+              >
+                View User <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+);
 
-export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }: InactiveUsersSectionProps) => {
+export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('inactive');
 
@@ -49,7 +129,6 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }: Inacti
     };
 
     window.addEventListener('expandLicenseSection', handleExpand as EventListener);
-
     return () => {
       window.removeEventListener('expandLicenseSection', handleExpand as EventListener);
     };
@@ -143,80 +222,21 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }: Inacti
               <TabsTrigger value="integration">Integration Users ({integrationUsers.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="inactive">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Username</TableHead>
-                      <TableHead>Last Login</TableHead>
-                      <TableHead>User Type</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {inactiveUsers.map((user) => (
-                      <TableRow key={user.Id}>
-                        <TableCell>{maskUsername(user.Username)}</TableCell>
-                        <TableCell>
-                          {user.LastLoginDate 
-                            ? format(new Date(user.LastLoginDate), 'PPp')
-                            : 'Never'}
-                        </TableCell>
-                        <TableCell>{user.UserType}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
-                          >
-                            View User <ExternalLink className="ml-2 h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <UserTable 
+                users={inactiveUsers}
+                instanceUrl={instanceUrl}
+                getUserOAuthApps={getUserOAuthApps}
+                maskUsername={maskUsername}
+              />
             </TabsContent>
             <TabsContent value="integration">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Username</TableHead>
-                      <TableHead>User Type</TableHead>
-                      <TableHead>Connected Apps</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {integrationUsers.map((user) => (
-                      <TableRow key={user.Id}>
-                        <TableCell>{maskUsername(user.Username)}</TableCell>
-                        <TableCell>{user.UserType}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1 flex-wrap">
-                            {getUserOAuthApps(user.Id).map((app, index) => (
-                              <Badge key={index} variant="secondary">
-                                {app}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
-                          >
-                            View User <ExternalLink className="ml-2 h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <IntegrationGuidance />
+              <IntegrationTable 
+                users={integrationUsers}
+                instanceUrl={instanceUrl}
+                getUserOAuthApps={getUserOAuthApps}
+                maskUsername={maskUsername}
+              />
             </TabsContent>
           </Tabs>
         </CollapsibleContent>
