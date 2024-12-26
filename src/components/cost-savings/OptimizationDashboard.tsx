@@ -87,12 +87,11 @@ export const OptimizationDashboard = ({
     const element = document.getElementById('license-optimization');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      // Add a small delay to ensure the section is visible before clicking the tab
+      // Add a small delay to ensure the section is visible before expanding and clicking the tab
       setTimeout(() => {
-        const tabTrigger = document.querySelector(`[data-state][data-value="${tabValue}"]`);
-        if (tabTrigger instanceof HTMLElement) {
-          tabTrigger.click();
-        }
+        // Set isOpen to true in InactiveUsersSection
+        const event = new CustomEvent('expandLicenseSection', { detail: { tabValue } });
+        window.dispatchEvent(event);
       }, 100);
     }
   };

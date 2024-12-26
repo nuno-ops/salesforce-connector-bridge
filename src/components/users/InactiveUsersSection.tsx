@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Download, ChevronUp, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -40,6 +40,20 @@ interface InactiveUsersSectionProps {
 
 export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }: InactiveUsersSectionProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('inactive');
+
+  useEffect(() => {
+    const handleExpand = (event: CustomEvent<{ tabValue: string }>) => {
+      setIsOpen(true);
+      setActiveTab(event.detail.tabValue);
+    };
+
+    window.addEventListener('expandLicenseSection', handleExpand as EventListener);
+
+    return () => {
+      window.removeEventListener('expandLicenseSection', handleExpand as EventListener);
+    };
+  }, []);
 
   const maskUsername = (username: string) => {
     if (username.length <= 4) return username;
@@ -123,7 +137,7 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }: Inacti
       
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleContent>
-          <Tabs defaultValue="inactive" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
               <TabsTrigger value="inactive">Inactive Users ({inactiveUsers.length})</TabsTrigger>
               <TabsTrigger value="integration">Integration Users ({integrationUsers.length})</TabsTrigger>
