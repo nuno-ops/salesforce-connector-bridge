@@ -2,9 +2,16 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrendingUp, DollarSign, AlertCircle } from "lucide-react";
+import { TrendingUp, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { SavingsSummaryCard } from "./SavingsSummaryCard";
+import {
+  calculateInactiveUserSavings,
+  calculateIntegrationUserSavings,
+  calculateSandboxSavings,
+  calculateStorageSavings
+} from "./utils/savingsCalculations";
 
 interface OptimizationDashboardProps {
   userLicenses: Array<{
@@ -29,10 +36,12 @@ export const OptimizationDashboard = ({
   storageUsage
 }: OptimizationDashboardProps) => {
   const [licensePrice, setLicensePrice] = useState<number>(100);
+  const [users, setUsers] = useState<any[]>([]);
+  const [oauthTokens, setOauthTokens] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchOrgSettings = async () => {
+    const fetchData = async () => {
       try {
         const access_token = localStorage.getItem('sf_access_token');
         const instance_url = localStorage.getItem('sf_instance_url');
@@ -42,37 +51,74 @@ export const OptimizationDashboard = ({
           return;
         }
 
-        // First try to fetch from Salesforce
-        console.log('Fetching organization data from Salesforce...');
-        const { data: orgData, error: orgError } = await supabase.functions.invoke('salesforce-org', {
-          body: { 
-            access_token,
-            instance_url
-          }
+        // Fetch users and OAuth tokens
+        const { data, error } = await supabase.functions.invoke('salesforce-users', {
+          body: { access_token, instance_url }
         });
 
-        if (orgError) {
-          console.error('Error fetching from Salesforce:', orgError);
-          throw orgError;
-        }
+        if (error) throw error;
+
+        setUsers(data.users);
+        setOauthTokens(data.oauthTokens);
+
+        // Try to fetch license price from settings
+        const { data: orgData, error: orgError } = await supabase.functions.invoke('salesforce-org', {
+          body: { access_token, instance_url }
+        });
+
+        if (orgError) throw orgError;
 
         if (orgData?.settings?.license_cost_per_user) {
-          console.log('Setting license price from Salesforce data:', orgData.settings.license_cost_per_user);
           setLicensePrice(orgData.settings.license_cost_per_user);
         }
 
       } catch (error) {
-        console.error('Error fetching organization settings:', error);
+        console.error('Error fetching data:', error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to fetch organization settings"
+          description: "Failed to fetch organization data"
         });
       }
     };
 
-    fetchOrgSettings();
+    fetchData();
   }, [toast]);
+
+  // Calculate savings
+  const inactiveUserSavings = calculateInactiveUserSavings(users, licensePrice);
+  const integrationUserSavings = calculateIntegrationUserSavings(users, oauthTokens, licensePrice);
+  const sandboxSavingsCalc = calculateSandboxSavings(sandboxes);
+  const storageSavingsCalc = calculateStorageSavings(storageUsage);
+
+  const totalSavings = 
+    inactiveUserSavings.savings +
+    integrationUserSavings.savings +
+    sandboxSavingsCalc.savings +
+    storageSavingsCalc.savings;
+
+  const savingsBreakdown = [
+    {
+      title: "Inactive User Licenses",
+      amount: inactiveUserSavings.savings,
+      details: `${inactiveUserSavings.count} users inactive for >30 days`
+    },
+    {
+      title: "Integration User Optimization",
+      amount: integrationUserSavings.savings,
+      details: `${integrationUserSavings.count} users could be converted to integration users`
+    },
+    {
+      title: "Sandbox Optimization",
+      amount: sandboxSavingsCalc.savings,
+      details: `${sandboxSavingsCalc.count} excess full sandboxes could be converted`
+    },
+    {
+      title: "Storage Optimization",
+      amount: storageSavingsCalc.savings,
+      details: `Potential ${storageSavingsCalc.potentialGBSavings}GB reduction in storage`
+    }
+  ];
 
   const handlePriceChange = async (newPrice: number) => {
     try {
@@ -82,9 +128,7 @@ export const OptimizationDashboard = ({
         .limit(1)
         .maybeSingle();
 
-      if (selectError) {
-        throw selectError;
-      }
+      if (selectError) throw selectError;
 
       if (settings) {
         const { error: updateError } = await supabase
@@ -110,62 +154,6 @@ export const OptimizationDashboard = ({
     }
   };
 
-  // Calculate potential savings based on the current license price
-  const calculateLicenseSavings = () => {
-    let totalUnused = 0;
-    userLicenses.forEach(license => {
-      const unused = license.total - license.used;
-      if (unused > 0) totalUnused += unused;
-    });
-    return totalUnused * licensePrice * 12; // Annual savings
-  };
-
-  const calculateSandboxSavings = () => {
-    const fullSandboxes = sandboxes.filter(sb => 
-      sb.LicenseType.toLowerCase().includes('full')
-    ).length;
-    const excessFullSandboxes = Math.max(0, fullSandboxes - 1);
-    return excessFullSandboxes * 5000 * 12;
-  };
-
-  const calculateStorageSavings = () => {
-    if (storageUsage > 75) {
-      const estimatedGBSavings = 2;
-      return estimatedGBSavings * 250 * 12;
-    }
-    return 0;
-  };
-
-  const totalPotentialSavings = 
-    calculateLicenseSavings() + 
-    calculateSandboxSavings() + 
-    calculateStorageSavings();
-
-  const quickWins = [
-    {
-      title: "License Optimization",
-      savings: calculateLicenseSavings(),
-      effort: "Medium",
-      timeframe: "1-2 weeks",
-      description: "Redistribute or remove unused licenses"
-    },
-    {
-      title: "Sandbox Consolidation",
-      savings: calculateSandboxSavings(),
-      effort: "Easy",
-      timeframe: "1 week",
-      description: "Convert excess full sandboxes to partial"
-    },
-    {
-      title: "Storage Optimization",
-      savings: calculateStorageSavings(),
-      effort: "Medium",
-      timeframe: "2-3 weeks",
-      description: "Archive old data and optimize attachments"
-    }
-  ].filter(win => win.savings > 0)
-   .sort((a, b) => b.savings - a.savings);
-
   return (
     <div className="space-y-6 mb-8">
       {/* License Cost Configuration */}
@@ -184,60 +172,40 @@ export const OptimizationDashboard = ({
         </div>
       </Card>
 
-      {/* Total Savings Card */}
-      <Card className="bg-gradient-to-r from-sf-blue to-sf-hover">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-white">
-                Potential Annual Savings
-              </h2>
-              <p className="text-4xl font-bold text-white">
-                ${totalPotentialSavings.toLocaleString()}
-              </p>
-            </div>
-            <DollarSign className="h-12 w-12 text-white opacity-75" />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Savings Summary */}
+      <SavingsSummaryCard 
+        totalSavings={totalSavings}
+        breakdownItems={savingsBreakdown}
+      />
 
       {/* Quick Wins Section */}
-      {quickWins.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Quick Wins
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {quickWins.map((win, index) => (
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Recommendations
+        </h3>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {savingsBreakdown
+            .filter(item => item.amount > 0)
+            .map((item, index) => (
               <Card key={index} className="relative overflow-hidden">
                 <CardContent className="p-6">
                   <div className="space-y-2">
-                    <div className="flex items-start justify-between">
-                      <h4 className="font-semibold">{win.title}</h4>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        win.effort === 'Easy' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {win.effort}
-                      </span>
-                    </div>
+                    <h4 className="font-semibold">{item.title}</h4>
                     <p className="text-2xl font-bold text-sf-blue">
-                      ${win.savings.toLocaleString()}
+                      ${item.amount.toLocaleString()}
                     </p>
-                    <p className="text-sm text-gray-600">{win.description}</p>
+                    <p className="text-sm text-gray-600">{item.details}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <AlertCircle className="h-4 w-4" />
-                      {win.timeframe} to implement
+                      2-3 weeks to implement
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
