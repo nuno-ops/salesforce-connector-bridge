@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
 import { SalesforceLogin } from "@/components/SalesforceLogin";
 import { SalesforceUsers } from "@/components/SalesforceUsers";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { OrgHealth } from "@/components/OrgHealth";
 import { CostSavingsReport } from "@/components/CostSavingsReport";
 import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
+import { LandingPage } from "@/components/landing/LandingPage";
 
 const Index = () => {
+  const [showLanding, setShowLanding] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
   const {
@@ -59,6 +59,7 @@ const Index = () => {
       }
 
       setIsConnected(true);
+      setShowLanding(false);
     };
 
     checkConnection();
@@ -71,6 +72,7 @@ const Index = () => {
     localStorage.removeItem('sf_instance_url');
     localStorage.removeItem('sf_token_timestamp');
     setIsConnected(false);
+    setShowLanding(true);
   };
 
   // Format license data
@@ -79,6 +81,10 @@ const Index = () => {
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
   const storageUsage = calculateStorageUsage();
   const apiUsage = calculateApiUsage();
+
+  if (showLanding) {
+    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+  }
 
   if (!isConnected) {
     return <SalesforceLogin onSuccess={() => setIsConnected(true)} />;
@@ -103,7 +109,6 @@ const Index = () => {
         invoices={[]}
       />
       <SalesforceUsers />
-      <OrgHealth />
     </MainLayout>
   );
 };
