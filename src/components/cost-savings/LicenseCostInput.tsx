@@ -12,8 +12,10 @@ interface LicenseCostInputProps {
 export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInputProps) => {
   const { toast } = useToast();
 
-  const handlePriceChange = async (newPrice: number) => {
+  const handlePriceChange = async (value: string) => {
     try {
+      const newPrice = value === '' ? null : parseFloat(value);
+
       const { data: settings, error: selectError } = await supabase
         .from('organization_settings')
         .select('*')
@@ -30,7 +32,7 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
 
         if (updateError) throw updateError;
         
-        onPriceChange(newPrice);
+        onPriceChange(newPrice || 0);
         toast({
           title: "Success",
           description: "License cost updated successfully"
@@ -54,9 +56,10 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
           <Input
             id="licensePrice"
             type="number"
-            value={licensePrice}
-            onChange={(e) => handlePriceChange(parseFloat(e.target.value))}
+            value={licensePrice || ''}
+            onChange={(e) => handlePriceChange(e.target.value)}
             className="max-w-[200px]"
+            placeholder="Enter license cost"
           />
         </div>
       </div>

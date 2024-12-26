@@ -33,7 +33,7 @@ export const OptimizationDashboard = ({
   sandboxes,
   storageUsage
 }: OptimizationDashboardProps) => {
-  const [licensePrice, setLicensePrice] = useState<number>(100);
+  const [licensePrice, setLicensePrice] = useState<number>(0);
   const [users, setUsers] = useState<any[]>([]);
   const [oauthTokens, setOauthTokens] = useState<any[]>([]);
   const { toast } = useToast();
@@ -84,8 +84,8 @@ export const OptimizationDashboard = ({
   }, [toast]);
 
   // Calculate savings
-  const inactiveUserSavings = calculateInactiveUserSavings(users, licensePrice);
-  const integrationUserSavings = calculateIntegrationUserSavings(users, oauthTokens, licensePrice);
+  const inactiveUserSavings = calculateInactiveUserSavings(users, licensePrice || 0);
+  const integrationUserSavings = calculateIntegrationUserSavings(users, oauthTokens, licensePrice || 0);
   const sandboxSavingsCalc = calculateSandboxSavings(sandboxes);
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
 
