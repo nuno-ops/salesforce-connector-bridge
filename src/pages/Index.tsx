@@ -118,7 +118,7 @@ const Index = () => {
               invoices={[]}
             />
 
-            {/* Users Section - Now between Cost Savings and Org Health */}
+            {/* Users Section */}
             <SalesforceUsers />
 
             {/* Org Health Section */}
