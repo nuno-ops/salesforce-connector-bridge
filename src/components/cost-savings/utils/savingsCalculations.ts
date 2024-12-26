@@ -44,21 +44,25 @@ export const calculateIntegrationUserSavings = (
   users: User[],
   oauthTokens: OAuthToken[],
   licensePrice: number,
-  userLicenses: License[] = []
+  userLicenses: License[]
 ): { savings: number; count: number } => {
   // Find Integration User license info
   const integrationLicense = userLicenses.find(license => 
-    license.name.toLowerCase().includes('integration') || 
-    license.name.toLowerCase().includes('api only')
+    license.name === 'Integration User License' || 
+    license.name === 'Salesforce Integration User'
   );
 
-  // Calculate available integration user licenses
-  const availableIntegrationLicenses = integrationLicense 
-    ? integrationLicense.total - integrationLicense.used 
-    : 0;
+  if (!integrationLicense) {
+    console.log('No Integration User License found');
+    return { savings: 0, count: 0 };
+  }
 
-  // If no integration licenses available, return early
+  // Calculate available integration user licenses
+  const availableIntegrationLicenses = integrationLicense.total - integrationLicense.used;
+  console.log('Available Integration Licenses:', availableIntegrationLicenses);
+
   if (availableIntegrationLicenses <= 0) {
+    console.log('No available Integration User Licenses');
     return { savings: 0, count: 0 };
   }
 
@@ -81,11 +85,15 @@ export const calculateIntegrationUserSavings = (
            userTokens.some(token => token.UseCount > 1000);
   });
 
+  console.log('Potential Integration Users found:', potentialIntegrationUsers.length);
+
   // Limit the number of suggested conversions to available licenses
   const recommendedCount = Math.min(
     potentialIntegrationUsers.length,
     availableIntegrationLicenses
   );
+
+  console.log('Recommended conversions after license availability check:', recommendedCount);
 
   return {
     savings: recommendedCount * licensePrice * 12, // Annual savings
