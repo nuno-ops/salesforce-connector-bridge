@@ -121,7 +121,7 @@ const Index = () => {
             {/* Users Section */}
             <SalesforceUsers />
 
-            {/* Org Health Section */}
+            {/* Org Health Section - Only rendered once */}
             <OrgHealth />
           </div>
         )}
