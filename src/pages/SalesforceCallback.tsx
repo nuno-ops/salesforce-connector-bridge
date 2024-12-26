@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { handleOAuthCallback } from '@/components/salesforce/useSalesforceAuth';
+import { ContractUploadDialog } from '@/components/salesforce/ContractUploadDialog';
 import { Loader2 } from 'lucide-react';
 
 const SalesforceCallback = () => {
   const [isProcessing, setIsProcessing] = useState(true);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [orgId, setOrgId] = useState<string>('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -38,13 +41,19 @@ const SalesforceCallback = () => {
         localStorage.setItem('sf_instance_url', authData.instance_url);
         localStorage.setItem('sf_token_timestamp', Date.now().toString());
 
+        // Extract org ID from instance URL
+        const orgIdMatch = authData.instance_url.match(/\/\/([^.]+)/);
+        if (orgIdMatch) {
+          setOrgId(orgIdMatch[1]);
+        }
+
         toast({
           title: "Successfully connected!",
           description: "You are now connected to Salesforce.",
         });
 
-        // Redirect back to the main page
-        navigate('/');
+        setIsProcessing(false);
+        setShowUploadDialog(true);
       } catch (error) {
         console.error('OAuth callback error:', error);
         toast({
@@ -53,8 +62,6 @@ const SalesforceCallback = () => {
           description: error instanceof Error ? error.message : "Failed to complete Salesforce connection.",
         });
         navigate('/');
-      } finally {
-        setIsProcessing(false);
       }
     };
 
@@ -69,6 +76,11 @@ const SalesforceCallback = () => {
           <p className="text-gray-600">Completing Salesforce connection...</p>
         </div>
       )}
+      <ContractUploadDialog 
+        open={showUploadDialog} 
+        onOpenChange={setShowUploadDialog}
+        orgId={orgId}
+      />
     </div>
   );
 };

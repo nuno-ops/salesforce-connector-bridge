@@ -1,52 +1,63 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import FirecrawlApp from 'npm:@mendable/firecrawl-js';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { access_token, instance_url } = await req.json();
-    console.log('Received request to scrape Salesforce data');
-    console.log('Instance URL:', instance_url);
+    const { filePath } = await req.json()
+    
+    // Initialize Supabase client
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    const firecrawl = new FirecrawlApp({ 
-      apiKey: Deno.env.get('FIRECRAWL_API_KEY') 
-    });
+    // Download the file
+    const { data: fileData, error: downloadError } = await supabaseAdmin
+      .storage
+      .from('salesforce_contracts')
+      .download(filePath)
 
-    // Construct the URL for scraping
-    const url = `${instance_url}/lightning/o/SalesforceContract/list?filterName=ActiveContracts`;
-    console.log('Attempting to scrape URL:', url);
+    if (downloadError) {
+      throw downloadError
+    }
 
-    // Set the necessary headers for the request
-    const requestHeaders = {
-      'Authorization': `Bearer ${access_token}`,
-      'Cookie': `sid=${access_token}` // Salesforce uses both Bearer token and cookie auth
-    };
+    // Convert file to text for processing
+    const pdfText = await fileData.text()
+    
+    // Simple example of value extraction - this should be enhanced based on actual contract format
+    const valueMatch = pdfText.match(/Total Value:?\s*\$?([\d,]+(\.\d{2})?)/i)
+    const extractedValue = valueMatch ? parseFloat(valueMatch[1].replace(/,/g, '')) : null
 
-    // Make the request to Firecrawl API with the headers included in the request
-    const response = await firecrawl.crawlUrl(url, {
-      limit: 1,
-      // Other options as needed
-    }, requestHeaders);
+    console.log('Extracted value:', extractedValue)
 
-    console.log('Firecrawl response:', response);
-
-    return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        extractedValue,
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
   } catch (error) {
-    console.error('Error during scraping:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    console.error('Error processing PDF:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      },
+    )
   }
-});
+})
