@@ -1,10 +1,13 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { getCategoryRecommendations } from "./utils/licenseTypes";
 
 interface LicenseInfo {
   name: string;
   total: number;
   used: number;
+  category?: string;
 }
 
 interface LicenseRecommendationProps {
@@ -12,34 +15,10 @@ interface LicenseRecommendationProps {
   priority: 'high' | 'medium' | 'low';
 }
 
-const LICENSE_USE_CASES = {
-  'Salesforce Identity': [
-    'Single Sign-On (SSO) access to connected apps',
-    'Basic Salesforce authentication',
-    'Custom authentication provider integration',
-    'Employee portal access',
-    'Partner community authentication',
-    'Multi-factor authentication management'
-  ],
-  'Salesforce Integration': [
-    'API-only access for system integrations with tools like:',
-    '- Zapier for workflow automation',
-    '- Make.com (formerly Integromat) for complex integrations',
-    '- MuleSoft for enterprise integration',
-    'Data synchronization between systems',
-    'Automated processes and batch operations'
-  ],
-  'Salesforce Platform': [
-    'Access to custom objects and apps',
-    'Limited standard object access',
-    'Basic Salesforce functionality'
-  ]
-};
-
 export const LicenseRecommendation = ({ license, priority }: LicenseRecommendationProps) => {
   const unusedLicenses = license.total - license.used;
   const unusedPercentage = (unusedLicenses / license.total) * 100;
-  const useCases = LICENSE_USE_CASES[license.name as keyof typeof LICENSE_USE_CASES];
+  const categoryRecommendations = license.category ? getCategoryRecommendations(license.category) : null;
 
   return (
     <Alert variant={priority === 'high' ? 'destructive' : 'default'}>
@@ -50,15 +29,48 @@ export const LicenseRecommendation = ({ license, priority }: LicenseRecommendati
           <p>
             You have {unusedLicenses} unused {license.name} licenses ({unusedPercentage.toFixed(0)}% of total).
           </p>
-          {useCases && (
-            <div>
-              <p className="font-medium mt-2">Consider using these licenses for:</p>
-              <ul className="list-disc pl-4 mt-1">
-                {useCases.map((useCase, index) => (
-                  <li key={index}>{useCase}</li>
-                ))}
-              </ul>
-            </div>
+          
+          {categoryRecommendations && (
+            <Accordion type="single" collapsible className="mt-4">
+              <AccordionItem value="underutilized">
+                <AccordionTrigger className="text-sm font-medium">
+                  Underutilization Analysis
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="list-disc pl-4 mt-2 space-y-1">
+                    {categoryRecommendations.underutilized.map((rec, index) => (
+                      <li key={index}>{rec}</li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="optimization">
+                <AccordionTrigger className="text-sm font-medium">
+                  Cost Optimization Steps
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="list-disc pl-4 mt-2 space-y-1">
+                    {categoryRecommendations.costOptimization.map((rec, index) => (
+                      <li key={index}>{rec}</li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="practices">
+                <AccordionTrigger className="text-sm font-medium">
+                  Best Practices
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="list-disc pl-4 mt-2 space-y-1">
+                    {categoryRecommendations.bestPractices.map((rec, index) => (
+                      <li key={index}>{rec}</li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           )}
         </AlertDescription>
       </div>
