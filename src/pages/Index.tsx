@@ -98,15 +98,7 @@ const Index = () => {
               </Button>
             </div>
 
-            {/* Cost Optimization Dashboard */}
-            <OptimizationDashboard
-              userLicenses={formattedUserLicenses}
-              packageLicenses={formattedPackageLicenses}
-              sandboxes={sandboxes}
-              storageUsage={storageUsage}
-            />
-
-            {/* Cost Savings Report */}
+            {/* Cost Savings Report - Now First */}
             <CostSavingsReport
               userLicenses={formattedUserLicenses}
               packageLicenses={formattedPackageLicenses}
@@ -118,7 +110,15 @@ const Index = () => {
               invoices={[]}
             />
 
-            {/* Org Health Section with Quote PDF Download */}
+            {/* Cost Optimization Dashboard */}
+            <OptimizationDashboard
+              userLicenses={formattedUserLicenses}
+              packageLicenses={formattedPackageLicenses}
+              sandboxes={sandboxes}
+              storageUsage={storageUsage}
+            />
+
+            {/* Org Health Section */}
             <OrgHealth />
 
             {/* Users Section */}
