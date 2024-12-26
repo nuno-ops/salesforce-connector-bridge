@@ -89,7 +89,7 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }: Inacti
   if (users.length === 0) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" id="license-optimization">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">License Optimization</h2>

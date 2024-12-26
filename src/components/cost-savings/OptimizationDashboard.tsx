@@ -83,6 +83,20 @@ export const OptimizationDashboard = ({
     fetchData();
   }, [toast]);
 
+  const scrollToLicenseOptimization = (tabValue: string) => {
+    const element = document.getElementById('license-optimization');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      // Add a small delay to ensure the section is visible before clicking the tab
+      setTimeout(() => {
+        const tabTrigger = document.querySelector(`[data-state][data-value="${tabValue}"]`);
+        if (tabTrigger instanceof HTMLElement) {
+          tabTrigger.click();
+        }
+      }, 100);
+    }
+  };
+
   // Calculate savings
   const inactiveUserSavings = calculateInactiveUserSavings(users, licensePrice || 0);
   const integrationUserSavings = calculateIntegrationUserSavings(users, oauthTokens, licensePrice || 0);
@@ -95,43 +109,18 @@ export const OptimizationDashboard = ({
     sandboxSavingsCalc.savings +
     storageSavingsCalc.savings;
 
-  const scrollToLicenseOptimization = () => {
-    const element = document.querySelector('#license-optimization');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   const savingsBreakdown = [
     {
       title: "Inactive User Licenses",
       amount: inactiveUserSavings.savings,
       details: `${inactiveUserSavings.count} users inactive for >30 days`,
-      viewAction: () => {
-        scrollToLicenseOptimization();
-        // Add a small delay to ensure the section is expanded and the inactive tab is selected
-        setTimeout(() => {
-          const tabTrigger = document.querySelector('[data-value="inactive"]');
-          if (tabTrigger instanceof HTMLElement) {
-            tabTrigger.click();
-          }
-        }, 100);
-      }
+      viewAction: () => scrollToLicenseOptimization('inactive')
     },
     {
       title: "Integration User Optimization",
       amount: integrationUserSavings.savings,
       details: `${integrationUserSavings.count} users could be converted to integration users`,
-      viewAction: () => {
-        scrollToLicenseOptimization();
-        // Add a small delay to ensure the section is expanded and the integration tab is selected
-        setTimeout(() => {
-          const tabTrigger = document.querySelector('[data-value="integration"]');
-          if (tabTrigger instanceof HTMLElement) {
-            tabTrigger.click();
-          }
-        }, 100);
-      }
+      viewAction: () => scrollToLicenseOptimization('integration')
     },
     {
       title: "Sandbox Optimization",
