@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { TrendingUp, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SavingsSummaryCard } from "./SavingsSummaryCard";
+import { LicenseCostInput } from "./LicenseCostInput";
+import { RecommendationsSection } from "./RecommendationsSection";
 import {
   calculateInactiveUserSavings,
   calculateIntegrationUserSavings,
@@ -120,92 +118,19 @@ export const OptimizationDashboard = ({
     }
   ];
 
-  const handlePriceChange = async (newPrice: number) => {
-    try {
-      const { data: settings, error: selectError } = await supabase
-        .from('organization_settings')
-        .select('*')
-        .limit(1)
-        .maybeSingle();
-
-      if (selectError) throw selectError;
-
-      if (settings) {
-        const { error: updateError } = await supabase
-          .from('organization_settings')
-          .update({ license_cost_per_user: newPrice })
-          .eq('id', settings.id);
-
-        if (updateError) throw updateError;
-        
-        setLicensePrice(newPrice);
-        toast({
-          title: "Success",
-          description: "License cost updated successfully"
-        });
-      }
-    } catch (error) {
-      console.error('Error updating license cost:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update license cost"
-      });
-    }
-  };
-
   return (
     <div className="space-y-6 mb-8">
-      {/* License Cost Configuration */}
-      <Card className="p-4">
-        <div className="space-y-2">
-          <Label htmlFor="licensePrice">License Cost per User (USD/month)</Label>
-          <div className="flex gap-2">
-            <Input
-              id="licensePrice"
-              type="number"
-              value={licensePrice}
-              onChange={(e) => handlePriceChange(parseFloat(e.target.value))}
-              className="max-w-[200px]"
-            />
-          </div>
-        </div>
-      </Card>
+      <LicenseCostInput 
+        licensePrice={licensePrice}
+        onPriceChange={setLicensePrice}
+      />
 
-      {/* Savings Summary */}
       <SavingsSummaryCard 
         totalSavings={totalSavings}
         breakdownItems={savingsBreakdown}
       />
 
-      {/* Quick Wins Section */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          Recommendations
-        </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {savingsBreakdown
-            .filter(item => item.amount > 0)
-            .map((item, index) => (
-              <Card key={index} className="relative overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">{item.title}</h4>
-                    <p className="text-2xl font-bold text-sf-blue">
-                      ${item.amount.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600">{item.details}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <AlertCircle className="h-4 w-4" />
-                      2-3 weeks to implement
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-        </div>
-      </div>
+      <RecommendationsSection items={savingsBreakdown} />
     </div>
   );
 };
