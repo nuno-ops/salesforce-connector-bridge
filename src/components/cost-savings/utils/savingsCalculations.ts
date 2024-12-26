@@ -48,8 +48,7 @@ export const calculateIntegrationUserSavings = (
 ): { savings: number; count: number } => {
   // Find Integration User license info
   const integrationLicense = userLicenses.find(license => 
-    license.name === 'Integration User License' || 
-    license.name === 'Salesforce Integration User'
+    license.name === 'Salesforce Integration'
   );
 
   if (!integrationLicense) {
