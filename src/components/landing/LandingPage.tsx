@@ -48,6 +48,15 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 </div>
               </div>
             </div>
+            <div className="mt-8">
+              <Button
+                onClick={onGetStarted}
+                size="lg"
+                className="bg-sf-blue hover:bg-sf-hover text-lg px-8 py-6 rounded-full transition-all transform hover:scale-105"
+              >
+                Connect to Salesforce
+              </Button>
+            </div>
           </Card>
         </div>
 
@@ -68,17 +77,6 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             <h3 className="text-xl font-semibold">Security & Privacy</h3>
             <p className="text-sf-gray">Enterprise-grade security with data privacy controls</p>
           </div>
-        </div>
-
-        {/* CTA Button */}
-        <div className="pt-8">
-          <Button
-            onClick={onGetStarted}
-            size="lg"
-            className="bg-sf-blue hover:bg-sf-hover text-lg px-8 py-6 rounded-full transition-all transform hover:scale-105"
-          >
-            Connect to Salesforce
-          </Button>
         </div>
       </div>
     </div>
