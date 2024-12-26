@@ -1,10 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, AlertCircle } from "lucide-react";
+import { TrendingUp, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface RecommendationItem {
   title: string;
   amount: number;
   details: string;
+  viewAction?: () => void;
 }
 
 interface RecommendationsSectionProps {
@@ -30,10 +32,17 @@ export const RecommendationsSection = ({ items }: RecommendationsSectionProps) =
                     ${item.amount.toLocaleString()}
                   </p>
                   <p className="text-sm text-gray-600">{item.details}</p>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <AlertCircle className="h-4 w-4" />
-                    2-3 weeks to implement
-                  </div>
+                  {item.viewAction && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={item.viewAction}
+                      className="w-full mt-2"
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Details
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -95,16 +95,43 @@ export const OptimizationDashboard = ({
     sandboxSavingsCalc.savings +
     storageSavingsCalc.savings;
 
+  const scrollToLicenseOptimization = () => {
+    const element = document.querySelector('#license-optimization');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const savingsBreakdown = [
     {
       title: "Inactive User Licenses",
       amount: inactiveUserSavings.savings,
-      details: `${inactiveUserSavings.count} users inactive for >30 days`
+      details: `${inactiveUserSavings.count} users inactive for >30 days`,
+      viewAction: () => {
+        scrollToLicenseOptimization();
+        // Add a small delay to ensure the section is expanded and the inactive tab is selected
+        setTimeout(() => {
+          const tabTrigger = document.querySelector('[data-value="inactive"]');
+          if (tabTrigger instanceof HTMLElement) {
+            tabTrigger.click();
+          }
+        }, 100);
+      }
     },
     {
       title: "Integration User Optimization",
       amount: integrationUserSavings.savings,
-      details: `${integrationUserSavings.count} users could be converted to integration users`
+      details: `${integrationUserSavings.count} users could be converted to integration users`,
+      viewAction: () => {
+        scrollToLicenseOptimization();
+        // Add a small delay to ensure the section is expanded and the integration tab is selected
+        setTimeout(() => {
+          const tabTrigger = document.querySelector('[data-value="integration"]');
+          if (tabTrigger instanceof HTMLElement) {
+            tabTrigger.click();
+          }
+        }, 100);
+      }
     },
     {
       title: "Sandbox Optimization",

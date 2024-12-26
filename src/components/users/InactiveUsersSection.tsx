@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SalesforceUser {
   Id: string;
@@ -75,6 +76,16 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }: Inacti
     window.URL.revokeObjectURL(url);
   };
 
+  const inactiveUsers = users.filter(user => {
+    const lastLogin = user.LastLoginDate ? new Date(user.LastLoginDate) : null;
+    return !lastLogin || (Date.now() - lastLogin.getTime()) > 30 * 24 * 60 * 60 * 1000;
+  });
+
+  const integrationUsers = users.filter(user => {
+    const oauthApps = getUserOAuthApps(user.Id);
+    return oauthApps.length > 0;
+  });
+
   if (users.length === 0) return null;
 
   return (
@@ -112,50 +123,88 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }: Inacti
       
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>User Type</TableHead>
-                  <TableHead>Connected Apps</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.Id}>
-                    <TableCell>{maskUsername(user.Username)}</TableCell>
-                    <TableCell>
-                      {user.LastLoginDate 
-                        ? format(new Date(user.LastLoginDate), 'PPp')
-                        : 'Never'}
-                    </TableCell>
-                    <TableCell>{user.UserType}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {getUserOAuthApps(user.Id).map((app, index) => (
-                          <Badge key={index} variant="secondary">
-                            {app}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
-                      >
-                        View User <ExternalLink className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Tabs defaultValue="inactive" className="w-full">
+            <TabsList>
+              <TabsTrigger value="inactive">Inactive Users ({inactiveUsers.length})</TabsTrigger>
+              <TabsTrigger value="integration">Integration Users ({integrationUsers.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="inactive">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Last Login</TableHead>
+                      <TableHead>User Type</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inactiveUsers.map((user) => (
+                      <TableRow key={user.Id}>
+                        <TableCell>{maskUsername(user.Username)}</TableCell>
+                        <TableCell>
+                          {user.LastLoginDate 
+                            ? format(new Date(user.LastLoginDate), 'PPp')
+                            : 'Never'}
+                        </TableCell>
+                        <TableCell>{user.UserType}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
+                          >
+                            View User <ExternalLink className="ml-2 h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            <TabsContent value="integration">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>User Type</TableHead>
+                      <TableHead>Connected Apps</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {integrationUsers.map((user) => (
+                      <TableRow key={user.Id}>
+                        <TableCell>{maskUsername(user.Username)}</TableCell>
+                        <TableCell>{user.UserType}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 flex-wrap">
+                            {getUserOAuthApps(user.Id).map((app, index) => (
+                              <Badge key={index} variant="secondary">
+                                {app}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
+                          >
+                            View User <ExternalLink className="ml-2 h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CollapsibleContent>
       </Collapsible>
     </div>
