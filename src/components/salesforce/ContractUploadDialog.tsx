@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface ContractUploadDialogProps {
   open: boolean;
@@ -12,7 +13,7 @@ interface ContractUploadDialogProps {
   orgId: string;
 }
 
-export function ContractUploadDialog({ open, onOpenChange, orgId }: ContractUploadDialogProps) {
+export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUploadDialogProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -28,21 +29,24 @@ export function ContractUploadDialog({ open, onOpenChange, orgId }: ContractUplo
           description: "Please sign in to upload contracts.",
         });
         onOpenChange(false);
-        navigate('/login');
+        // Redirect to root instead of /login since that's where our auth flow is
+        navigate('/');
+        return;
       }
     };
     checkAuth();
-  }, []);
+  }, [navigate, onOpenChange, toast]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
     if (file.type !== 'application/pdf') {
       toast({
         variant: "destructive",
         title: "Invalid file type",
-        description: "Please upload a PDF file",
+        description: "Please upload a PDF file.",
       });
       return;
     }
@@ -90,8 +94,8 @@ export function ContractUploadDialog({ open, onOpenChange, orgId }: ContractUplo
       }
 
       toast({
-        title: "Contract uploaded successfully",
-        description: "Your Salesforce contract has been processed.",
+        title: "Success",
+        description: "Contract uploaded successfully.",
       });
 
       onOpenChange(false);
@@ -101,63 +105,50 @@ export function ContractUploadDialog({ open, onOpenChange, orgId }: ContractUplo
       toast({
         variant: "destructive",
         title: "Upload failed",
-        description: "Failed to upload contract. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload contract.",
       });
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleSkip = () => {
-    onOpenChange(false);
-    navigate('/');
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Upload Salesforce Contract</DialogTitle>
+          <DialogTitle>Upload Contract</DialogTitle>
           <DialogDescription>
-            Upload your Salesforce contract PDF to help us provide more accurate cost optimization recommendations.
+            Upload a Salesforce contract PDF to analyze potential cost savings.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="flex flex-col items-center gap-4">
-            <label
-              htmlFor="contract-file"
-              className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-            >
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Upload className="w-8 h-8 mb-2 text-gray-500" />
-                <p className="mb-2 text-sm text-gray-500">
-                  <span className="font-semibold">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-gray-500">PDF files only</p>
-              </div>
-              <input
-                id="contract-file"
-                type="file"
-                accept=".pdf"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-              />
-            </label>
-          </div>
+
+        <div className="grid w-full max-w-sm items-center gap-1.5">
+          <Input
+            type="file"
+            accept=".pdf"
+            onChange={handleFileUpload}
+            disabled={isUploading}
+          />
         </div>
-        <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleSkip} disabled={isUploading}>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              onOpenChange(false);
+              navigate('/');
+            }}
+          >
             Skip for now
           </Button>
           {isUploading && (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Uploading...</span>
-            </div>
+            <Button disabled>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Uploading...
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};
