@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { SalesforceLogin } from "@/components/SalesforceLogin";
 import { SalesforceUsers } from "@/components/SalesforceUsers";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { CostSavingsReport } from "@/components/CostSavingsReport";
 import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
 import { MainLayout } from "@/components/layouts/MainLayout";
@@ -9,10 +9,13 @@ import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { OrgHealth } from "@/components/OrgHealth";
+import { ContractUploadDialog } from "@/components/salesforce/ContractUploadDialog";
 
 const Index = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [showContractDialog, setShowContractDialog] = useState(false);
   const { toast } = useToast();
   const {
     userLicenses = [],
@@ -47,7 +50,9 @@ const Index = () => {
     const checkConnection = () => {
       setIsLoading(true);
       const isConnectedToSalesforce = checkSalesforceConnection();
-      setIsConnected(isConnectedToSalesforce);
+      if (isConnectedToSalesforce) {
+        setShowContractDialog(true);
+      }
       setIsLoading(false);
     };
 
@@ -61,6 +66,7 @@ const Index = () => {
     localStorage.removeItem('sf_instance_url');
     localStorage.removeItem('sf_token_timestamp');
     setIsConnected(false);
+    setShowLoginForm(false);
   };
 
   // Calculate storage usage percentage
@@ -94,22 +100,25 @@ const Index = () => {
     );
   }
 
-  // Show Salesforce login if not connected
+  // Show initial landing or login form
   if (!isConnected) {
-    return (
-      <>
-        {!localStorage.getItem('sf_temp_client_id') ? (
-          <LandingPage onGetStarted={() => setIsConnected(false)} />
-        ) : (
-          <SalesforceLogin onSuccess={() => setIsConnected(true)} />
-        )}
-      </>
-    );
+    if (showLoginForm) {
+      return <SalesforceLogin onSuccess={() => {
+        setIsConnected(true);
+        setShowContractDialog(true);
+      }} />;
+    }
+    return <LandingPage onGetStarted={() => setShowLoginForm(true)} />;
   }
 
   // Show dashboard when connected
   return (
     <MainLayout onDisconnect={handleDisconnect}>
+      <ContractUploadDialog 
+        open={showContractDialog} 
+        onOpenChange={setShowContractDialog}
+        orgId={localStorage.getItem('sf_instance_url') || ''}
+      />
       <div className="space-y-8">
         <OptimizationDashboard
           userLicenses={formattedUserLicenses}
