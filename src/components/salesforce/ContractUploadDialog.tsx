@@ -20,15 +20,23 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
   useEffect(() => {
     const checkExistingContract = async () => {
       try {
+        // Normalize the orgId by removing special characters
+        const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_');
+        console.log('Checking for existing contract with orgId:', normalizedOrgId);
+
         const { data, error } = await supabase
           .from('salesforce_contracts')
           .select('id')
-          .eq('org_id', orgId)
-          .single();
+          .eq('org_id', normalizedOrgId)
+          .maybeSingle(); // Use maybeSingle instead of single to handle no results
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error checking existing contract:', error);
+          return;
+        }
         
         if (data) {
+          console.log('Found existing contract:', data);
           setHasExistingContract(true);
           onOpenChange(false); // Close dialog if contract exists
         }
@@ -59,6 +67,10 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
     setIsUploading(true);
 
     try {
+      // Normalize the orgId by removing special characters
+      const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_');
+      console.log('Uploading contract for orgId:', normalizedOrgId);
+
       // Upload file to Supabase Storage
       const fileName = `${crypto.randomUUID()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
@@ -74,7 +86,7 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
       const { error: dbError } = await supabase
         .from('salesforce_contracts')
         .insert({
-          org_id: orgId,
+          org_id: normalizedOrgId,
           file_name: file.name,
           file_path: fileName,
         });
