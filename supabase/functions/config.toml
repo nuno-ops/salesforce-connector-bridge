@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.salesforce-users]
 verify_jwt = false
+
+[functions.salesforce-contract-upload]
+verify_jwt = false

@@ -20,7 +20,6 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
   useEffect(() => {
     const checkExistingContract = async () => {
       try {
-        // Normalize the orgId by removing special characters
         const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_');
         console.log('Checking for existing contract with orgId:', normalizedOrgId);
 
@@ -28,7 +27,7 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
           .from('salesforce_contracts')
           .select('id')
           .eq('org_id', normalizedOrgId)
-          .maybeSingle(); // Use maybeSingle instead of single to handle no results
+          .maybeSingle();
 
         if (error) {
           console.error('Error checking existing contract:', error);
@@ -38,7 +37,7 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
         if (data) {
           console.log('Found existing contract:', data);
           setHasExistingContract(true);
-          onOpenChange(false); // Close dialog if contract exists
+          onOpenChange(false);
         }
       } catch (error) {
         console.error('Error checking existing contract:', error);
@@ -54,7 +53,6 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (file.type !== 'application/pdf') {
       toast({
         variant: "destructive",
@@ -67,48 +65,20 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
     setIsUploading(true);
 
     try {
-      // Normalize the orgId by removing special characters
       const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_');
       console.log('Uploading contract for orgId:', normalizedOrgId);
 
-      // Upload file to Supabase Storage
-      const fileName = `${crypto.randomUUID()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('salesforce_contracts')
-        .upload(fileName, file);
+      // Create FormData for the file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('orgId', normalizedOrgId);
 
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw uploadError;
-      }
-
-      // Store metadata in database
-      const { error: dbError } = await supabase
-        .from('salesforce_contracts')
-        .insert({
-          org_id: normalizedOrgId,
-          file_name: file.name,
-          file_path: fileName,
-        });
-
-      if (dbError) {
-        console.error('Database insert error:', dbError);
-        throw dbError;
-      }
-
-      // Process the PDF to extract contract value
-      const { data, error: processError } = await supabase.functions.invoke('salesforce-scrape', {
-        body: { filePath: fileName }
+      // Call the Edge Function
+      const { data, error } = await supabase.functions.invoke('salesforce-contract-upload', {
+        body: formData,
       });
 
-      if (processError) throw processError;
-
-      if (data?.extractedValue) {
-        await supabase
-          .from('salesforce_contracts')
-          .update({ extracted_value: data.extractedValue })
-          .eq('file_path', fileName);
-      }
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -128,7 +98,6 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
     }
   };
 
-  // Don't show dialog if contract already exists
   if (hasExistingContract) {
     return null;
   }
