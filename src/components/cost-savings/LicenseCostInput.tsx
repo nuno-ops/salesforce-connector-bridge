@@ -5,6 +5,16 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+interface ServiceItem {
+  name: string;
+  startDate: string;
+  endDate: string;
+  term: number;
+  unitPrice: number;
+  quantity: number;
+  totalPrice: number;
+}
+
 interface LicenseCostInputProps {
   licensePrice: number;
   onPriceChange: (newPrice: number) => void;
@@ -28,15 +38,15 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
         if (error) throw error;
 
         if (contract?.extracted_services) {
-          // Find the Sales/Service Cloud license price
-          const services = contract.extracted_services;
-          const salesLicense = services.find((service: any) => 
+          // Ensure extracted_services is an array of ServiceItem
+          const services = contract.extracted_services as ServiceItem[];
+          const salesLicense = services.find(service => 
             service.name.toLowerCase().includes('sales') || 
             service.name.toLowerCase().includes('service')
           );
 
           if (salesLicense && salesLicense.unitPrice) {
-            onPriceChange(parseFloat(salesLicense.unitPrice));
+            onPriceChange(parseFloat(salesLicense.unitPrice.toString()));
           }
         }
       } catch (error) {
