@@ -9,13 +9,10 @@ import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { OrgHealth } from "@/components/OrgHealth";
-import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const [showLanding, setShowLanding] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
   const {
     userLicenses = [],
@@ -45,25 +42,10 @@ const Index = () => {
     return true;
   };
 
-  // Check authentication and Salesforce connection status
+  // Check Salesforce connection status on mount and periodically
   useEffect(() => {
-    const checkConnection = async () => {
+    const checkConnection = () => {
       setIsLoading(true);
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        setIsAuthenticated(false);
-        setIsConnected(false);
-        setShowLanding(true);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsAuthenticated(true);
-      setShowLanding(false);
-      
-      // Check Salesforce connection
       const isConnectedToSalesforce = checkSalesforceConnection();
       setIsConnected(isConnectedToSalesforce);
       setIsLoading(false);
@@ -72,23 +54,6 @@ const Index = () => {
     checkConnection();
     const interval = setInterval(checkConnection, 60000);
     return () => clearInterval(interval);
-  }, []);
-
-  // Listen for auth state changes
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        setIsAuthenticated(true);
-        setShowLanding(false);
-        checkSalesforceConnection();
-      } else if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setIsConnected(false);
-        setShowLanding(true);
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const handleDisconnect = () => {
@@ -109,8 +74,9 @@ const Index = () => {
   // Calculate API usage percentage
   const calculateApiUsage = () => {
     if (!limits) return 0;
-    const used = limits.DailyApiRequests.Max - limits.DailyApiRequests.Remaining;
-    return (used / limits.DailyApiRequests.Max) * 100;
+    return limits.DailyApiRequests ? 
+      ((limits.DailyApiRequests.Max - limits.DailyApiRequests.Remaining) / limits.DailyApiRequests.Max) * 100 
+      : 0;
   };
 
   // Format license data
@@ -128,17 +94,20 @@ const Index = () => {
     );
   }
 
-  // Show landing page only if not authenticated
-  if (!isAuthenticated) {
-    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
-  }
-
-  // Show Salesforce login if authenticated but not connected
+  // Show Salesforce login if not connected
   if (!isConnected) {
-    return <SalesforceLogin onSuccess={() => setIsConnected(true)} />;
+    return (
+      <>
+        {!localStorage.getItem('sf_temp_client_id') ? (
+          <LandingPage onGetStarted={() => setIsConnected(false)} />
+        ) : (
+          <SalesforceLogin onSuccess={() => setIsConnected(true)} />
+        )}
+      </>
+    );
   }
 
-  // Show dashboard when both authenticated and connected
+  // Show dashboard when connected
   return (
     <MainLayout onDisconnect={handleDisconnect}>
       <div className="space-y-8">

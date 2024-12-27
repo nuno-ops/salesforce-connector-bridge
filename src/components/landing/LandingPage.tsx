@@ -1,26 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { ChartBar, DollarSign, Shield } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 
 interface LandingPageProps {
   onGetStarted: () => void;
 }
 
 export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
-  const handleGetStarted = async () => {
-    try {
-      await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-    } catch (error) {
-      console.error('Authentication error:', error);
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sf-light to-white p-4">
       <div className="max-w-4xl mx-auto text-center space-y-12 animate-fadeIn">
@@ -64,7 +50,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </div>
             <div className="mt-8">
               <Button
-                onClick={handleGetStarted}
+                onClick={onGetStarted}
                 size="lg"
                 className="bg-sf-blue hover:bg-sf-hover text-lg px-8 py-6 rounded-full transition-all transform hover:scale-105"
               >
