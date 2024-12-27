@@ -15,6 +15,7 @@ const Index = () => {
   const [showLanding, setShowLanding] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
   const {
     userLicenses = [],
@@ -34,12 +35,15 @@ const Index = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        setIsAuthenticated(false);
         setIsConnected(false);
         setShowLanding(true);
         setIsLoading(false);
         return;
       }
 
+      setIsAuthenticated(true);
+      
       // If authenticated, check Salesforce connection
       const token = localStorage.getItem('sf_access_token');
       const timestamp = localStorage.getItem('sf_token_timestamp');
@@ -71,6 +75,22 @@ const Index = () => {
     const interval = setInterval(checkConnection, 60000);
     return () => clearInterval(interval);
   }, [toast]);
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        setIsAuthenticated(true);
+        setShowLanding(false);
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setIsConnected(false);
+        setShowLanding(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleDisconnect = () => {
     localStorage.removeItem('sf_access_token');
@@ -110,14 +130,17 @@ const Index = () => {
     );
   }
 
-  if (showLanding) {
+  // Show landing page only if not authenticated
+  if (!isAuthenticated && showLanding) {
     return <LandingPage onGetStarted={() => setShowLanding(false)} />;
   }
 
+  // Show Salesforce login if authenticated but not connected
   if (!isConnected) {
     return <SalesforceLogin onSuccess={() => setIsConnected(true)} />;
   }
 
+  // Show dashboard when both authenticated and connected
   return (
     <MainLayout onDisconnect={handleDisconnect}>
       <div className="space-y-8">
