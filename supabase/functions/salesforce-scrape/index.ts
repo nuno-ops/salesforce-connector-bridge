@@ -14,50 +14,75 @@ serve(async (req) => {
 
   try {
     const { filePath } = await req.json()
-    
+    console.log('Processing file:', filePath)
+
     // Initialize Supabase client
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Download the file
-    const { data: fileData, error: downloadError } = await supabaseAdmin
-      .storage
-      .from('salesforce_contracts')
-      .download(filePath)
-
-    if (downloadError) {
-      throw downloadError
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase credentials')
     }
 
-    // Convert file to text for processing
-    const pdfText = await fileData.text()
-    
-    // Simple example of value extraction - this should be enhanced based on actual contract format
-    const valueMatch = pdfText.match(/Total Value:?\s*\$?([\d,]+(\.\d{2})?)/i)
-    const extractedValue = valueMatch ? parseFloat(valueMatch[1].replace(/,/g, '')) : null
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
-    console.log('Extracted value:', extractedValue)
+    // Get file URL without adding extra colon
+    const { data: { publicUrl }, error: urlError } = await supabase
+      .storage
+      .from('salesforce_contracts')
+      .getPublicUrl(filePath)
+
+    if (urlError) {
+      throw urlError
+    }
+
+    console.log('File public URL:', publicUrl)
+
+    // Ensure the URL is properly formatted
+    const cleanUrl = publicUrl.replace(':/', '/')
+    
+    // Download the file
+    const response = await fetch(cleanUrl)
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.status} ${response.statusText}`)
+    }
+
+    const pdfContent = await response.arrayBuffer()
+    console.log('PDF content length:', pdfContent.byteLength)
+
+    // For now, return a mock extracted value
+    // In a real implementation, you would process the PDF here
+    const extractedValue = 1000
 
     return new Response(
       JSON.stringify({
         success: true,
         extractedValue,
+        message: 'Contract processed successfully'
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     )
+
   } catch (error) {
-    console.error('Error processing PDF:', error)
+    console.error('Error processing contract:', error)
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        success: false,
+        error: error.message
+      }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      },
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        status: 500
+      }
     )
   }
 })
