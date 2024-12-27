@@ -39,6 +39,7 @@ export type Database = {
       salesforce_contracts: {
         Row: {
           created_at: string | null
+          extracted_services: Json | null
           extracted_value: number | null
           file_name: string
           file_path: string
@@ -48,6 +49,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          extracted_services?: Json | null
           extracted_value?: number | null
           file_name: string
           file_path: string
@@ -57,6 +59,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          extracted_services?: Json | null
           extracted_value?: number | null
           file_name?: string
           file_path?: string

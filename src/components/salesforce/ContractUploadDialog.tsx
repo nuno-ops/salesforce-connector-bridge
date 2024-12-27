@@ -15,14 +15,24 @@ interface ContractUploadDialogProps {
 export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUploadDialogProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [hasExistingContract, setHasExistingContract] = useState(false);
+  const [hasSkippedUpload, setHasSkippedUpload] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const checkExistingContract = async () => {
       try {
         const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_');
-        console.log('Checking for existing contract with orgId:', normalizedOrgId);
+        
+        // Check if user has already skipped
+        const skippedKey = `skipped_contract_${normalizedOrgId}`;
+        const hasSkipped = localStorage.getItem(skippedKey);
+        if (hasSkipped) {
+          setHasSkippedUpload(true);
+          onOpenChange(false);
+          return;
+        }
 
+        // Check for existing contract
         const { data, error } = await supabase
           .from('salesforce_contracts')
           .select('id')
@@ -80,9 +90,17 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
 
       if (error) throw error;
 
+      // After successful upload, scrape the contract
+      await supabase.functions.invoke('salesforce-scrape', {
+        body: { 
+          orgId: normalizedOrgId,
+          fileName: file.name
+        }
+      });
+
       toast({
         title: "Success",
-        description: "Contract uploaded successfully.",
+        description: "Contract uploaded and processed successfully.",
       });
 
       onOpenChange(false);
@@ -98,7 +116,15 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
     }
   };
 
-  if (hasExistingContract) {
+  const handleSkip = () => {
+    const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_');
+    const skippedKey = `skipped_contract_${normalizedOrgId}`;
+    localStorage.setItem(skippedKey, 'true');
+    setHasSkippedUpload(true);
+    onOpenChange(false);
+  };
+
+  if (hasExistingContract || hasSkippedUpload) {
     return null;
   }
 
@@ -124,7 +150,7 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={handleSkip}
           >
             Skip for now
           </Button>

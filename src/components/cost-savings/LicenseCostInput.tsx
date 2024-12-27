@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
@@ -12,9 +13,42 @@ interface LicenseCostInputProps {
 export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInputProps) => {
   const { toast } = useToast();
 
+  useEffect(() => {
+    const fetchContractPrice = async () => {
+      try {
+        const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
+        if (!orgId) return;
+
+        const { data: contract, error } = await supabase
+          .from('salesforce_contracts')
+          .select('extracted_services')
+          .eq('org_id', orgId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (contract?.extracted_services) {
+          // Find the Sales/Service Cloud license price
+          const services = contract.extracted_services;
+          const salesLicense = services.find((service: any) => 
+            service.name.toLowerCase().includes('sales') || 
+            service.name.toLowerCase().includes('service')
+          );
+
+          if (salesLicense && salesLicense.unitPrice) {
+            onPriceChange(parseFloat(salesLicense.unitPrice));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching contract price:', error);
+      }
+    };
+
+    fetchContractPrice();
+  }, [onPriceChange]);
+
   const handlePriceChange = async (value: string) => {
     try {
-      // Convert empty string to 0, otherwise parse the float
       const newPrice = value === '' ? 0 : parseFloat(value);
 
       const { data: settings, error: selectError } = await supabase
