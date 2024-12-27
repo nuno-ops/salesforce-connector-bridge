@@ -52,8 +52,9 @@ const SalesforceCallback = () => {
           description: "You are now connected to Salesforce.",
         });
 
-        setIsProcessing(false);
-        setShowUploadDialog(true);
+        // Instead of showing the dialog immediately, redirect to home page
+        navigate('/', { replace: true });
+
       } catch (error) {
         console.error('OAuth callback error:', error);
         toast({
@@ -68,19 +69,13 @@ const SalesforceCallback = () => {
     processOAuthCallback();
   }, [navigate, toast]);
 
+  // Show loading state while processing
   return (
     <div className="min-h-screen flex items-center justify-center">
-      {isProcessing && (
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-          <p className="text-gray-600">Completing Salesforce connection...</p>
-        </div>
-      )}
-      <ContractUploadDialog 
-        open={showUploadDialog} 
-        onOpenChange={setShowUploadDialog}
-        orgId={orgId}
-      />
+      <div className="text-center space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+        <p className="text-gray-600">Completing Salesforce connection...</p>
+      </div>
     </div>
   );
 };
