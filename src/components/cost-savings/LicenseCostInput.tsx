@@ -38,8 +38,8 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
         if (error) throw error;
 
         if (contract?.extracted_services) {
-          // Ensure extracted_services is an array of ServiceItem
-          const services = contract.extracted_services as ServiceItem[];
+          // First cast to unknown, then to ServiceItem[] to satisfy TypeScript
+          const services = (contract.extracted_services as unknown) as ServiceItem[];
           const salesLicense = services.find(service => 
             service.name.toLowerCase().includes('sales') || 
             service.name.toLowerCase().includes('service')
