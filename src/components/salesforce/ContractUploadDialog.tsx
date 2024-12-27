@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,33 @@ interface ContractUploadDialogProps {
 
 export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUploadDialogProps) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [hasExistingContract, setHasExistingContract] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const checkExistingContract = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('salesforce_contracts')
+          .select('id')
+          .eq('org_id', orgId)
+          .single();
+
+        if (error) throw error;
+        
+        if (data) {
+          setHasExistingContract(true);
+          onOpenChange(false); // Close dialog if contract exists
+        }
+      } catch (error) {
+        console.error('Error checking existing contract:', error);
+      }
+    };
+
+    if (open && orgId) {
+      checkExistingContract();
+    }
+  }, [open, orgId, onOpenChange]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -89,6 +115,11 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
       setIsUploading(false);
     }
   };
+
+  // Don't show dialog if contract already exists
+  if (hasExistingContract) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
