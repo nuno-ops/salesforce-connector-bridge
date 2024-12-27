@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,26 +15,6 @@ interface ContractUploadDialogProps {
 export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUploadDialogProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          variant: "destructive",
-          title: "Authentication required",
-          description: "Please sign in to upload contracts.",
-        });
-        onOpenChange(false);
-        // Redirect to root instead of /login since that's where our auth flow is
-        navigate('/');
-        return;
-      }
-    };
-    checkAuth();
-  }, [navigate, onOpenChange, toast]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -54,7 +33,7 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
     setIsUploading(true);
 
     try {
-      // Upload file to Supabase Storage - Note we're uploading directly to the bucket root
+      // Upload file to Supabase Storage
       const fileName = `${crypto.randomUUID()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('salesforce_contracts')
@@ -99,7 +78,6 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
       });
 
       onOpenChange(false);
-      navigate('/');
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -134,10 +112,7 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => {
-              onOpenChange(false);
-              navigate('/');
-            }}
+            onClick={() => onOpenChange(false)}
           >
             Skip for now
           </Button>
