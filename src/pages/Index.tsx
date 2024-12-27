@@ -26,12 +26,30 @@ const Index = () => {
     isLoading: isHealthDataLoading,
   } = useOrgHealthData();
 
+  const checkSalesforceConnection = () => {
+    const token = localStorage.getItem('sf_access_token');
+    const timestamp = localStorage.getItem('sf_token_timestamp');
+    
+    if (!token || !timestamp) {
+      setIsConnected(false);
+      return false;
+    }
+
+    const tokenAge = Date.now() - parseInt(timestamp);
+    if (tokenAge > 7200000) {
+      handleDisconnect();
+      return false;
+    }
+
+    setIsConnected(true);
+    return true;
+  };
+
   // Check authentication and Salesforce connection status
   useEffect(() => {
     const checkConnection = async () => {
       setIsLoading(true);
       
-      // Check Supabase session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -43,38 +61,18 @@ const Index = () => {
       }
 
       setIsAuthenticated(true);
-      
-      // If authenticated, check Salesforce connection
-      const token = localStorage.getItem('sf_access_token');
-      const timestamp = localStorage.getItem('sf_token_timestamp');
-      
-      if (!token || !timestamp) {
-        setIsConnected(false);
-        setShowLanding(false); // Show Salesforce login instead of landing
-        setIsLoading(false);
-        return;
-      }
-
-      const tokenAge = Date.now() - parseInt(timestamp);
-      if (tokenAge > 7200000) {
-        handleDisconnect();
-        toast({
-          variant: "destructive",
-          title: "Session expired",
-          description: "Your Salesforce session has expired. Please reconnect.",
-        });
-        return;
-      }
-
-      setIsConnected(true);
       setShowLanding(false);
+      
+      // Check Salesforce connection
+      const isConnectedToSalesforce = checkSalesforceConnection();
+      setIsConnected(isConnectedToSalesforce);
       setIsLoading(false);
     };
 
     checkConnection();
     const interval = setInterval(checkConnection, 60000);
     return () => clearInterval(interval);
-  }, [toast]);
+  }, []);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -82,6 +80,7 @@ const Index = () => {
       if (event === 'SIGNED_IN') {
         setIsAuthenticated(true);
         setShowLanding(false);
+        checkSalesforceConnection();
       } else if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setIsConnected(false);
@@ -97,7 +96,6 @@ const Index = () => {
     localStorage.removeItem('sf_instance_url');
     localStorage.removeItem('sf_token_timestamp');
     setIsConnected(false);
-    setShowLanding(false); // Show Salesforce login instead of landing
   };
 
   // Calculate storage usage percentage
@@ -131,7 +129,7 @@ const Index = () => {
   }
 
   // Show landing page only if not authenticated
-  if (!isAuthenticated && showLanding) {
+  if (!isAuthenticated) {
     return <LandingPage onGetStarted={() => setShowLanding(false)} />;
   }
 
