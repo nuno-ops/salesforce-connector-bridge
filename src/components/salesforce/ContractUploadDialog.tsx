@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,23 @@ export function ContractUploadDialog({ open, onOpenChange, orgId }: ContractUplo
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Authentication required",
+          description: "Please sign in to upload contracts.",
+        });
+        onOpenChange(false);
+        navigate('/login');
+      }
+    };
+    checkAuth();
+  }, []);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -33,13 +50,16 @@ export function ContractUploadDialog({ open, onOpenChange, orgId }: ContractUplo
     setIsUploading(true);
 
     try {
-      // Upload file to Supabase Storage
-      const filePath = `${orgId}/${crypto.randomUUID()}-${file.name}`;
+      // Upload file to Supabase Storage - Note we're uploading directly to the bucket root
+      const fileName = `${crypto.randomUUID()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('salesforce_contracts')
-        .upload(filePath, file);
+        .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Store metadata in database
       const { error: dbError } = await supabase
@@ -47,14 +67,17 @@ export function ContractUploadDialog({ open, onOpenChange, orgId }: ContractUplo
         .insert({
           org_id: orgId,
           file_name: file.name,
-          file_path: filePath,
+          file_path: fileName,
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        throw dbError;
+      }
 
       // Process the PDF to extract contract value
       const { data, error: processError } = await supabase.functions.invoke('salesforce-scrape', {
-        body: { filePath }
+        body: { filePath: fileName }
       });
 
       if (processError) throw processError;
@@ -63,7 +86,7 @@ export function ContractUploadDialog({ open, onOpenChange, orgId }: ContractUplo
         await supabase
           .from('salesforce_contracts')
           .update({ extracted_value: data.extractedValue })
-          .eq('file_path', filePath);
+          .eq('file_path', fileName);
       }
 
       toast({
