@@ -29,25 +29,17 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
         const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
         if (!orgId) return;
 
-        const { data: contract, error } = await supabase
-          .from('salesforce_contracts')
-          .select('extracted_services')
+        const { data: settings, error } = await supabase
+          .from('organization_settings')
+          .select('license_cost_per_user')
           .eq('org_id', orgId)
           .maybeSingle();
 
         if (error) throw error;
 
-        if (contract?.extracted_services) {
-          // First cast to unknown, then to ServiceItem[] to satisfy TypeScript
-          const services = (contract.extracted_services as unknown) as ServiceItem[];
-          const salesLicense = services.find(service => 
-            service.name.toLowerCase().includes('sales') || 
-            service.name.toLowerCase().includes('service')
-          );
-
-          if (salesLicense && salesLicense.unitPrice) {
-            onPriceChange(parseFloat(salesLicense.unitPrice.toString()));
-          }
+        if (settings?.license_cost_per_user) {
+          console.log('Fetched license cost:', settings.license_cost_per_user);
+          onPriceChange(parseFloat(settings.license_cost_per_user.toString()));
         }
       } catch (error) {
         console.error('Error fetching contract price:', error);
@@ -60,11 +52,16 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
   const handlePriceChange = async (value: string) => {
     try {
       const newPrice = value === '' ? 0 : parseFloat(value);
+      const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
+      
+      if (!orgId) {
+        throw new Error('Organization ID not found');
+      }
 
       const { data: settings, error: selectError } = await supabase
         .from('organization_settings')
         .select('*')
-        .limit(1)
+        .eq('org_id', orgId)
         .maybeSingle();
 
       if (selectError) throw selectError;
@@ -72,15 +69,19 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
       if (settings) {
         const { error: updateError } = await supabase
           .from('organization_settings')
-          .update({ license_cost_per_user: newPrice })
+          .update({ 
+            license_cost_per_user: newPrice,
+            updated_at: new Date().toISOString()
+          })
           .eq('id', settings.id);
 
         if (updateError) throw updateError;
         
+        console.log('Updated license cost to:', newPrice);
         onPriceChange(newPrice);
         toast({
           title: "Success",
-          description: "License cost updated successfully"
+          description: `License cost updated to $${newPrice}`
         });
       }
     } catch (error) {

@@ -29,15 +29,19 @@ export const useOrganizationData = () => {
         setUsers(data.users);
         setOauthTokens(data.oauthTokens);
 
-        // Try to fetch license price from settings
-        const { data: orgData, error: orgError } = await supabase.functions.invoke('salesforce-org', {
-          body: { access_token, instance_url }
-        });
+        // Fetch license price from settings
+        const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
+        const { data: settings, error: settingsError } = await supabase
+          .from('organization_settings')
+          .select('license_cost_per_user')
+          .eq('org_id', orgId)
+          .maybeSingle();
 
-        if (orgError) throw orgError;
+        if (settingsError) throw settingsError;
 
-        if (orgData?.settings?.license_cost_per_user) {
-          setLicensePrice(orgData.settings.license_cost_per_user);
+        if (settings?.license_cost_per_user) {
+          console.log('Setting license price to:', settings.license_cost_per_user);
+          setLicensePrice(parseFloat(settings.license_cost_per_user.toString()));
         }
 
       } catch (error) {
