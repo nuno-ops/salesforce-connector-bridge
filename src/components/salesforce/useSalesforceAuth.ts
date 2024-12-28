@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Update redirect URI to match production bridge URL
+// Update redirect URI to match production bridge URL without trailing slash
 const REDIRECT_URI = 'https://salesforce-connector-bridge.lovable.app/salesforce/callback';
 
 export const initiateOAuthFlow = (clientId: string) => {

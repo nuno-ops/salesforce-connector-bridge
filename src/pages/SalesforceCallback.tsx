@@ -1,58 +1,53 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { handleOAuthCallback } from '@/components/salesforce/useSalesforceAuth';
-import { ContractUploadDialog } from '@/components/salesforce/ContractUploadDialog';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { handleOAuthCallback } from "@/components/salesforce/useSalesforceAuth";
 
 const SalesforceCallback = () => {
-  const [isProcessing, setIsProcessing] = useState(true);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
-  const [orgId, setOrgId] = useState<string>('');
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     const processOAuthCallback = async () => {
+      const code = searchParams.get('code');
+      
+      if (!code) {
+        console.error('No authorization code found in URL');
+        toast({
+          variant: "destructive",
+          title: "Connection failed",
+          description: "No authorization code found. Please try again.",
+        });
+        navigate('/', { replace: true });
+        return;
+      }
+
       try {
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-        const error = params.get('error');
-        const errorDescription = params.get('error_description');
-
-        console.log('=== Callback Page Parameters ===');
-        console.log('Code:', code);
-        console.log('Error:', error);
-        console.log('Error Description:', errorDescription);
-        console.log('Full URL:', window.location.href);
-
-        if (error) {
-          throw new Error(`Salesforce Error: ${error} - ${errorDescription}`);
-        }
-
-        if (!code) {
-          throw new Error('No authorization code received');
-        }
-
-        const authData = await handleOAuthCallback(code);
+        console.log('Processing OAuth callback with code:', code);
+        const data = await handleOAuthCallback(code);
         
-        // Store the access token and instance URL
-        localStorage.setItem('sf_access_token', authData.access_token);
-        localStorage.setItem('sf_instance_url', authData.instance_url);
+        if (!data?.access_token || !data?.instance_url) {
+          throw new Error('Invalid response from Salesforce');
+        }
+
+        // Store the tokens
+        localStorage.setItem('sf_access_token', data.access_token);
+        localStorage.setItem('sf_instance_url', data.instance_url);
         localStorage.setItem('sf_token_timestamp', Date.now().toString());
 
-        // Extract org ID from instance URL
-        const orgIdMatch = authData.instance_url.match(/\/\/([^.]+)/);
-        if (orgIdMatch) {
-          setOrgId(orgIdMatch[1]);
-        }
+        // Clear temporary storage
+        localStorage.removeItem('sf_temp_client_id');
+        localStorage.removeItem('sf_temp_client_secret');
 
+        console.log('Successfully processed OAuth callback');
         toast({
-          title: "Successfully connected!",
+          title: "Success",
           description: "You are now connected to Salesforce.",
         });
 
-        // Instead of showing the dialog immediately, redirect to home page
+        // Redirect to home page
         navigate('/', { replace: true });
 
       } catch (error) {
@@ -60,14 +55,14 @@ const SalesforceCallback = () => {
         toast({
           variant: "destructive",
           title: "Connection failed",
-          description: error instanceof Error ? error.message : "Failed to complete Salesforce connection.",
+          description: error instanceof Error ? error.message : "Failed to connect to Salesforce.",
         });
-        navigate('/');
+        navigate('/', { replace: true });
       }
     };
 
     processOAuthCallback();
-  }, [navigate, toast]);
+  }, [navigate, searchParams, toast]);
 
   // Show loading state while processing
   return (
