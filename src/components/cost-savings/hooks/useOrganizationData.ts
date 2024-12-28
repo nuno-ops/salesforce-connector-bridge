@@ -31,6 +31,8 @@ export const useOrganizationData = () => {
 
         // Fetch license price from settings
         const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
+        console.log('Fetching license price for org:', orgId);
+        
         const { data: settings, error: settingsError } = await supabase
           .from('organization_settings')
           .select('license_cost_per_user')
@@ -40,8 +42,11 @@ export const useOrganizationData = () => {
         if (settingsError) throw settingsError;
 
         if (settings?.license_cost_per_user) {
-          console.log('Setting license price to:', settings.license_cost_per_user);
-          setLicensePrice(parseFloat(settings.license_cost_per_user.toString()));
+          const cost = parseFloat(settings.license_cost_per_user.toString());
+          console.log('Setting license price to:', cost);
+          setLicensePrice(cost);
+        } else {
+          console.log('No license cost found in settings');
         }
 
       } catch (error) {
@@ -57,9 +62,48 @@ export const useOrganizationData = () => {
     fetchData();
   }, [toast]);
 
+  const updateLicensePrice = async (newPrice: number) => {
+    try {
+      const instance_url = localStorage.getItem('sf_instance_url');
+      if (!instance_url) {
+        throw new Error('Missing instance URL');
+      }
+
+      const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
+      
+      const { error } = await supabase
+        .from('organization_settings')
+        .upsert({
+          org_id: orgId,
+          license_cost_per_user: newPrice,
+          org_type: 'salesforce',
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'org_id'
+        });
+
+      if (error) throw error;
+
+      setLicensePrice(newPrice);
+      console.log('License price updated successfully to:', newPrice);
+      
+      toast({
+        title: "Success",
+        description: "License cost updated successfully"
+      });
+    } catch (error) {
+      console.error('Error updating license price:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update license cost"
+      });
+    }
+  };
+
   return {
     licensePrice,
-    setLicensePrice,
+    setLicensePrice: updateLicensePrice,
     users,
     oauthTokens
   };
