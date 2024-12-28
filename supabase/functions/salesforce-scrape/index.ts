@@ -18,24 +18,19 @@ interface ServiceItem {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { filePath } = await req.json()
-    console.log('Processing contract:', filePath)
+    const { orgId, filePath } = await req.json()
+    console.log('Processing contract for org:', orgId)
+    console.log('File path:', filePath)
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase credentials')
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
     // Get file URL
     const { data: { publicUrl }, error: urlError } = await supabase
@@ -43,13 +38,9 @@ serve(async (req) => {
       .from('salesforce_contracts')
       .getPublicUrl(filePath)
 
-    if (urlError) {
-      throw urlError
-    }
+    if (urlError) throw urlError
 
-    console.log('Fetching contract from:', publicUrl)
-
-    // Download the PDF
+    // Download and process the PDF
     const response = await fetch(publicUrl)
     if (!response.ok) {
       throw new Error(`Failed to download file: ${response.status} ${response.statusText}`)
@@ -60,7 +51,7 @@ serve(async (req) => {
     const pages = pdfDoc.getPages()
     const text = await pages[0].getText()
 
-    console.log('Extracted text:', text)
+    console.log('Extracted text length:', text.length)
 
     // Parse the services section
     const services: ServiceItem[] = []
@@ -69,38 +60,92 @@ serve(async (req) => {
     let currentService: Partial<ServiceItem> = {}
 
     for (const line of lines) {
-      if (line.includes('Services')) {
+      // Look for services section markers
+      if (line.toLowerCase().includes('services') || line.toLowerCase().includes('products')) {
         inServicesSection = true
         continue
       }
 
-      if (inServicesSection && line.includes('Total:')) {
+      if (inServicesSection && (line.toLowerCase().includes('total:') || line.toLowerCase().includes('grand total:'))) {
         break
       }
 
       if (inServicesSection && line.trim()) {
-        // Try to match service line items
-        const serviceMatch = line.match(/^(.*?)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d+)\s+USD\s+(\d+\.\d{2})\s+(\d+)\s+USD\s+(\d+,?\d*\.\d{2})/)
+        // Enhanced regex pattern to match various price formats
+        const serviceMatch = line.match(
+          /^(.*?)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d+)\s+(?:USD|$)\s*(\d+(?:,\d{3})*(?:\.\d{2})?)\s+(\d+)\s+(?:USD|$)\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/
+        )
         
         if (serviceMatch) {
           const [, name, startDate, endDate, term, unitPrice, quantity, totalPrice] = serviceMatch
           
-          services.push({
+          const service = {
             name: name.trim(),
             startDate,
             endDate,
             term: parseInt(term),
-            unitPrice: parseFloat(unitPrice),
+            unitPrice: parseFloat(unitPrice.replace(',', '')),
             quantity: parseInt(quantity),
             totalPrice: parseFloat(totalPrice.replace(',', ''))
-          })
+          }
+
+          // Only add if it's a license-related service
+          if (service.name.toLowerCase().includes('license') || 
+              service.name.toLowerCase().includes('user') ||
+              service.name.toLowerCase().includes('subscription')) {
+            services.push(service)
+          }
         }
       }
     }
 
     console.log('Extracted services:', services)
 
-    // Update the contract record with the extracted data
+    // Find the most relevant license price
+    let licenseCost = 0
+    if (services.length > 0) {
+      // Look for Sales or Service Cloud licenses first
+      const salesLicense = services.find(service => 
+        service.name.toLowerCase().includes('sales') || 
+        service.name.toLowerCase().includes('service')
+      )
+
+      if (salesLicense) {
+        licenseCost = salesLicense.unitPrice
+      } else {
+        // If no Sales/Service license found, use the highest price user license
+        const userLicense = services
+          .filter(service => 
+            service.name.toLowerCase().includes('license') || 
+            service.name.toLowerCase().includes('user')
+          )
+          .sort((a, b) => b.unitPrice - a.unitPrice)[0]
+
+        if (userLicense) {
+          licenseCost = userLicense.unitPrice
+        }
+      }
+    }
+
+    // Update both the contract and organization settings
+    if (licenseCost > 0) {
+      const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_')
+
+      // Update organization settings with the license cost
+      const { error: settingsError } = await supabase
+        .from('organization_settings')
+        .upsert({
+          org_id: normalizedOrgId,
+          license_cost_per_user: licenseCost,
+          org_type: 'salesforce',
+        })
+
+      if (settingsError) {
+        console.error('Error updating organization settings:', settingsError)
+      }
+    }
+
+    // Update the contract record with extracted data
     const { error: updateError } = await supabase
       .from('salesforce_contracts')
       .update({
@@ -117,6 +162,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         services,
+        licenseCost,
         message: 'Contract processed successfully'
       }),
       { 

@@ -83,7 +83,7 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
       formData.append('file', file);
       formData.append('orgId', normalizedOrgId);
 
-      // Call the Edge Function
+      // Upload the contract
       const { data, error } = await supabase.functions.invoke('salesforce-contract-upload', {
         body: formData,
       });
@@ -91,17 +91,26 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
       if (error) throw error;
 
       // After successful upload, scrape the contract
-      await supabase.functions.invoke('salesforce-scrape', {
+      const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('salesforce-scrape', {
         body: { 
           orgId: normalizedOrgId,
-          fileName: file.name
+          filePath: data.data.file_path
         }
       });
 
-      toast({
-        title: "Success",
-        description: "Contract uploaded and processed successfully.",
-      });
+      if (scrapeError) throw scrapeError;
+
+      if (scrapeData.licenseCost > 0) {
+        toast({
+          title: "Success",
+          description: `Contract uploaded and license cost updated to $${scrapeData.licenseCost}/month.`,
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Contract uploaded successfully.",
+        });
+      }
 
       onOpenChange(false);
     } catch (error) {
