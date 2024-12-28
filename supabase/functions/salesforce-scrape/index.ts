@@ -62,7 +62,7 @@ serve(async (req) => {
       throw updateError
     }
 
-    // Update organization settings
+    // Upsert organization settings
     const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_')
     const { error: settingsError } = await supabase
       .from('organization_settings')
@@ -70,12 +70,17 @@ serve(async (req) => {
         org_id: normalizedOrgId,
         license_cost_per_user: licenseCost,
         org_type: 'salesforce',
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'org_id'
       })
 
     if (settingsError) {
       console.error('Settings update error:', settingsError)
       throw settingsError
     }
+
+    console.log('Successfully updated organization settings with license cost:', licenseCost)
 
     return new Response(
       JSON.stringify({ 
