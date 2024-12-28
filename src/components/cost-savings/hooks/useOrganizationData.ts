@@ -8,13 +8,37 @@ export const useOrganizationData = () => {
   const [oauthTokens, setOauthTokens] = useState<any[]>([]);
   const { toast } = useToast();
 
+  const fetchLicensePrice = async (orgId: string) => {
+    console.log('Fetching license price for org:', orgId);
+    
+    const { data: settings, error: settingsError } = await supabase
+      .from('organization_settings')
+      .select('license_cost_per_user')
+      .eq('org_id', orgId)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error('Error fetching license price:', settingsError);
+      return;
+    }
+
+    if (settings?.license_cost_per_user) {
+      const cost = parseFloat(settings.license_cost_per_user.toString());
+      console.log('Found license price in settings:', cost);
+      setLicensePrice(cost);
+    } else {
+      console.log('No license cost found in settings');
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const access_token = localStorage.getItem('sf_access_token');
         const instance_url = localStorage.getItem('sf_instance_url');
+        const timestamp = localStorage.getItem('sf_token_timestamp');
 
-        if (!access_token || !instance_url) {
+        if (!access_token || !instance_url || !timestamp) {
           console.log('Missing Salesforce credentials');
           return;
         }
@@ -29,25 +53,9 @@ export const useOrganizationData = () => {
         setUsers(data.users);
         setOauthTokens(data.oauthTokens);
 
-        // Fetch license price from settings
+        // Fetch license price
         const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
-        console.log('Fetching license price for org:', orgId);
-        
-        const { data: settings, error: settingsError } = await supabase
-          .from('organization_settings')
-          .select('license_cost_per_user')
-          .eq('org_id', orgId)
-          .maybeSingle();
-
-        if (settingsError) throw settingsError;
-
-        if (settings?.license_cost_per_user) {
-          const cost = parseFloat(settings.license_cost_per_user.toString());
-          console.log('Setting license price to:', cost);
-          setLicensePrice(cost);
-        } else {
-          console.log('No license cost found in settings');
-        }
+        await fetchLicensePrice(orgId);
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -60,6 +68,33 @@ export const useOrganizationData = () => {
     };
 
     fetchData();
+
+    // Set up real-time subscription for license price updates
+    const instance_url = localStorage.getItem('sf_instance_url');
+    if (instance_url) {
+      const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
+      
+      const subscription = supabase
+        .channel('organization_settings_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'organization_settings',
+            filter: `org_id=eq.${orgId}`
+          },
+          async (payload) => {
+            console.log('Received real-time update:', payload);
+            await fetchLicensePrice(orgId);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, [toast]);
 
   const updateLicensePrice = async (newPrice: number) => {
@@ -70,6 +105,7 @@ export const useOrganizationData = () => {
       }
 
       const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
+      console.log('Updating license price for org:', orgId, 'to:', newPrice);
       
       const { error } = await supabase
         .from('organization_settings')
