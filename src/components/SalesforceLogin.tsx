@@ -4,6 +4,12 @@ import { Card } from '@/components/ui/card';
 import { LoginForm } from './salesforce/LoginForm';
 import { initiateOAuthFlow } from './salesforce/useSalesforceAuth';
 import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SalesforceLoginProps {
   onSuccess?: () => void;
@@ -11,6 +17,7 @@ interface SalesforceLoginProps {
 
 export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
   // Check for existing valid connection on mount
@@ -82,6 +89,51 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
 
           <LoginForm onSubmit={handleSubmit} isLoading={isLoading} />
 
+          <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-2">
+            <CollapsibleTrigger className="flex items-center justify-center w-full text-sm text-sf-blue hover:text-sf-hover">
+              {isOpen ? (
+                <>
+                  <ChevronUp className="h-4 w-4 mr-1" />
+                  Hide Setup Instructions
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  Need help setting up?
+                </>
+              )}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 text-sm bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-base">How to Create a Salesforce Connected App</h3>
+              <ol className="list-decimal list-inside space-y-3 text-sf-gray">
+                <li>Log in to your Salesforce account as an administrator</li>
+                <li>Go to Setup (gear icon) → Apps → App Manager</li>
+                <li>Click "New Connected App" in the top-right</li>
+                <li>Fill in the basic information:
+                  <ul className="list-disc list-inside ml-4 mt-1">
+                    <li>Connected App Name: "Cost Optimization App"</li>
+                    <li>API Name: will auto-fill</li>
+                    <li>Contact Email: your email</li>
+                  </ul>
+                </li>
+                <li>Enable OAuth Settings:
+                  <ul className="list-disc list-inside ml-4 mt-1">
+                    <li>Check "Enable OAuth Settings"</li>
+                    <li>Callback URL: https://salesforce-connector-bridge.lovable.app/salesforce/callback</li>
+                    <li>Selected OAuth Scopes: Add "Full access (full)"</li>
+                  </ul>
+                </li>
+                <li>Click "Save" and wait for confirmation</li>
+                <li>Copy the Consumer Key (Client ID) and Consumer Secret (Client Secret)</li>
+                <li>Paste these credentials in the form above</li>
+              </ol>
+              <div className="mt-4 p-3 bg-blue-50 rounded text-sf-blue">
+                <p className="font-medium">Note:</p>
+                <p>It may take a few minutes for your Connected App to be ready after creation. If you get an error, please wait 5-10 minutes and try again.</p>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           <div className="space-y-4">
             <Button
               variant="outline"
@@ -91,10 +143,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
             >
               Reset Connection
             </Button>
-
-            <p className="text-xs text-center text-sf-gray">
-              Make sure you have created a Connected App in Salesforce and have the correct credentials
-            </p>
           </div>
         </div>
       </Card>
