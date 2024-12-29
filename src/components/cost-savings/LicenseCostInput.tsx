@@ -86,9 +86,12 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
           },
           async (payload: RealtimePostgresChangesPayload<OrganizationSettings>) => {
             console.log('Received real-time update:', payload);
-            const newCost = payload.new?.license_cost_per_user;
-            if (newCost && parseFloat(newCost.toString()) !== licensePrice) { // Only update if the price has actually changed
-              onPriceChange(parseFloat(newCost.toString()));
+            // Add type guard to ensure payload.new exists and has the correct type
+            if (payload.new && 'license_cost_per_user' in payload.new) {
+              const newCost = payload.new.license_cost_per_user;
+              if (typeof newCost === 'number' && newCost !== licensePrice) {
+                onPriceChange(newCost);
+              }
             }
           }
         )
