@@ -73,17 +73,38 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
       }
 
       const orgId = normalizeOrgId(instanceUrl);
-      console.log('Updating license cost to:', newPrice);
+      console.log('Updating license cost for org:', orgId, 'to:', newPrice);
       
-      const { error: updateError } = await supabase
+      // First check if the record exists
+      const { data: existingSettings } = await supabase
         .from('organization_settings')
-        .update({ 
-          license_cost_per_user: newPrice,
-          updated_at: new Date().toISOString()
-        })
-        .eq('org_id', orgId);
+        .select('id')
+        .eq('org_id', orgId)
+        .maybeSingle();
 
-      if (updateError) throw updateError;
+      let result;
+      if (existingSettings) {
+        // Update existing record
+        result = await supabase
+          .from('organization_settings')
+          .update({ 
+            license_cost_per_user: newPrice,
+            updated_at: new Date().toISOString()
+          })
+          .eq('org_id', orgId);
+      } else {
+        // Insert new record
+        result = await supabase
+          .from('organization_settings')
+          .insert({ 
+            org_id: orgId,
+            org_type: 'salesforce',
+            license_cost_per_user: newPrice,
+            updated_at: new Date().toISOString()
+          });
+      }
+
+      if (result.error) throw result.error;
       
       onPriceChange(newPrice);
       toast({
