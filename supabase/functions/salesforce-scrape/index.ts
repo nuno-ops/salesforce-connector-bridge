@@ -1,74 +1,77 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { corsHeaders } from "../_shared/cors.ts"
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY')
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const { orgId, filePath } = await req.json()
-    console.log('Processing contract for org:', orgId)
-    console.log('File path:', filePath)
+    console.log('Received request to scrape contract:', { orgId, filePath })
 
-    // Initialize Supabase client with service role key
-    const supabase = createClient(
+    if (!orgId || !filePath) {
+      throw new Error('Missing required parameters: orgId and filePath')
+    }
+
+    // Construct the file URL properly
+    const fileUrl = `https://${req.headers.get('host')}${filePath}`
+    console.log('Constructed file URL:', fileUrl)
+
+    // Call the Firecrawl API
+    const response = await fetch('https://api.firecrawl.ai/v1/salesforce/contract', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${FIRECRAWL_API_KEY}`
+      },
+      body: JSON.stringify({
+        file_url: fileUrl,
+        org_id: orgId
+      })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Firecrawl API error:', errorText)
+      throw new Error(`Firecrawl API error: ${response.status} ${errorText}`)
+    }
+
+    const data = await response.json()
+    console.log('Firecrawl API response:', data)
+
+    // Get Supabase client
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    console.log('Downloading file from storage...')
-    
-    // Download file using storage download
-    const { data: fileData, error: downloadError } = await supabase
-      .storage
-      .from('salesforce_contracts')
-      .download(filePath)
-
-    if (downloadError) {
-      console.error('Download error:', downloadError)
-      throw new Error(`Failed to download file: ${downloadError.message}`)
-    }
-
-    if (!fileData) {
-      throw new Error('No file data received')
-    }
-
-    console.log('File downloaded successfully, processing content...')
-
-    // Convert the blob to text for processing
-    const text = await fileData.text()
-    console.log('File content length:', text.length)
-
-    // Mock processing for now - you can implement actual PDF processing later
-    const licenseCost = 150 // Example value
-
-    // Update the contract record with extracted data
-    const { error: updateError } = await supabase
+    // Update the contract record with extracted value
+    const { error: updateError } = await supabaseClient
       .from('salesforce_contracts')
       .update({
-        extracted_value: licenseCost,
+        extracted_value: data.license_cost || 0,
+        extracted_services: data.services || [],
         updated_at: new Date().toISOString()
       })
+      .eq('org_id', orgId)
       .eq('file_path', filePath)
 
     if (updateError) {
-      console.error('Update error:', updateError)
+      console.error('Error updating contract:', updateError)
       throw updateError
     }
 
-    // Upsert organization settings
-    const normalizedOrgId = orgId.replace(/[^a-zA-Z0-9]/g, '_')
-    const { error: settingsError } = await supabase
+    // Update organization settings with license cost
+    const { error: settingsError } = await supabaseClient
       .from('organization_settings')
       .upsert({
-        org_id: normalizedOrgId,
-        license_cost_per_user: licenseCost,
+        org_id: orgId,
+        license_cost_per_user: data.license_cost || 0,
         org_type: 'salesforce',
         updated_at: new Date().toISOString()
       }, {
@@ -76,33 +79,29 @@ serve(async (req) => {
       })
 
     if (settingsError) {
-      console.error('Settings update error:', settingsError)
+      console.error('Error updating organization settings:', settingsError)
       throw settingsError
     }
 
-    console.log('Successfully updated organization settings with license cost:', licenseCost)
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        licenseCost,
-        message: 'Contract processed successfully' 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
-  } catch (error) {
-    console.error('Error processing contract:', error)
-    
     return new Response(
       JSON.stringify({
-        success: false,
-        error: error.message
+        success: true,
+        licenseCost: data.license_cost || 0,
+        services: data.services || []
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
+        status: 200,
+      },
+    )
+  } catch (error) {
+    console.error('Error in salesforce-scrape function:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      },
     )
   }
 })
