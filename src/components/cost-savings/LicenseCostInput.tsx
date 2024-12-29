@@ -13,16 +13,22 @@ interface LicenseCostInputProps {
 export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInputProps) => {
   const { toast } = useToast();
 
+  const normalizeOrgId = (url: string) => {
+    return url.replace(/[^a-zA-Z0-9]/g, '_');
+  };
+
   useEffect(() => {
     const fetchContractPrice = async () => {
       try {
-        const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
-        if (!orgId) {
+        const instanceUrl = localStorage.getItem('sf_instance_url');
+        if (!instanceUrl) {
           console.error('No organization ID found');
           return;
         }
 
+        const orgId = normalizeOrgId(instanceUrl);
         console.log('Fetching license cost for org:', orgId);
+        
         const { data: settings, error } = await supabase
           .from('organization_settings')
           .select('license_cost_per_user')
@@ -61,12 +67,14 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
         throw new Error('Invalid price value');
       }
 
-      const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
-      if (!orgId) {
+      const instanceUrl = localStorage.getItem('sf_instance_url');
+      if (!instanceUrl) {
         throw new Error('Organization ID not found');
       }
 
+      const orgId = normalizeOrgId(instanceUrl);
       console.log('Updating license cost to:', newPrice);
+      
       const { error: updateError } = await supabase
         .from('organization_settings')
         .update({ 
