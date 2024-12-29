@@ -42,8 +42,10 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
 
         if (settings?.license_cost_per_user) {
           const cost = parseFloat(settings.license_cost_per_user.toString());
-          console.log('Found license cost in settings:', cost);
-          onPriceChange(cost);
+          if (cost !== licensePrice) { // Only update if the price has actually changed
+            console.log('Found different license cost in settings:', cost);
+            onPriceChange(cost);
+          }
         } else {
           console.log('No license cost found in settings');
         }
@@ -58,13 +60,43 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
     };
 
     fetchContractPrice();
-  }, [onPriceChange, toast]);
+
+    // Set up real-time subscription for license price updates
+    const instance_url = localStorage.getItem('sf_instance_url');
+    if (instance_url) {
+      const orgId = normalizeOrgId(instance_url);
+      
+      const subscription = supabase
+        .channel('organization_settings_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'organization_settings',
+            filter: `org_id=eq.${orgId}`
+          },
+          async (payload) => {
+            console.log('Received real-time update:', payload);
+            const newCost = payload.new?.license_cost_per_user;
+            if (newCost && parseFloat(newCost) !== licensePrice) { // Only update if the price has actually changed
+              onPriceChange(parseFloat(newCost));
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [onPriceChange, toast]); // Remove licensePrice from dependencies
 
   const handlePriceChange = async (value: string) => {
     try {
       const newPrice = value === '' ? 0 : parseFloat(value);
-      if (isNaN(newPrice)) {
-        throw new Error('Invalid price value');
+      if (isNaN(newPrice) || newPrice === licensePrice) { // Don't update if the price hasn't changed
+        return;
       }
 
       const instanceUrl = localStorage.getItem('sf_instance_url');
@@ -75,38 +107,19 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
       const orgId = normalizeOrgId(instanceUrl);
       console.log('Updating license cost for org:', orgId, 'to:', newPrice);
       
-      // First check if the record exists
-      const { data: existingSettings } = await supabase
+      const { error } = await supabase
         .from('organization_settings')
-        .select('id')
-        .eq('org_id', orgId)
-        .maybeSingle();
+        .upsert({
+          org_id: orgId,
+          license_cost_per_user: newPrice,
+          org_type: 'salesforce',
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'org_id'
+        });
 
-      let result;
-      if (existingSettings) {
-        // Update existing record
-        result = await supabase
-          .from('organization_settings')
-          .update({ 
-            license_cost_per_user: newPrice,
-            updated_at: new Date().toISOString()
-          })
-          .eq('org_id', orgId);
-      } else {
-        // Insert new record
-        result = await supabase
-          .from('organization_settings')
-          .insert({ 
-            org_id: orgId,
-            org_type: 'salesforce',
-            license_cost_per_user: newPrice,
-            updated_at: new Date().toISOString()
-          });
-      }
-
-      if (result.error) throw result.error;
+      if (error) throw error;
       
-      onPriceChange(newPrice);
       toast({
         title: "Success",
         description: `License cost updated to $${newPrice}`
