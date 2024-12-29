@@ -5,16 +5,6 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface ServiceItem {
-  name: string;
-  startDate: string;
-  endDate: string;
-  term: number;
-  unitPrice: number;
-  quantity: number;
-  totalPrice: number;
-}
-
 interface LicenseCostInputProps {
   licensePrice: number;
   onPriceChange: (newPrice: number) => void;
@@ -27,63 +17,71 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
     const fetchContractPrice = async () => {
       try {
         const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
-        if (!orgId) return;
+        if (!orgId) {
+          console.error('No organization ID found');
+          return;
+        }
 
+        console.log('Fetching license cost for org:', orgId);
         const { data: settings, error } = await supabase
           .from('organization_settings')
           .select('license_cost_per_user')
           .eq('org_id', orgId)
           .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching license cost:', error);
+          throw error;
+        }
 
         if (settings?.license_cost_per_user) {
-          console.log('Fetched license cost:', settings.license_cost_per_user);
-          onPriceChange(parseFloat(settings.license_cost_per_user.toString()));
+          const cost = parseFloat(settings.license_cost_per_user.toString());
+          console.log('Found license cost in settings:', cost);
+          onPriceChange(cost);
+        } else {
+          console.log('No license cost found in settings');
         }
       } catch (error) {
         console.error('Error fetching contract price:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch license cost"
+        });
       }
     };
 
     fetchContractPrice();
-  }, [onPriceChange]);
+  }, [onPriceChange, toast]);
 
   const handlePriceChange = async (value: string) => {
     try {
       const newPrice = value === '' ? 0 : parseFloat(value);
+      if (isNaN(newPrice)) {
+        throw new Error('Invalid price value');
+      }
+
       const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
-      
       if (!orgId) {
         throw new Error('Organization ID not found');
       }
 
-      const { data: settings, error: selectError } = await supabase
+      console.log('Updating license cost to:', newPrice);
+      const { error: updateError } = await supabase
         .from('organization_settings')
-        .select('*')
-        .eq('org_id', orgId)
-        .maybeSingle();
+        .update({ 
+          license_cost_per_user: newPrice,
+          updated_at: new Date().toISOString()
+        })
+        .eq('org_id', orgId);
 
-      if (selectError) throw selectError;
-
-      if (settings) {
-        const { error: updateError } = await supabase
-          .from('organization_settings')
-          .update({ 
-            license_cost_per_user: newPrice,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', settings.id);
-
-        if (updateError) throw updateError;
-        
-        console.log('Updated license cost to:', newPrice);
-        onPriceChange(newPrice);
-        toast({
-          title: "Success",
-          description: `License cost updated to $${newPrice}`
-        });
-      }
+      if (updateError) throw updateError;
+      
+      onPriceChange(newPrice);
+      toast({
+        title: "Success",
+        description: `License cost updated to $${newPrice}`
+      });
     } catch (error) {
       console.error('Error updating license cost:', error);
       toast({
