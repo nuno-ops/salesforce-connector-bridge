@@ -4,6 +4,14 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+
+interface OrganizationSettings {
+  org_id: string;
+  license_cost_per_user: number;
+  org_type: string;
+  updated_at: string;
+}
 
 interface LicenseCostInputProps {
   licensePrice: number;
@@ -76,11 +84,11 @@ export const LicenseCostInput = ({ licensePrice, onPriceChange }: LicenseCostInp
             table: 'organization_settings',
             filter: `org_id=eq.${orgId}`
           },
-          async (payload) => {
+          async (payload: RealtimePostgresChangesPayload<OrganizationSettings>) => {
             console.log('Received real-time update:', payload);
             const newCost = payload.new?.license_cost_per_user;
-            if (newCost && parseFloat(newCost) !== licensePrice) { // Only update if the price has actually changed
-              onPriceChange(parseFloat(newCost));
+            if (newCost && parseFloat(newCost.toString()) !== licensePrice) { // Only update if the price has actually changed
+              onPriceChange(parseFloat(newCost.toString()));
             }
           }
         )
