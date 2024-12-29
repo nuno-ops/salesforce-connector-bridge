@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from "../_shared/cors.ts"
+import { createClient } from '@supabase/supabase-js'
 
 const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY')
 
@@ -17,8 +18,15 @@ serve(async (req) => {
       throw new Error('Missing required parameters: orgId and filePath')
     }
 
+    // Get the host from the request headers
+    const host = req.headers.get('host')
+    if (!host) {
+      throw new Error('Missing host header')
+    }
+
     // Construct the file URL properly
-    const fileUrl = `https://${req.headers.get('host')}${filePath}`
+    const protocol = host.includes('localhost') ? 'http' : 'https'
+    const fileUrl = `${protocol}://${host}${filePath}`
     console.log('Constructed file URL:', fileUrl)
 
     // Call the Firecrawl API
