@@ -3,7 +3,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { LoginForm } from './salesforce/LoginForm';
 import { initiateOAuthFlow } from './salesforce/useSalesforceAuth';
-import { Button } from '@/components/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
@@ -133,17 +132,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
               </div>
             </CollapsibleContent>
           </Collapsible>
-
-          <div className="space-y-4">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={resetOAuthState}
-              disabled={isLoading}
-            >
-              Reset Connection
-            </Button>
-          </div>
         </div>
       </Card>
     </div>
