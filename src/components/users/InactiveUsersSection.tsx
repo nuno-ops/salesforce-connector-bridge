@@ -1,126 +1,17 @@
-import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { ExternalLink, Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Button } from '@/components/ui/button';
+import { Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-
-// Breaking down the component into smaller parts
-const IntegrationGuidance = () => (
-  <Alert className="mt-4">
-    <AlertCircle className="h-4 w-4" />
-    <div className="ml-2">
-      <div className="font-medium">Integration User License Usage Guide</div>
-      <AlertDescription className="mt-1 text-sm">
-        <p className="mb-2">Integration user licenses are ideal for:</p>
-        <ul className="list-disc pl-4 space-y-1">
-          <li>API-only access for system integrations with tools like:
-            <ul className="list-disc pl-4 mt-1">
-              <li>Zapier for workflow automation</li>
-              <li>Make.com (formerly Integromat) for complex integrations</li>
-              <li>MuleSoft for enterprise integration</li>
-            </ul>
-          </li>
-          <li>Data synchronization between systems</li>
-          <li>Automated processes and batch operations</li>
-        </ul>
-      </AlertDescription>
-    </div>
-  </Alert>
-);
-
-const UserTable = ({ users, instanceUrl, getUserOAuthApps, maskUsername }) => (
-  <div className="rounded-md border">
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Username</TableHead>
-          <TableHead>Last Login</TableHead>
-          <TableHead>User Type</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {users.map((user) => (
-          <TableRow key={user.Id}>
-            <TableCell>{maskUsername(user.Username)}</TableCell>
-            <TableCell>
-              {user.LastLoginDate 
-                ? format(new Date(user.LastLoginDate), 'PPp')
-                : 'Never'}
-            </TableCell>
-            <TableCell>{user.UserType}</TableCell>
-            <TableCell>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
-              >
-                View User <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </div>
-);
-
-const IntegrationTable = ({ users, instanceUrl, getUserOAuthApps, maskUsername }) => (
-  <div className="rounded-md border">
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Username</TableHead>
-          <TableHead>User Type</TableHead>
-          <TableHead>Connected Apps</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {users.map((user) => (
-          <TableRow key={user.Id}>
-            <TableCell>{maskUsername(user.Username)}</TableCell>
-            <TableCell>{user.UserType}</TableCell>
-            <TableCell>
-              <div className="flex gap-1 flex-wrap">
-                {getUserOAuthApps(user.Id).map((app, index) => (
-                  <Badge key={index} variant="secondary">
-                    {app}
-                  </Badge>
-                ))}
-              </div>
-            </TableCell>
-            <TableCell>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.open(`${instanceUrl}/${user.Id}`, '_blank')}
-              >
-                View User <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </div>
-);
+import { format } from 'date-fns';
+import { InactiveUsersTab } from './tabs/InactiveUsersTab';
+import { IntegrationUsersTab } from './tabs/IntegrationUsersTab';
+import { PlatformLicenseTab } from './tabs/PlatformLicenseTab';
 
 export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('inactive');
+  const [platformUsers, setPlatformUsers] = useState([]);
 
   useEffect(() => {
     const handleExpand = (event: CustomEvent<{ tabValue: string }>) => {
@@ -133,6 +24,22 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
       window.removeEventListener('expandLicenseSection', handleExpand as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    const fetchPlatformUsers = async () => {
+      try {
+        const response = await fetch(`${instanceUrl}/services/data/v57.0/query?q=SELECT Id, Username, LastLoginDate, UserType FROM User WHERE IsActive = true AND Profile.UserLicense.LicenseDefinitionKey = 'SFDC_PLATFORM'`);
+        const data = await response.json();
+        setPlatformUsers(data.records || []);
+      } catch (error) {
+        console.error('Error fetching platform users:', error);
+      }
+    };
+
+    if (isOpen && activeTab === 'platform') {
+      fetchPlatformUsers();
+    }
+  }, [isOpen, activeTab, instanceUrl]);
 
   const maskUsername = (username: string) => {
     if (username.length <= 4) return username;
@@ -218,23 +125,35 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
         <CollapsibleContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
-              <TabsTrigger value="inactive">Inactive Users ({inactiveUsers.length})</TabsTrigger>
-              <TabsTrigger value="integration">Integration Users ({integrationUsers.length})</TabsTrigger>
+              <TabsTrigger value="inactive">
+                Inactive Users ({inactiveUsers.length})
+              </TabsTrigger>
+              <TabsTrigger value="integration">
+                Integration Users ({integrationUsers.length})
+              </TabsTrigger>
+              <TabsTrigger value="platform">
+                Platform License Users ({platformUsers.length})
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="inactive">
-              <UserTable 
+              <InactiveUsersTab 
                 users={inactiveUsers}
+                instanceUrl={instanceUrl}
+                maskUsername={maskUsername}
+              />
+            </TabsContent>
+            <TabsContent value="integration">
+              <IntegrationUsersTab 
+                users={integrationUsers}
                 instanceUrl={instanceUrl}
                 getUserOAuthApps={getUserOAuthApps}
                 maskUsername={maskUsername}
               />
             </TabsContent>
-            <TabsContent value="integration">
-              <IntegrationGuidance />
-              <IntegrationTable 
-                users={integrationUsers}
+            <TabsContent value="platform">
+              <PlatformLicenseTab 
+                users={platformUsers}
                 instanceUrl={instanceUrl}
-                getUserOAuthApps={getUserOAuthApps}
                 maskUsername={maskUsername}
               />
             </TabsContent>
