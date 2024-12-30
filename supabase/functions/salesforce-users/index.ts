@@ -42,13 +42,13 @@ serve(async (req) => {
       LIMIT 1000
     `;
 
-    // Optimized permissions query
+    // Query for object permissions - matching salesforce-platform-licenses logic
     const objectPermissionsQuery = `
-      SELECT Parent.ProfileId, COUNT(Id)
+      SELECT Parent.Profile.Name, Parent.ProfileId, Parent.Label, ParentId, 
+             SObjectType, PermissionsCreate, PermissionsRead, PermissionsEdit, 
+             PermissionsDelete, PermissionsModifyAllRecords, PermissionsViewAllRecords 
       FROM ObjectPermissions 
       WHERE SObjectType IN ('Opportunity', 'Lead', 'Case')
-      AND Parent.ProfileId != null
-      GROUP BY Parent.ProfileId
     `;
 
     console.log('Fetching Salesforce data...');
@@ -114,21 +114,29 @@ serve(async (req) => {
       console.log('Data fetched successfully');
       console.log('Users count:', userData.records.length);
       console.log('OAuth tokens count:', oauthData.records.length);
-      console.log('Profiles with permissions:', objectPermsData.records.length);
+      console.log('Object permissions count:', objectPermsData.records.length);
 
-      // Create set of ProfileIds with standard object access
+      // Create sets of ProfileIds and ParentIds that have access, with null checks
       const profilesWithAccess = new Set(
-        objectPermsData.records.map(perm => {
-          // Add null check for Parent
-          return perm.Parent?.ProfileId;
-        }).filter(Boolean) // Remove any undefined values
+        objectPermsData.records
+          .filter(perm => perm.Parent && perm.Parent.ProfileId)
+          .map(perm => perm.Parent.ProfileId)
       );
 
-      // Process users with eligibility
+      // Process users with eligibility using the same logic as salesforce-platform-licenses
       const usersWithEligibility = userData.records.map(user => {
-        // Add null checks for Profile and Profile.Id
-        const profileId = user.Profile?.Id;
-        const isPlatformEligible = profileId && !profilesWithAccess.has(profileId);
+        // Skip users without ProfileId or specific types we want to exclude
+        if (!user.Profile?.Id || 
+            user.UserType === 'CsnOnly' || 
+            user.UserType === 'Standard') {
+          return {
+            ...user,
+            isPlatformEligible: false
+          };
+        }
+
+        // Check if user's profile has access to standard objects
+        const isPlatformEligible = !profilesWithAccess.has(user.Profile.Id);
 
         return {
           ...user,
@@ -136,7 +144,14 @@ serve(async (req) => {
         };
       });
 
-      console.log('Platform eligible users:', usersWithEligibility.filter(u => u.isPlatformEligible).length);
+      const eligibleUsers = usersWithEligibility.filter(u => u.isPlatformEligible);
+      console.log('Platform eligible users:', eligibleUsers.length);
+      console.log('Eligible users:', eligibleUsers.map(u => ({
+        id: u.Id,
+        name: u.Username,
+        type: u.UserType,
+        profile: u.Profile?.Name
+      })));
       
       return new Response(
         JSON.stringify({
