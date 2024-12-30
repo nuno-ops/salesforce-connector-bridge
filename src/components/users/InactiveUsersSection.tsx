@@ -132,7 +132,7 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
                 Integration Users ({integrationUsers.length})
               </TabsTrigger>
               <TabsTrigger value="platform">
-                Platform License Users ({platformUsers.length})
+                Platform License Users
               </TabsTrigger>
             </TabsList>
             <TabsContent value="inactive">
@@ -152,7 +152,6 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
             </TabsContent>
             <TabsContent value="platform">
               <PlatformLicenseTab 
-                users={platformUsers}
                 instanceUrl={instanceUrl}
                 maskUsername={maskUsername}
               />
