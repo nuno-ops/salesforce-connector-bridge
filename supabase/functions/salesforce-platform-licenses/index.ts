@@ -45,12 +45,11 @@ serve(async (req) => {
     console.log('Sample object permission:', JSON.stringify(objectPerms.records[0], null, 2));
 
     console.log('Fetching users...');
-    // Query 2: Get users
+    // Query 2: Get users - removed UserType filter
     const usersQuery = `
-      SELECT Id, Name, ProfileId, UserType, IsActive
+      SELECT Id, Name, ProfileId, UserType, IsActive, Profile.Name, Email, LastLoginDate
       FROM User
       WHERE IsActive = true
-      AND UserType = 'Standard'
     `;
 
     const usersResponse = await fetch(
@@ -65,6 +64,10 @@ serve(async (req) => {
 
     const users = await usersResponse.json();
     console.log('Active users found:', users.records.length);
+    console.log('User types distribution:', users.records.reduce((acc, user) => {
+      acc[user.UserType] = (acc[user.UserType] || 0) + 1;
+      return acc;
+    }, {}));
 
     console.log('Fetching permission set assignments...');
     // Query 3: Get permission set assignments
@@ -125,7 +128,12 @@ serve(async (req) => {
     });
 
     console.log('Users eligible for platform licenses:', usersForPlatformLicense.length);
-    console.log('Eligible users:', usersForPlatformLicense.map(u => ({ id: u.Id, name: u.Name })));
+    console.log('Eligible users:', usersForPlatformLicense.map(u => ({ 
+      id: u.Id, 
+      name: u.Name,
+      type: u.UserType,
+      profile: u.Profile?.Name
+    })));
 
     return new Response(
       JSON.stringify({
@@ -135,7 +143,11 @@ serve(async (req) => {
           totalProfiles: profilesWithAccess.size,
           totalPermSets: permSetsWithAccess.size,
           totalUsers: users.records.length,
-          totalAssignments: permSetAssignments.records.length
+          totalAssignments: permSetAssignments.records.length,
+          userTypesDistribution: users.records.reduce((acc, user) => {
+            acc[user.UserType] = (acc[user.UserType] || 0) + 1;
+            return acc;
+          }, {})
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
