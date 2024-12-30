@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlatformUser {
   Id: string;
@@ -29,7 +29,8 @@ export const usePlatformUsers = () => {
 
         if (error) throw error;
 
-        setUsers(data.users || []);
+        console.log('Platform users data:', data);
+        setUsers(data?.users || []);
       } catch (err) {
         console.error('Error fetching platform users:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch platform users'));

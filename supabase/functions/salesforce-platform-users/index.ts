@@ -17,9 +17,12 @@ serve(async (req) => {
       throw new Error('Missing access_token or instance_url');
     }
 
-    // Query for platform license users
+    console.log('Fetching platform users from Salesforce...');
+    console.log('Instance URL:', instance_url);
+
+    // Query for platform license users with more detailed information
     const query = `
-      SELECT Id, Username, LastLoginDate, UserType
+      SELECT Id, Username, LastLoginDate, UserType, Profile.Name
       FROM User
       WHERE IsActive = true
       AND Profile.UserLicense.LicenseDefinitionKey = 'SFDC_PLATFORM'
@@ -43,6 +46,7 @@ serve(async (req) => {
 
     const data = await response.json();
     console.log('Successfully fetched platform users:', data.records.length);
+    console.log('Platform users:', data.records);
 
     return new Response(
       JSON.stringify({ users: data.records }),
