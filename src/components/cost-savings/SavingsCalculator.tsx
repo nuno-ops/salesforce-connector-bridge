@@ -45,7 +45,16 @@ export const useSavingsCalculations = ({
         console.log('Calculating platform license savings...');
         const result = await calculatePlatformLicenseSavings(licensePrice);
         console.log('Platform license savings result:', result);
-        setPlatformLicenseSavings(result);
+        
+        // Calculate annual savings: number of users * (current license cost - platform license cost)
+        const platformLicenseCost = 25; // USD per month
+        const monthlySavingsPerUser = licensePrice - platformLicenseCost;
+        const annualSavings = result.count * monthlySavingsPerUser * 12;
+        
+        setPlatformLicenseSavings({ 
+          savings: annualSavings,
+          count: result.count 
+        });
       } catch (error) {
         console.error('Error calculating platform license savings:', error);
         setPlatformLicenseSavings({ savings: 0, count: 0 });
@@ -78,7 +87,7 @@ export const useSavingsCalculations = ({
     {
       title: "Platform License Optimization",
       amount: platformLicenseSavings.savings,
-      details: `${platformLicenseSavings.count} users could be converted to platform licenses`,
+      details: `${platformLicenseSavings.count} users could be converted to platform licenses ($${licensePrice - 25} monthly savings per user)`,
       viewAction: () => scrollToLicenseOptimization('platform')
     },
     {
@@ -91,7 +100,7 @@ export const useSavingsCalculations = ({
       amount: storageSavingsCalc.savings,
       details: `Potential ${storageSavingsCalc.potentialGBSavings}GB reduction in storage`
     }
-  ];
+  ].filter(item => item.amount > 0); // Only show items with savings > 0
 
   return {
     totalSavings,
