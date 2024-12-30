@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   calculateInactiveUserSavings,
   calculateIntegrationUserSavings,
@@ -24,6 +25,9 @@ export const useSavingsCalculations = ({
   storageUsage,
   userLicenses
 }: SavingsCalculatorProps) => {
+  const [platformLicenseSavings, setPlatformLicenseSavings] = useState({ savings: 0, count: 0 });
+
+  // Calculate static savings
   const inactiveUserSavings = calculateInactiveUserSavings(users, licensePrice);
   const integrationUserSavings = calculateIntegrationUserSavings(
     users, 
@@ -33,9 +37,23 @@ export const useSavingsCalculations = ({
   );
   const sandboxSavingsCalc = calculateSandboxSavings(sandboxes);
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
-  
-  // Calculate platform license savings
-  const platformLicenseSavings = await calculatePlatformLicenseSavings(licensePrice);
+
+  // Calculate platform license savings asynchronously
+  useEffect(() => {
+    const fetchPlatformSavings = async () => {
+      try {
+        console.log('Calculating platform license savings...');
+        const result = await calculatePlatformLicenseSavings(licensePrice);
+        console.log('Platform license savings result:', result);
+        setPlatformLicenseSavings(result);
+      } catch (error) {
+        console.error('Error calculating platform license savings:', error);
+        setPlatformLicenseSavings({ savings: 0, count: 0 });
+      }
+    };
+
+    fetchPlatformSavings();
+  }, [licensePrice]);
 
   const totalSavings = 
     inactiveUserSavings.savings +
