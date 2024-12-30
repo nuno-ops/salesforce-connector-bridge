@@ -83,9 +83,14 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
       formData.append('file', file);
       formData.append('orgId', normalizedOrgId);
 
-      // Upload the contract
+      // Upload the contract using multipart/form-data
       const { data, error } = await supabase.functions.invoke('salesforce-contract-upload', {
-        body: formData,
+        body: { 
+          orgId: normalizedOrgId,
+          fileName: file.name,
+          fileContent: await file.arrayBuffer(),
+          contentType: file.type
+        }
       });
 
       if (error) throw error;
@@ -94,13 +99,13 @@ export const ContractUploadDialog = ({ open, onOpenChange, orgId }: ContractUplo
       const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('salesforce-scrape', {
         body: { 
           orgId: normalizedOrgId,
-          filePath: data.data.file_path
+          filePath: data.filePath
         }
       });
 
       if (scrapeError) throw scrapeError;
 
-      if (scrapeData.licenseCost > 0) {
+      if (scrapeData?.licenseCost > 0) {
         toast({
           title: "Success",
           description: `Contract uploaded and license cost updated to $${scrapeData.licenseCost}/month.`,

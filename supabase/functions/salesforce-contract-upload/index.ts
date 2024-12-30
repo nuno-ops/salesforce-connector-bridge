@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,78 +7,95 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const formData = await req.formData()
-    const file = formData.get('file') as File
-    const orgId = formData.get('orgId') as string
-
-    if (!file || !orgId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing file or orgId' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
+    const { orgId, fileName, fileContent, contentType } = await req.json()
+    
+    if (!orgId || !fileName || !fileContent || !contentType) {
+      throw new Error('Missing required fields')
     }
 
     console.log('Processing upload for org:', orgId)
-    console.log('File details:', { name: file.name, type: file.type, size: file.size })
+    console.log('File name:', fileName)
 
-    // Initialize Supabase client with service role key
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration')
+    }
 
-    // Generate unique filename
-    const fileName = `${crypto.randomUUID()}-${file.name}`
-    console.log('Generated filename:', fileName)
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Upload to storage
-    const { data: storageData, error: uploadError } = await supabase.storage
+    // Convert base64 string to Uint8Array
+    const fileBuffer = new Uint8Array(fileContent)
+    
+    // Upload file to storage
+    const filePath = `${orgId}/${fileName}`
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
       .from('salesforce_contracts')
-      .upload(fileName, file, {
-        contentType: file.type,
-        upsert: false
+      .upload(filePath, fileBuffer, {
+        contentType: contentType,
+        upsert: true
       })
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError)
+      console.error('Upload error:', uploadError)
       throw uploadError
     }
 
-    console.log('File uploaded successfully:', storageData)
+    console.log('File uploaded successfully:', uploadData)
 
-    // Store metadata in database
-    const { data: dbData, error: dbError } = await supabase
+    // Create database record
+    const { data: contractData, error: contractError } = await supabase
       .from('salesforce_contracts')
       .insert({
         org_id: orgId,
-        file_name: file.name,
-        file_path: fileName,
+        file_name: fileName,
+        file_path: filePath
       })
       .select()
       .single()
 
-    if (dbError) {
-      console.error('Database insert error:', dbError)
-      throw dbError
+    if (contractError) {
+      console.error('Database error:', contractError)
+      throw contractError
     }
 
-    console.log('Database record created:', dbData)
+    console.log('Contract record created:', contractData)
 
     return new Response(
-      JSON.stringify({ success: true, data: dbData }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: true,
+        filePath: filePath,
+        data: contractData
+      }),
+      { 
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     )
-
   } catch (error) {
-    console.error('Error processing upload:', error)
+    console.error('Error processing request:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: error.message 
+      }),
+      { 
+        status: 400,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     )
   }
 })
