@@ -34,11 +34,8 @@ export const useSavingsCalculations = ({
   const sandboxSavingsCalc = calculateSandboxSavings(sandboxes);
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
   
-  // Handle platform license savings synchronously
-  const platformLicenseSavings = {
-    savings: 0,
-    count: 0
-  };
+  // Calculate platform license savings
+  const platformLicenseSavings = await calculatePlatformLicenseSavings(licensePrice);
 
   const totalSavings = 
     inactiveUserSavings.savings +
