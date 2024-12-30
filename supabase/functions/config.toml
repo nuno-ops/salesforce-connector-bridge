@@ -1,19 +1,4 @@
 project_id = "pnzdzneuynkyzfjwheej"
 
-[functions.salesforce-org]
-verify_jwt = false
-
-[functions.salesforce-auth]
-verify_jwt = false
-
-[functions.salesforce-validate]
-verify_jwt = false
-
-[functions.salesforce-users]
-verify_jwt = false
-
-[functions.salesforce-contract-upload]
-verify_jwt = false
-
-[functions.salesforce-scrape]
+[functions.salesforce-platform-licenses]
 verify_jwt = false

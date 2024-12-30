@@ -4,6 +4,7 @@ import {
   calculateSandboxSavings,
   calculateStorageSavings
 } from "./utils/savingsCalculations";
+import { calculatePlatformLicenseSavings } from "./utils/platformLicenseSavings";
 import { scrollToLicenseOptimization } from "./utils/scrollUtils";
 
 interface SavingsCalculatorProps {
@@ -15,7 +16,7 @@ interface SavingsCalculatorProps {
   userLicenses: any[];
 }
 
-export const useSavingsCalculations = ({
+export const useSavingsCalculations = async ({
   users,
   oauthTokens,
   licensePrice,
@@ -32,12 +33,14 @@ export const useSavingsCalculations = ({
   );
   const sandboxSavingsCalc = calculateSandboxSavings(sandboxes);
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
+  const platformLicenseSavings = await calculatePlatformLicenseSavings(licensePrice);
 
   const totalSavings = 
     inactiveUserSavings.savings +
     integrationUserSavings.savings +
     sandboxSavingsCalc.savings +
-    storageSavingsCalc.savings;
+    storageSavingsCalc.savings +
+    platformLicenseSavings.savings;
 
   const savingsBreakdown = [
     {
@@ -51,6 +54,12 @@ export const useSavingsCalculations = ({
       amount: integrationUserSavings.savings,
       details: `${integrationUserSavings.count} users could be converted to integration users`,
       viewAction: () => scrollToLicenseOptimization('integration')
+    },
+    {
+      title: "Platform License Optimization",
+      amount: platformLicenseSavings.savings,
+      details: `${platformLicenseSavings.count} users could be converted to platform licenses`,
+      viewAction: () => scrollToLicenseOptimization('platform')
     },
     {
       title: "Sandbox Optimization",
