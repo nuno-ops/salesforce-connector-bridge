@@ -42,6 +42,7 @@ serve(async (req) => {
 
     const objectPerms = await objectPermsResponse.json();
     console.log('Object permissions found:', objectPerms.records.length);
+    console.log('Sample object permission:', JSON.stringify(objectPerms.records[0], null, 2));
 
     console.log('Fetching users...');
     // Query 2: Get users
@@ -85,16 +86,16 @@ serve(async (req) => {
     const permSetAssignments = await permSetResponse.json();
     console.log('Permission set assignments found:', permSetAssignments.records.length);
 
-    // Create sets of ProfileIds and ParentIds that have access
+    // Create sets of ProfileIds and ParentIds that have access, with null checks
     const profilesWithAccess = new Set(
       objectPerms.records
-        .filter(perm => perm.Parent.ProfileId)
+        .filter(perm => perm.Parent && perm.Parent.ProfileId)
         .map(perm => perm.Parent.ProfileId)
     );
 
     const permSetsWithAccess = new Set(
       objectPerms.records
-        .filter(perm => perm.ParentId && !perm.Parent.ProfileId)
+        .filter(perm => perm.ParentId && !perm.Parent?.ProfileId)
         .map(perm => perm.ParentId)
     );
 
@@ -103,16 +104,23 @@ serve(async (req) => {
 
     // Find users eligible for platform licenses
     const usersForPlatformLicense = users.records.filter(user => {
+      // Skip users without ProfileId
+      if (!user.ProfileId) {
+        console.log(`User ${user.Name} (${user.Id}) has no ProfileId, skipping`);
+        return false;
+      }
+
       // Check if user's profile doesn't have access
       if (profilesWithAccess.has(user.ProfileId)) {
         return false;
       }
 
-      // Check if user has any permission set that grants access
+      // Get user's permission sets
       const userPermSets = permSetAssignments.records
         .filter(psa => psa.AssigneeId === user.Id)
         .map(psa => psa.PermissionSetId);
 
+      // Check if user has any permission set that grants access
       return !userPermSets.some(psId => permSetsWithAccess.has(psId));
     });
 
@@ -136,7 +144,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in platform license calculation:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        totalEligible: 0,
+        eligibleUsers: []
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
