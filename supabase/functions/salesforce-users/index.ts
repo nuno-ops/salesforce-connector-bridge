@@ -31,7 +31,6 @@ serve(async (req) => {
              Profile.Id
       FROM User 
       WHERE IsActive = true 
-      AND Profile.Id != null
       LIMIT 1000
     `;
 
@@ -45,7 +44,7 @@ serve(async (req) => {
 
     // Optimized permissions query
     const objectPermissionsQuery = `
-      SELECT Parent.ProfileId
+      SELECT Parent.ProfileId, COUNT(Id)
       FROM ObjectPermissions 
       WHERE SObjectType IN ('Opportunity', 'Lead', 'Case')
       AND Parent.ProfileId != null
@@ -119,14 +118,23 @@ serve(async (req) => {
 
       // Create set of ProfileIds with standard object access
       const profilesWithAccess = new Set(
-        objectPermsData.records.map(perm => perm.Parent.ProfileId)
+        objectPermsData.records.map(perm => {
+          // Add null check for Parent
+          return perm.Parent?.ProfileId;
+        }).filter(Boolean) // Remove any undefined values
       );
 
       // Process users with eligibility
-      const usersWithEligibility = userData.records.map(user => ({
-        ...user,
-        isPlatformEligible: user.Profile?.Id && !profilesWithAccess.has(user.Profile.Id)
-      }));
+      const usersWithEligibility = userData.records.map(user => {
+        // Add null checks for Profile and Profile.Id
+        const profileId = user.Profile?.Id;
+        const isPlatformEligible = profileId && !profilesWithAccess.has(profileId);
+
+        return {
+          ...user,
+          isPlatformEligible
+        };
+      });
 
       console.log('Platform eligible users:', usersWithEligibility.filter(u => u.isPlatformEligible).length);
       
