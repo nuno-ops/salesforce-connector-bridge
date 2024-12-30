@@ -11,7 +11,6 @@ import { PlatformLicenseTab } from './tabs/PlatformLicenseTab';
 export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('inactive');
-  const [platformUsers, setPlatformUsers] = useState([]);
 
   useEffect(() => {
     const handleExpand = (event: CustomEvent<{ tabValue: string }>) => {
@@ -24,22 +23,6 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
       window.removeEventListener('expandLicenseSection', handleExpand as EventListener);
     };
   }, []);
-
-  useEffect(() => {
-    const fetchPlatformUsers = async () => {
-      try {
-        const response = await fetch(`${instanceUrl}/services/data/v57.0/query?q=SELECT Id, Username, LastLoginDate, UserType FROM User WHERE IsActive = true AND Profile.UserLicense.LicenseDefinitionKey = 'SFDC_PLATFORM'`);
-        const data = await response.json();
-        setPlatformUsers(data.records || []);
-      } catch (error) {
-        console.error('Error fetching platform users:', error);
-      }
-    };
-
-    if (isOpen && activeTab === 'platform') {
-      fetchPlatformUsers();
-    }
-  }, [isOpen, activeTab, instanceUrl]);
 
   const maskUsername = (username: string) => {
     if (username.length <= 4) return username;
@@ -85,6 +68,11 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
     const oauthApps = getUserOAuthApps(user.Id);
     return oauthApps.length > 0;
   });
+
+  // Calculate platform users count
+  const platformUsers = users.filter(user => 
+    user.Profile?.UserLicense?.LicenseDefinitionKey === 'SFDC_PLATFORM'
+  );
 
   if (users.length === 0) return null;
 
@@ -132,7 +120,7 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
                 Integration Users ({integrationUsers.length})
               </TabsTrigger>
               <TabsTrigger value="platform">
-                Platform License Users
+                Platform License Users ({platformUsers.length})
               </TabsTrigger>
             </TabsList>
             <TabsContent value="inactive">
