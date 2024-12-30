@@ -1,37 +1,25 @@
-import { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { format } from 'date-fns';
-import { Loader2 } from 'lucide-react';
-import { usePlatformUsers } from '../hooks/usePlatformUsers';
 
 interface PlatformLicenseTabProps {
   instanceUrl: string;
   maskUsername: (username: string) => string;
+  users: any[];
 }
 
-export const PlatformLicenseTab = ({ instanceUrl, maskUsername }: PlatformLicenseTabProps) => {
-  const { users, isLoading, error } = usePlatformUsers();
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mt-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Failed to load platform license users</AlertDescription>
-      </Alert>
-    );
-  }
+export const PlatformLicenseTab = ({ 
+  instanceUrl, 
+  maskUsername,
+  users
+}: PlatformLicenseTabProps) => {
+  // Filter platform license users
+  const platformUsers = users.filter(user => 
+    user.Profile?.UserLicense?.LicenseDefinitionKey === 'SFDC_PLATFORM'
+  );
 
   return (
     <>
@@ -62,7 +50,7 @@ export const PlatformLicenseTab = ({ instanceUrl, maskUsername }: PlatformLicens
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
+            {platformUsers.map((user) => (
               <TableRow key={user.Id}>
                 <TableCell>{maskUsername(user.Username)}</TableCell>
                 <TableCell>

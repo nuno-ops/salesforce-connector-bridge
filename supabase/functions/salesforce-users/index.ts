@@ -24,9 +24,10 @@ serve(async (req) => {
       );
     }
 
-    // Query for users
+    // Query for users including platform license information
     const userQuery = `
-      SELECT Id, Username, LastLoginDate, UserType, Profile.Name
+      SELECT Id, Username, LastLoginDate, UserType, Profile.Name, 
+             Profile.UserLicense.LicenseDefinitionKey
       FROM User 
       WHERE IsActive = true 
       AND CreatedBy.Name != null 
@@ -85,6 +86,9 @@ serve(async (req) => {
     ]);
 
     console.log('Successfully fetched users and OAuth data');
+    console.log('Platform users:', userData.records.filter(user => 
+      user.Profile?.UserLicense?.LicenseDefinitionKey === 'SFDC_PLATFORM'
+    ).length);
     
     return new Response(
       JSON.stringify({

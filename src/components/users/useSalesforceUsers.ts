@@ -13,6 +13,9 @@ interface SalesforceUser {
   UserType: string;
   Profile: {
     Name: string;
+    UserLicense?: {
+      LicenseDefinitionKey?: string;
+    };
   };
 }
 

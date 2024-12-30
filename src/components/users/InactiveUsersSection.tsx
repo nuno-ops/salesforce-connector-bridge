@@ -154,6 +154,7 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
               <PlatformLicenseTab 
                 instanceUrl={instanceUrl}
                 maskUsername={maskUsername}
+                users={users}
               />
             </TabsContent>
           </Tabs>
