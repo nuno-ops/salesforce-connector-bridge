@@ -69,10 +69,8 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
     return oauthApps.length > 0;
   });
 
-  // Calculate platform users count
-  const platformUsers = users.filter(user => 
-    user.Profile?.UserLicense?.LicenseDefinitionKey === 'SFDC_PLATFORM'
-  );
+  // Filter platform eligible users
+  const platformUsers = users.filter(user => user.isPlatformEligible);
 
   if (users.length === 0) return null;
 
@@ -142,7 +140,7 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
               <PlatformLicenseTab 
                 instanceUrl={instanceUrl}
                 maskUsername={maskUsername}
-                users={users}
+                users={platformUsers}
               />
             </TabsContent>
           </Tabs>

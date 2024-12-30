@@ -24,14 +24,14 @@ serve(async (req) => {
       );
     }
 
-    // Query for users including platform license information
+    // Query for users including platform license information and object permissions
     const userQuery = `
       SELECT Id, Username, LastLoginDate, UserType, Profile.Name, 
-             Profile.UserLicense.LicenseDefinitionKey
+             Profile.UserLicense.LicenseDefinitionKey,
+             Profile.Id
       FROM User 
       WHERE IsActive = true 
-      AND CreatedBy.Name != null 
-      AND UserType != 'Guest'
+      AND CreatedBy.Name != null
     `;
 
     // Query for OAuth tokens
@@ -41,8 +41,17 @@ serve(async (req) => {
       WHERE LastUsedDate >= LAST_N_DAYS:90
     `;
 
-    // Execute both queries in parallel
-    const [usersResponse, oauthResponse] = await Promise.all([
+    // Query for object permissions to determine platform license eligibility
+    const objectPermissionsQuery = `
+      SELECT Parent.Profile.Name, Parent.ProfileId, Parent.Label, ParentId, 
+             SObjectType, PermissionsCreate, PermissionsRead, PermissionsEdit, 
+             PermissionsDelete, PermissionsModifyAllRecords, PermissionsViewAllRecords 
+      FROM ObjectPermissions 
+      WHERE SObjectType IN ('Opportunity', 'Lead', 'Case')
+    `;
+
+    // Execute all queries in parallel
+    const [usersResponse, oauthResponse, objectPermsResponse] = await Promise.all([
       fetch(
         `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(userQuery)}`,
         {
@@ -60,11 +69,20 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
         }
+      ),
+      fetch(
+        `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(objectPermissionsQuery)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
       )
     ]);
 
-    if (!usersResponse.ok || !oauthResponse.ok) {
-      console.error('Salesforce API error:', usersResponse.status, oauthResponse.status);
+    if (!usersResponse.ok || !oauthResponse.ok || !objectPermsResponse.ok) {
+      console.error('Salesforce API error:', usersResponse.status, oauthResponse.status, objectPermsResponse.status);
       const errorData = await usersResponse.text();
       console.error('Error details:', errorData);
       
@@ -80,19 +98,31 @@ serve(async (req) => {
       );
     }
 
-    const [userData, oauthData] = await Promise.all([
+    const [userData, oauthData, objectPermsData] = await Promise.all([
       usersResponse.json(),
-      oauthResponse.json()
+      oauthResponse.json(),
+      objectPermsResponse.json()
     ]);
 
+    // Create sets of ProfileIds that have access to standard objects
+    const profilesWithAccess = new Set(
+      objectPermsData.records
+        .filter(perm => perm.Parent && perm.Parent.ProfileId)
+        .map(perm => perm.Parent.ProfileId)
+    );
+
+    // Add platform license eligibility to users
+    const usersWithEligibility = userData.records.map(user => ({
+      ...user,
+      isPlatformEligible: user.Profile?.Id && !profilesWithAccess.has(user.Profile.Id)
+    }));
+
     console.log('Successfully fetched users and OAuth data');
-    console.log('Platform users:', userData.records.filter(user => 
-      user.Profile?.UserLicense?.LicenseDefinitionKey === 'SFDC_PLATFORM'
-    ).length);
+    console.log('Platform eligible users:', usersWithEligibility.filter(u => u.isPlatformEligible).length);
     
     return new Response(
       JSON.stringify({
-        users: userData.records,
+        users: usersWithEligibility,
         oauthTokens: oauthData.records
       }),
       { 
