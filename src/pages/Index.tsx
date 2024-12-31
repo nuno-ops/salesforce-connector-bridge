@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { SalesforceLogin } from "@/components/SalesforceLogin";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -21,7 +21,7 @@ const Index = () => {
       <Suspense fallback={
         <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
           <LoadingSpinner />
-          <p className="text-lg text-sf-gray text-center max-w-md">
+          <p className="text-lg text-gray-600 text-center max-w-md">
             Analyzing your Salesforce data to find the best cost-saving opportunities...
           </p>
         </div>
@@ -31,7 +31,7 @@ const Index = () => {
     );
   }
 
-  // Default: show landing page with minimal logic
+  // Default: show landing page immediately without any loading state
   return <LandingPage onGetStarted={() => setShowLoginForm(true)} />;
 };
 
