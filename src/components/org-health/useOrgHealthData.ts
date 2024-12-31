@@ -70,25 +70,27 @@ export const useOrgHealthData = () => {
     staleTime: 30000, // Consider data fresh for 30 seconds
     gcTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
-    onError: (error: Error) => {
-      console.error('Error fetching org health data:', error);
-      const errorMessage = error.message;
-      
-      if (errorMessage.includes('INVALID_SESSION_ID')) {
-        localStorage.removeItem('sf_access_token');
-        localStorage.removeItem('sf_instance_url');
-        localStorage.removeItem('sf_token_timestamp');
-        toast({
-          variant: "destructive",
-          title: "Session expired",
-          description: "Your Salesforce session has expired. Please reconnect.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error loading organization data",
-          description: errorMessage,
-        });
+    meta: {
+      errorHandler: (error: Error) => {
+        console.error('Error fetching org health data:', error);
+        const errorMessage = error.message;
+        
+        if (errorMessage.includes('INVALID_SESSION_ID')) {
+          localStorage.removeItem('sf_access_token');
+          localStorage.removeItem('sf_instance_url');
+          localStorage.removeItem('sf_token_timestamp');
+          toast({
+            variant: "destructive",
+            title: "Session expired",
+            description: "Your Salesforce session has expired. Please reconnect.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error loading organization data",
+            description: errorMessage,
+          });
+        }
       }
     }
   });
