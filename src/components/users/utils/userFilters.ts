@@ -8,6 +8,7 @@ export interface SalesforceUser {
   Profile: {
     Name: string;
     UserLicense?: {
+      LicenseDefinitionKey?: string;
       Name?: string;
     };
   };
