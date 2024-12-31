@@ -21,6 +21,8 @@ const fetchOrgHealthData = async () => {
     throw new Error('Your Salesforce session has expired. Please reconnect.');
   }
 
+  console.log('Fetching org health data...');
+
   // Fetch all data in parallel
   const [limitsResponse, sandboxResponse, licensesResponse, metricsResponse] = await Promise.all([
     supabase.functions.invoke('salesforce-limits', {
@@ -43,6 +45,8 @@ const fetchOrgHealthData = async () => {
   if (licensesResponse.error) throw licensesResponse.error;
   if (metricsResponse.error) throw metricsResponse.error;
 
+  console.log('Successfully fetched all org health data');
+
   return {
     limits: limitsResponse.data,
     sandboxes: sandboxResponse.data.records || [],
@@ -64,29 +68,27 @@ export const useOrgHealthData = () => {
     queryKey: ['org-health'],
     queryFn: fetchOrgHealthData,
     staleTime: 30000, // Consider data fresh for 30 seconds
-    gcTime: 5 * 60 * 1000, // Cache for 5 minutes (renamed from cacheTime)
+    gcTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
-    meta: {
-      onError: (error: Error) => {
-        console.error('Error fetching org health data:', error);
-        const errorMessage = error.message;
-        
-        if (errorMessage.includes('INVALID_SESSION_ID')) {
-          localStorage.removeItem('sf_access_token');
-          localStorage.removeItem('sf_instance_url');
-          localStorage.removeItem('sf_token_timestamp');
-          toast({
-            variant: "destructive",
-            title: "Session expired",
-            description: "Your Salesforce session has expired. Please reconnect.",
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Error loading organization data",
-            description: errorMessage,
-          });
-        }
+    onError: (error: Error) => {
+      console.error('Error fetching org health data:', error);
+      const errorMessage = error.message;
+      
+      if (errorMessage.includes('INVALID_SESSION_ID')) {
+        localStorage.removeItem('sf_access_token');
+        localStorage.removeItem('sf_instance_url');
+        localStorage.removeItem('sf_token_timestamp');
+        toast({
+          variant: "destructive",
+          title: "Session expired",
+          description: "Your Salesforce session has expired. Please reconnect.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error loading organization data",
+          description: errorMessage,
+        });
       }
     }
   });
