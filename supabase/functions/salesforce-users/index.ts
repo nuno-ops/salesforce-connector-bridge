@@ -1,30 +1,24 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { corsHeaders } from "../_shared/cors.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { access_token, instance_url } = await req.json();
 
     if (!access_token || !instance_url) {
-      throw new Error('Missing required parameters');
+      throw new Error('Missing access_token or instance_url');
     }
 
-    // Ensure instance_url doesn't have a trailing slash or colon
-    const baseUrl = instance_url.replace(/[:\/]$/, '');
+    // Sanitize instance URL
+    const baseUrl = instance_url.replace(/\/+$/, '').replace(/:\/*$/, '');
 
-    // User query with proper fields
-    const userQuery = `
-      SELECT Id, Username, LastLoginDate, UserType, Profile.Name, Profile.Id, Profile.UserLicense.LicenseDefinitionKey
-      FROM User 
-      WHERE IsActive = true 
-      LIMIT 1000
-    `;
+    console.log('Fetching Salesforce data...');
 
-    // Query for object permissions - matching salesforce-platform-licenses logic
+    // Query 1: Get object permissions - using exact same query as platform-licenses
     const objectPermissionsQuery = `
       SELECT Parent.Profile.Name, Parent.ProfileId, Parent.Label, ParentId, 
              SObjectType, PermissionsCreate, PermissionsRead, PermissionsEdit, 
@@ -33,19 +27,30 @@ serve(async (req) => {
       WHERE SObjectType IN ('Opportunity', 'Lead', 'Case')
     `;
 
-    console.log('Fetching Salesforce data...');
+    // Query 2: Get users - using same query structure as platform-licenses
+    const usersQuery = `
+      SELECT Id, Name, ProfileId, UserType, IsActive, Profile.Name, Email, LastLoginDate, Username
+      FROM User
+      WHERE IsActive = true
+    `;
+
+    // Query 3: Get permission set assignments - using same query as platform-licenses
+    const permSetAssignmentsQuery = `
+      SELECT Id, AssigneeId, PermissionSetId, PermissionSet.Label
+      FROM PermissionSetAssignment
+    `;
 
     // Helper function to make Salesforce API calls
     const fetchSalesforceData = async (query: string) => {
-      const url = `${baseUrl}/services/data/v57.0/query?q=${encodeURIComponent(query)}`;
-      console.log('Fetching from URL:', url);
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${baseUrl}/services/data/v57.0/query?q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       if (!response.ok) {
         const error = await response.text();
@@ -56,43 +61,44 @@ serve(async (req) => {
       return response.json();
     };
 
-    // Fetch data in parallel
-    const [userData, oauthData, objectPermsData] = await Promise.all([
-      fetchSalesforceData(userQuery),
-      fetchSalesforceData('SELECT Id, AppName, LastUsedDate, UseCount, UserId FROM OauthToken'),
+    // Fetch all data in parallel
+    const [objectPermsData, userData, permSetData, oauthData] = await Promise.all([
       fetchSalesforceData(objectPermissionsQuery),
+      fetchSalesforceData(usersQuery),
+      fetchSalesforceData(permSetAssignmentsQuery),
+      fetchSalesforceData('SELECT Id, AppName, LastUsedDate, UseCount, UserId FROM OauthToken')
     ]);
 
-    if (!userData.records || !oauthData.records || !objectPermsData.records) {
-      throw new Error('Invalid response format from Salesforce');
-    }
-
-    console.log('Data fetched successfully');
-    console.log('Users count:', userData.records.length);
-    console.log('OAuth tokens count:', oauthData.records.length);
-    console.log('Object permissions count:', objectPermsData.records.length);
-
-    // Create sets of ProfileIds and ParentIds that have access, with null checks
+    // Create sets of ProfileIds and ParentIds that have access
     const profilesWithAccess = new Set(
       objectPermsData.records
-        .filter(perm => perm.Parent && perm.Parent.ProfileId)
+        .filter(perm => perm.Parent?.ProfileId)
         .map(perm => perm.Parent.ProfileId)
     );
 
-    // Process users with eligibility using the same logic as salesforce-platform-licenses
-    const usersWithEligibility = userData.records.map(user => {
-      // Skip users without ProfileId or specific types we want to exclude
-      if (!user.Profile?.Id || 
-          user.UserType === 'CsnOnly' || 
-          user.UserType === 'Standard') {
-        return {
-          ...user,
-          isPlatformEligible: false
-        };
-      }
+    const permSetsWithAccess = new Set(
+      objectPermsData.records
+        .filter(perm => perm.ParentId && !perm.Parent?.ProfileId)
+        .map(perm => perm.ParentId)
+    );
 
-      // Check if user's profile has access to standard objects
-      const isPlatformEligible = !profilesWithAccess.has(user.Profile.Id);
+    // Process users with platform eligibility using the same logic as platform-licenses
+    const usersWithEligibility = userData.records.map(user => {
+      let isPlatformEligible = false;
+
+      // Only check eligibility if user has a ProfileId
+      if (user.ProfileId) {
+        // Check if user's profile doesn't have access
+        if (!profilesWithAccess.has(user.ProfileId)) {
+          // Get user's permission sets
+          const userPermSets = permSetData.records
+            .filter(psa => psa.AssigneeId === user.Id)
+            .map(psa => psa.PermissionSetId);
+
+          // User is eligible if they don't have any permission set that grants access
+          isPlatformEligible = !userPermSets.some(psId => permSetsWithAccess.has(psId));
+        }
+      }
 
       return {
         ...user,
@@ -108,7 +114,7 @@ serve(async (req) => {
       type: u.UserType,
       profile: u.Profile?.Name
     })));
-    
+
     return new Response(
       JSON.stringify({
         users: usersWithEligibility,
