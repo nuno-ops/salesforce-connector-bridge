@@ -22,17 +22,11 @@ const fetchOrgHealthData = async () => {
     throw new Error('Your Salesforce session has expired. Please reconnect.');
   }
 
-  // Fetch all data in parallel with timeouts
+  // Helper function to make Supabase function calls with timeout
   const fetchWithTimeout = async (functionName: string, body: any) => {
     try {
-      type SupabaseResponse = { data: any; error: any | null };
-      const response = await Promise.race([
-        supabase.functions.invoke(functionName, { body }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`Timeout for ${functionName}`)), 10000)
-        )
-      ]) as SupabaseResponse;
-
+      const response = await supabase.functions.invoke(functionName, { body });
+      
       if (response.error) {
         console.error(`Error fetching ${functionName}:`, response.error);
         throw response.error;
@@ -45,10 +39,15 @@ const fetchOrgHealthData = async () => {
     }
   };
 
-  const [limitsData, sandboxData, licensesData, metricsData] = await Promise.all([
+  // First, fetch critical data (limits and licenses)
+  const [limitsData, licensesData] = await Promise.all([
     fetchWithTimeout('salesforce-limits', { access_token, instance_url }),
+    fetchWithTimeout('salesforce-licenses', { access_token, instance_url })
+  ]);
+
+  // Then fetch less critical data
+  const [sandboxData, metricsData] = await Promise.all([
     fetchWithTimeout('salesforce-sandboxes', { access_token, instance_url }),
-    fetchWithTimeout('salesforce-licenses', { access_token, instance_url }),
     fetchWithTimeout('salesforce-metrics', { access_token, instance_url })
   ]);
 
@@ -74,8 +73,8 @@ export const useOrgHealthData = () => {
   } = useQuery({
     queryKey: ['org-health'],
     queryFn: fetchOrgHealthData,
-    staleTime: 60000, // Consider data fresh for 1 minute
-    gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000,   // Cache for 30 minutes
     retry: 1,
     meta: {
       errorHandler: (error: Error) => {
