@@ -24,24 +24,22 @@ const fetchOrgHealthData = async () => {
 
   // Fetch all data in parallel with timeouts
   const fetchWithTimeout = async (functionName: string, body: any) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
     try {
-      const response = await supabase.functions.invoke(functionName, {
-        body,
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      
-      if (response.error) {
+      const response = await Promise.race([
+        supabase.functions.invoke(functionName, { body }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`Timeout for ${functionName}`)), 10000)
+        )
+      ]);
+
+      if ('error' in response) {
         console.error(`Error fetching ${functionName}:`, response.error);
         throw response.error;
       }
       
       return response.data;
     } catch (error) {
-      console.error(`Timeout or error in ${functionName}:`, error);
+      console.error(`Error in ${functionName}:`, error);
       throw error;
     }
   };
