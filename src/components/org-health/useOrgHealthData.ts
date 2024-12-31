@@ -1,87 +1,75 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { OrgLimits, SandboxInfo, UserLicense, PackageLicense, PermissionSetLicense, MonthlyMetrics } from './types';
 
+const fetchOrgHealthData = async () => {
+  const access_token = localStorage.getItem('sf_access_token');
+  const instance_url = localStorage.getItem('sf_instance_url');
+  const timestamp = localStorage.getItem('sf_token_timestamp');
+
+  if (!access_token || !instance_url || !timestamp) {
+    throw new Error('Salesforce credentials not found');
+  }
+
+  // Check token age
+  const tokenAge = Date.now() - parseInt(timestamp);
+  if (tokenAge > 7200000) { // 2 hours
+    localStorage.removeItem('sf_access_token');
+    localStorage.removeItem('sf_instance_url');
+    localStorage.removeItem('sf_token_timestamp');
+    throw new Error('Your Salesforce session has expired. Please reconnect.');
+  }
+
+  // Fetch all data in parallel
+  const [limitsResponse, sandboxResponse, licensesResponse, metricsResponse] = await Promise.all([
+    supabase.functions.invoke('salesforce-limits', {
+      body: { access_token, instance_url }
+    }),
+    supabase.functions.invoke('salesforce-sandboxes', {
+      body: { access_token, instance_url }
+    }),
+    supabase.functions.invoke('salesforce-licenses', {
+      body: { access_token, instance_url }
+    }),
+    supabase.functions.invoke('salesforce-metrics', {
+      body: { access_token, instance_url }
+    })
+  ]);
+
+  // Check for errors
+  if (limitsResponse.error) throw limitsResponse.error;
+  if (sandboxResponse.error) throw sandboxResponse.error;
+  if (licensesResponse.error) throw licensesResponse.error;
+  if (metricsResponse.error) throw metricsResponse.error;
+
+  return {
+    limits: limitsResponse.data,
+    sandboxes: sandboxResponse.data.records || [],
+    userLicenses: licensesResponse.data.userLicenses || [],
+    packageLicenses: licensesResponse.data.packageLicenses || [],
+    permissionSetLicenses: licensesResponse.data.permissionSetLicenses || [],
+    metrics: metricsResponse.data
+  };
+};
+
 export const useOrgHealthData = () => {
-  const [limits, setLimits] = useState<OrgLimits | null>(null);
-  const [sandboxes, setSandboxes] = useState<SandboxInfo[]>([]);
-  const [userLicenses, setUserLicenses] = useState<UserLicense[]>([]);
-  const [packageLicenses, setPackageLicenses] = useState<PackageLicense[]>([]);
-  const [permissionSetLicenses, setPermissionSetLicenses] = useState<PermissionSetLicense[]>([]);
-  const [metrics, setMetrics] = useState<MonthlyMetrics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const access_token = localStorage.getItem('sf_access_token');
-      const instance_url = localStorage.getItem('sf_instance_url');
-      const timestamp = localStorage.getItem('sf_token_timestamp');
-
-      if (!access_token || !instance_url || !timestamp) {
-        setIsLoading(false);
-        setError('Salesforce credentials not found');
-        return;
-      }
-
-      // Check token age
-      const tokenAge = Date.now() - parseInt(timestamp);
-      if (tokenAge > 7200000) { // 2 hours
-        setError('Your Salesforce session has expired. Please reconnect.');
-        // Clear storage
-        localStorage.removeItem('sf_access_token');
-        localStorage.removeItem('sf_instance_url');
-        localStorage.removeItem('sf_token_timestamp');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        console.log('Fetching organization data...');
-        
-        // Fetch limits
-        const limitsResponse = await supabase.functions.invoke('salesforce-limits', {
-          body: { access_token, instance_url }
-        });
-
-        if (limitsResponse.error) throw limitsResponse.error;
-        setLimits(limitsResponse.data);
-
-        // Fetch sandboxes
-        const sandboxResponse = await supabase.functions.invoke('salesforce-sandboxes', {
-          body: { access_token, instance_url }
-        });
-
-        if (sandboxResponse.error) throw sandboxResponse.error;
-        setSandboxes(sandboxResponse.data.records || []);
-
-        // Fetch licenses
-        const licensesResponse = await supabase.functions.invoke('salesforce-licenses', {
-          body: { access_token, instance_url }
-        });
-
-        if (licensesResponse.error) throw licensesResponse.error;
-        setUserLicenses(licensesResponse.data.userLicenses || []);
-        setPackageLicenses(licensesResponse.data.packageLicenses || []);
-        setPermissionSetLicenses(licensesResponse.data.permissionSetLicenses || []);
-
-        // Fetch metrics
-        const metricsResponse = await supabase.functions.invoke('salesforce-metrics', {
-          body: { access_token, instance_url }
-        });
-
-        if (metricsResponse.error) throw metricsResponse.error;
-        setMetrics(metricsResponse.data);
-        
-        console.log('All organization data loaded successfully');
-        setError(null);
-        
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        const errorMessage = err instanceof Error ? err.message : "Failed to load organization data";
-        setError(errorMessage);
+  const { 
+    data,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['org-health'],
+    queryFn: fetchOrgHealthData,
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    cacheTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 1,
+    meta: {
+      onError: (error: Error) => {
+        console.error('Error fetching org health data:', error);
+        const errorMessage = error.message;
         
         if (errorMessage.includes('INVALID_SESSION_ID')) {
           localStorage.removeItem('sf_access_token');
@@ -99,22 +87,18 @@ export const useOrgHealthData = () => {
             description: errorMessage,
           });
         }
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchData();
-  }, [toast]);
+    }
+  });
 
   return {
-    limits,
-    sandboxes,
-    userLicenses,
-    packageLicenses,
-    permissionSetLicenses,
-    metrics,
+    limits: data?.limits || null,
+    sandboxes: data?.sandboxes || [],
+    userLicenses: data?.userLicenses || [],
+    packageLicenses: data?.packageLicenses || [],
+    permissionSetLicenses: data?.permissionSetLicenses || [],
+    metrics: data?.metrics || null,
     isLoading,
-    error
+    error: error ? (error as Error).message : null
   };
 };
