@@ -25,14 +25,15 @@ const fetchOrgHealthData = async () => {
   // Fetch all data in parallel with timeouts
   const fetchWithTimeout = async (functionName: string, body: any) => {
     try {
+      type SupabaseResponse = { data: any; error: any | null };
       const response = await Promise.race([
-        supabase.functions.invoke(functionName, { body }) as Promise<{ data: any, error: any }>,
+        supabase.functions.invoke(functionName, { body }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error(`Timeout for ${functionName}`)), 10000)
         )
-      ]);
+      ]) as SupabaseResponse;
 
-      if ('error' in response && response.error) {
+      if (response.error) {
         console.error(`Error fetching ${functionName}:`, response.error);
         throw response.error;
       }
