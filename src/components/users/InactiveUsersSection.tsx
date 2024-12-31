@@ -1,14 +1,28 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from 'date-fns';
-import { InactiveUsersTab } from './tabs/InactiveUsersTab';
-import { IntegrationUsersTab } from './tabs/IntegrationUsersTab';
-import { PlatformLicenseTab } from './tabs/PlatformLicenseTab';
+import { LicenseOptimizationHeader } from './LicenseOptimizationHeader';
+import { LicenseOptimizationTabs } from './LicenseOptimizationTabs';
+import { 
+  filterStandardSalesforceUsers, 
+  filterInactiveUsers,
+  formatLastLoginDate,
+  maskUsername,
+  type SalesforceUser
+} from './utils/userFilters';
 
-export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
+export const InactiveUsersSection = ({ 
+  users, 
+  instanceUrl, 
+  oauthTokens 
+}: {
+  users: SalesforceUser[];
+  instanceUrl: string;
+  oauthTokens: Array<{
+    UserId: string;
+    AppName: string;
+  }>;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('inactive');
 
@@ -24,11 +38,6 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
     };
   }, []);
 
-  const maskUsername = (username: string) => {
-    if (username.length <= 4) return username;
-    return username.slice(0, 4) + '*'.repeat(username.length - 4);
-  };
-
   const getUserOAuthApps = (userId: string) => {
     return oauthTokens
       .filter(token => token.UserId === userId)
@@ -41,7 +50,7 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
       ['Username', 'Last Login', 'User Type', 'Profile', 'Connected Apps'].join(','),
       ...standardUsers.map(user => [
         user.Username,
-        user.LastLoginDate ? format(new Date(user.LastLoginDate), 'PPp') : 'Never',
+        user.LastLoginDate ? formatLastLoginDate(user.LastLoginDate) : 'Never',
         user.UserType,
         user.Profile.Name,
         getUserOAuthApps(user.Id).join(';')
@@ -59,98 +68,36 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Filter for standard Salesforce users only
-  const standardUsers = users.filter(user => 
-    user.UserType === 'Standard' && 
-    user.Profile?.UserLicense?.Name === 'Salesforce'
-  );
-
-  // Apply additional filters for each tab
-  const inactiveUsers = standardUsers.filter(user => {
-    const lastLogin = user.LastLoginDate ? new Date(user.LastLoginDate) : null;
-    return !lastLogin || (Date.now() - lastLogin.getTime()) > 30 * 24 * 60 * 60 * 1000;
-  });
-
+  const standardUsers = filterStandardSalesforceUsers(users);
+  const inactiveUsers = filterInactiveUsers(standardUsers);
   const integrationUsers = standardUsers.filter(user => {
     const oauthApps = getUserOAuthApps(user.Id);
     return oauthApps.length > 0;
   });
-
-  // Filter platform eligible users (only standard users)
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
   if (standardUsers.length === 0) return null;
 
   return (
     <div className="space-y-4" id="license-optimization">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">License Optimization</h2>
-          <p className="text-muted-foreground">
-            Review inactive users and integration opportunities to optimize your Salesforce licenses.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleExport}
-            className="h-8 w-8"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsOpen(!isOpen)}
-            className="h-8 w-8"
-          >
-            {isOpen ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </div>
+      <LicenseOptimizationHeader 
+        isOpen={isOpen}
+        onToggle={() => setIsOpen(!isOpen)}
+        onExport={handleExport}
+      />
       
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList>
-              <TabsTrigger value="inactive">
-                Inactive Users ({inactiveUsers.length})
-              </TabsTrigger>
-              <TabsTrigger value="integration">
-                Integration Users ({integrationUsers.length})
-              </TabsTrigger>
-              <TabsTrigger value="platform">
-                Platform License Users ({platformUsers.length})
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="inactive">
-              <InactiveUsersTab 
-                users={inactiveUsers}
-                instanceUrl={instanceUrl}
-                maskUsername={maskUsername}
-              />
-            </TabsContent>
-            <TabsContent value="integration">
-              <IntegrationUsersTab 
-                users={integrationUsers}
-                instanceUrl={instanceUrl}
-                getUserOAuthApps={getUserOAuthApps}
-                maskUsername={maskUsername}
-              />
-            </TabsContent>
-            <TabsContent value="platform">
-              <PlatformLicenseTab 
-                instanceUrl={instanceUrl}
-                maskUsername={maskUsername}
-                users={platformUsers}
-              />
-            </TabsContent>
-          </Tabs>
+          <LicenseOptimizationTabs 
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            inactiveUsers={inactiveUsers}
+            integrationUsers={integrationUsers}
+            platformUsers={platformUsers}
+            instanceUrl={instanceUrl}
+            getUserOAuthApps={getUserOAuthApps}
+            maskUsername={maskUsername}
+          />
         </CollapsibleContent>
       </Collapsible>
     </div>
