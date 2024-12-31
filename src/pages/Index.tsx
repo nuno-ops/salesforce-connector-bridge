@@ -3,7 +3,7 @@ import { SalesforceLogin } from "@/components/SalesforceLogin";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { Loader } from "lucide-react";
 
-// Lazy load the dashboard component
+// Only lazy load the dashboard component since it's the heavy one
 const Dashboard = lazy(() => import("@/components/Dashboard"));
 
 const Index = () => {
