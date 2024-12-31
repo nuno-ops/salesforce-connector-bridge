@@ -1,8 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 import { format } from 'date-fns';
 
 interface PlatformLicenseTabProps {
@@ -16,10 +15,8 @@ export const PlatformLicenseTab = ({
   maskUsername,
   users
 }: PlatformLicenseTabProps) => {
-  // Filter platform license users
-  const platformUsers = users.filter(user => 
-    user.Profile?.UserLicense?.LicenseDefinitionKey === 'SFDC_PLATFORM'
-  );
+  // Filter platform eligible users
+  const platformUsers = users.filter(user => user.isPlatformEligible);
 
   return (
     <>
@@ -46,7 +43,7 @@ export const PlatformLicenseTab = ({
               <TableHead>Username</TableHead>
               <TableHead>Last Login</TableHead>
               <TableHead>User Type</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -55,11 +52,11 @@ export const PlatformLicenseTab = ({
                 <TableCell>{maskUsername(user.Username)}</TableCell>
                 <TableCell>
                   {user.LastLoginDate 
-                    ? format(new Date(user.LastLoginDate), 'PPp')
+                    ? format(new Date(user.LastLoginDate), 'MMM d, yyyy, h:mm a')
                     : 'Never'}
                 </TableCell>
                 <TableCell>{user.UserType}</TableCell>
-                <TableCell>
+                <TableCell className="text-right">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -70,6 +67,13 @@ export const PlatformLicenseTab = ({
                 </TableCell>
               </TableRow>
             ))}
+            {platformUsers.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                  No platform-eligible users found
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
