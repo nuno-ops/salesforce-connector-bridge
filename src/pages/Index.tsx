@@ -10,6 +10,7 @@ import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicense
 import { LandingPage } from "@/components/landing/LandingPage";
 import { OrgHealth } from "@/components/OrgHealth";
 import { ContractUploadDialog } from "@/components/salesforce/ContractUploadDialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const Index = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -45,7 +46,6 @@ const Index = () => {
     return true;
   };
 
-  // Check Salesforce connection status on mount and periodically
   useEffect(() => {
     const checkConnection = () => {
       setIsLoading(true);
@@ -69,7 +69,6 @@ const Index = () => {
     setShowLoginForm(false);
   };
 
-  // Calculate storage usage percentage
   const calculateStorageUsage = () => {
     if (!limits) return 0;
     const totalStorage = limits.DataStorageMB.Max + limits.FileStorageMB.Max;
@@ -85,22 +84,16 @@ const Index = () => {
       : 0;
   };
 
-  // Format license data
   const formattedUserLicenses = formatLicenseData(userLicenses);
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
   const storageUsage = calculateStorageUsage();
   const apiUsage = calculateApiUsage();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sf-blue"></div>
-      </div>
-    );
+  if (isLoading || isHealthDataLoading) {
+    return <LoadingSpinner />;
   }
 
-  // Show initial landing or login form
   if (!isConnected) {
     if (showLoginForm) {
       return <SalesforceLogin onSuccess={() => {
@@ -111,7 +104,6 @@ const Index = () => {
     return <LandingPage onGetStarted={() => setShowLoginForm(true)} />;
   }
 
-  // Show dashboard when connected
   return (
     <MainLayout onDisconnect={handleDisconnect}>
       <ContractUploadDialog 
