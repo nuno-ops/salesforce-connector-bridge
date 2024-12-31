@@ -7,6 +7,7 @@ import {
 } from "./utils/savingsCalculations";
 import { calculatePlatformLicenseSavings } from "./utils/platformLicenseSavings";
 import { scrollToLicenseOptimization } from "./utils/scrollUtils";
+import { filterStandardSalesforceUsers, filterInactiveUsers } from "../users/utils/userFilters";
 
 interface SavingsCalculatorProps {
   users: any[];
@@ -27,10 +28,13 @@ export const useSavingsCalculations = ({
 }: SavingsCalculatorProps) => {
   const [platformLicenseSavings, setPlatformLicenseSavings] = useState({ savings: 0, count: 0 });
 
-  // Calculate static savings
-  const inactiveUserSavings = calculateInactiveUserSavings(users, licensePrice);
+  // Filter standard Salesforce users first
+  const standardUsers = filterStandardSalesforceUsers(users);
+  
+  // Calculate static savings using filtered users
+  const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
   const integrationUserSavings = calculateIntegrationUserSavings(
-    users, 
+    standardUsers, 
     oauthTokens, 
     licensePrice,
     userLicenses
@@ -100,7 +104,7 @@ export const useSavingsCalculations = ({
       amount: storageSavingsCalc.savings,
       details: `Potential ${storageSavingsCalc.potentialGBSavings}GB reduction in storage`
     }
-  ].filter(item => item.amount > 0); // Only show items with savings > 0
+  ].filter(item => item.amount > 0);
 
   return {
     totalSavings,
