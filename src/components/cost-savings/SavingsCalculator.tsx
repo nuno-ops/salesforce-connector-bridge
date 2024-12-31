@@ -75,19 +75,19 @@ export const useSavingsCalculations = ({
     {
       title: "Inactive User Licenses",
       amount: inactiveUserSavings.savings,
-      details: `${inactiveUserSavings.count} users inactive for >30 days`,
+      details: `${inactiveUserSavings.count} ${inactiveUserSavings.count === 1 ? 'user' : 'users'} inactive for >30 days`,
       viewAction: () => scrollToLicenseOptimization('inactive')
     },
     {
       title: "Integration User Optimization",
       amount: integrationUserSavings.savings,
-      details: `${integrationUserSavings.count} users could be converted to integration users`,
+      details: `${integrationUserSavings.count} ${integrationUserSavings.count === 1 ? 'user' : 'users'} could be converted to integration users`,
       viewAction: () => scrollToLicenseOptimization('integration')
     },
     {
       title: "Platform License Optimization",
       amount: platformLicenseSavings.savings,
-      details: `${platformLicenseSavings.count} users could be converted to platform licenses ($${licensePrice - 25} monthly savings per user)`,
+      details: `${platformLicenseSavings.count} ${platformLicenseSavings.count === 1 ? 'user' : 'users'} could be converted to platform licenses ($${licensePrice - 25} monthly savings per user)`,
       viewAction: () => scrollToLicenseOptimization('platform')
     },
     {
