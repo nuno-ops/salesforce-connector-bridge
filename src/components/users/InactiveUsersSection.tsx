@@ -39,7 +39,7 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
   const handleExport = () => {
     const csvContent = [
       ['Username', 'Last Login', 'User Type', 'Profile', 'Connected Apps'].join(','),
-      ...users.map(user => [
+      ...standardUsers.map(user => [
         user.Username,
         user.LastLoginDate ? format(new Date(user.LastLoginDate), 'PPp') : 'Never',
         user.UserType,
@@ -59,20 +59,24 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
     window.URL.revokeObjectURL(url);
   };
 
-  const inactiveUsers = users.filter(user => {
+  // Filter for standard users only
+  const standardUsers = users.filter(user => user.UserType === 'Standard');
+
+  // Apply additional filters for each tab
+  const inactiveUsers = standardUsers.filter(user => {
     const lastLogin = user.LastLoginDate ? new Date(user.LastLoginDate) : null;
     return !lastLogin || (Date.now() - lastLogin.getTime()) > 30 * 24 * 60 * 60 * 1000;
   });
 
-  const integrationUsers = users.filter(user => {
+  const integrationUsers = standardUsers.filter(user => {
     const oauthApps = getUserOAuthApps(user.Id);
     return oauthApps.length > 0;
   });
 
-  // Filter platform eligible users
-  const platformUsers = users.filter(user => user.isPlatformEligible);
+  // Filter platform eligible users (only standard users)
+  const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
-  if (users.length === 0) return null;
+  if (standardUsers.length === 0) return null;
 
   return (
     <div className="space-y-4" id="license-optimization">
