@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { OrgLimits, SandboxInfo, UserLicense, PackageLicense, PermissionSetLicense, MonthlyMetrics } from './types';
 
 const fetchOrgHealthData = async () => {
+  console.log('Starting to fetch org health data...');
   const access_token = localStorage.getItem('sf_access_token');
   const instance_url = localStorage.getItem('sf_instance_url');
   const timestamp = localStorage.getItem('sf_token_timestamp');
@@ -21,39 +22,46 @@ const fetchOrgHealthData = async () => {
     throw new Error('Your Salesforce session has expired. Please reconnect.');
   }
 
-  console.log('Fetching org health data...');
+  // Fetch all data in parallel with timeouts
+  const fetchWithTimeout = async (functionName: string, body: any) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-  // Fetch all data in parallel
-  const [limitsResponse, sandboxResponse, licensesResponse, metricsResponse] = await Promise.all([
-    supabase.functions.invoke('salesforce-limits', {
-      body: { access_token, instance_url }
-    }),
-    supabase.functions.invoke('salesforce-sandboxes', {
-      body: { access_token, instance_url }
-    }),
-    supabase.functions.invoke('salesforce-licenses', {
-      body: { access_token, instance_url }
-    }),
-    supabase.functions.invoke('salesforce-metrics', {
-      body: { access_token, instance_url }
-    })
+    try {
+      const response = await supabase.functions.invoke(functionName, {
+        body,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      
+      if (response.error) {
+        console.error(`Error fetching ${functionName}:`, response.error);
+        throw response.error;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error(`Timeout or error in ${functionName}:`, error);
+      throw error;
+    }
+  };
+
+  const [limitsData, sandboxData, licensesData, metricsData] = await Promise.all([
+    fetchWithTimeout('salesforce-limits', { access_token, instance_url }),
+    fetchWithTimeout('salesforce-sandboxes', { access_token, instance_url }),
+    fetchWithTimeout('salesforce-licenses', { access_token, instance_url }),
+    fetchWithTimeout('salesforce-metrics', { access_token, instance_url })
   ]);
-
-  // Check for errors
-  if (limitsResponse.error) throw limitsResponse.error;
-  if (sandboxResponse.error) throw sandboxResponse.error;
-  if (licensesResponse.error) throw licensesResponse.error;
-  if (metricsResponse.error) throw metricsResponse.error;
 
   console.log('Successfully fetched all org health data');
 
   return {
-    limits: limitsResponse.data,
-    sandboxes: sandboxResponse.data.records || [],
-    userLicenses: licensesResponse.data.userLicenses || [],
-    packageLicenses: licensesResponse.data.packageLicenses || [],
-    permissionSetLicenses: licensesResponse.data.permissionSetLicenses || [],
-    metrics: metricsResponse.data
+    limits: limitsData,
+    sandboxes: sandboxData?.records || [],
+    userLicenses: licensesData?.userLicenses || [],
+    packageLicenses: licensesData?.packageLicenses || [],
+    permissionSetLicenses: licensesData?.permissionSetLicenses || [],
+    metrics: metricsData
   };
 };
 
@@ -67,7 +75,7 @@ export const useOrgHealthData = () => {
   } = useQuery({
     queryKey: ['org-health'],
     queryFn: fetchOrgHealthData,
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    staleTime: 60000, // Consider data fresh for 1 minute
     gcTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
     meta: {
