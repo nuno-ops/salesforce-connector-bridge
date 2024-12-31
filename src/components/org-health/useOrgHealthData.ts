@@ -64,7 +64,7 @@ export const useOrgHealthData = () => {
     queryKey: ['org-health'],
     queryFn: fetchOrgHealthData,
     staleTime: 30000, // Consider data fresh for 30 seconds
-    cacheTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 5 * 60 * 1000, // Cache for 5 minutes (renamed from cacheTime)
     retry: 1,
     meta: {
       onError: (error: Error) => {
