@@ -27,9 +27,10 @@ serve(async (req) => {
       WHERE SObjectType IN ('Opportunity', 'Lead', 'Case')
     `;
 
-    // Query 2: Get users - using same query structure as platform-licenses
+    // Updated query to include Profile.UserLicense.Name
     const usersQuery = `
-      SELECT Id, Name, ProfileId, UserType, IsActive, Profile.Name, Email, LastLoginDate, Username
+      SELECT Id, Name, ProfileId, UserType, IsActive, Profile.Name, Profile.UserLicense.Name, 
+             Email, LastLoginDate, Username
       FROM User
       WHERE IsActive = true
     `;
@@ -106,14 +107,11 @@ serve(async (req) => {
       };
     });
 
-    const eligibleUsers = usersWithEligibility.filter(u => u.isPlatformEligible);
-    console.log('Platform eligible users:', eligibleUsers.length);
-    console.log('Eligible users:', eligibleUsers.map(u => ({
-      id: u.Id,
-      name: u.Username,
-      type: u.UserType,
-      profile: u.Profile?.Name
-    })));
+    console.log('Total users:', usersWithEligibility.length);
+    console.log('Standard Salesforce users:', usersWithEligibility.filter(u => 
+      u.UserType === 'Standard' && 
+      u.Profile?.UserLicense?.Name === 'Salesforce'
+    ).length);
 
     return new Response(
       JSON.stringify({

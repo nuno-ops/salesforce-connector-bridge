@@ -59,8 +59,11 @@ export const InactiveUsersSection = ({ users, instanceUrl, oauthTokens }) => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Filter for standard users only
-  const standardUsers = users.filter(user => user.UserType === 'Standard');
+  // Filter for standard Salesforce users only
+  const standardUsers = users.filter(user => 
+    user.UserType === 'Standard' && 
+    user.Profile?.UserLicense?.Name === 'Salesforce'
+  );
 
   // Apply additional filters for each tab
   const inactiveUsers = standardUsers.filter(user => {
