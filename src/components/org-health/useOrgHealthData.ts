@@ -26,13 +26,13 @@ const fetchOrgHealthData = async () => {
   const fetchWithTimeout = async (functionName: string, body: any) => {
     try {
       const response = await Promise.race([
-        supabase.functions.invoke(functionName, { body }),
+        supabase.functions.invoke(functionName, { body }) as Promise<{ data: any, error: any }>,
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error(`Timeout for ${functionName}`)), 10000)
         )
       ]);
 
-      if ('error' in response) {
+      if ('error' in response && response.error) {
         console.error(`Error fetching ${functionName}:`, response.error);
         throw response.error;
       }
