@@ -18,7 +18,14 @@ const Index = () => {
 
   if (isConnected) {
     return (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+          <LoadingSpinner />
+          <p className="text-lg text-sf-gray text-center max-w-md">
+            Analyzing your Salesforce data to find the best cost-saving opportunities...
+          </p>
+        </div>
+      }>
         <Dashboard />
       </Suspense>
     );
