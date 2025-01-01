@@ -8,7 +8,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Mail } from 'lucide-react';
 
 interface SalesforceLoginProps {
   onSuccess?: () => void;
@@ -129,6 +129,15 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
               <div className="mt-4 p-3 bg-blue-50 rounded text-sf-blue">
                 <p className="font-medium">Note:</p>
                 <p>It may take a few minutes for your Connected App to be ready after creation. If you get an error, please wait 5-10 minutes and try again.</p>
+              </div>
+              <div className="mt-4 flex items-center justify-center gap-2 text-sf-blue">
+                <Mail className="h-4 w-4" />
+                <a 
+                  href="mailto:support@salesforcesaver.com"
+                  className="hover:underline"
+                >
+                  Need help? Contact our support team
+                </a>
               </div>
             </CollapsibleContent>
           </Collapsible>
