@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChartBar, DollarSign, Shield, Database, Lightbulb, Lock } from "lucide-react";
+import { ChartBar, DollarSign, Shield, Database, Lightbulb, Lock, Mail } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
@@ -106,6 +106,14 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <a href="/privacy" className="hover:text-sf-blue">Privacy Policy</a>
               <span>•</span>
               <a href="/terms" className="hover:text-sf-blue">Terms of Service</a>
+              <span>•</span>
+              <a 
+                href="mailto:support@salesforcesaver.com" 
+                className="hover:text-sf-blue flex items-center gap-1"
+              >
+                <Mail className="w-4 h-4" />
+                Contact Support
+              </a>
             </div>
           </div>
         </footer>

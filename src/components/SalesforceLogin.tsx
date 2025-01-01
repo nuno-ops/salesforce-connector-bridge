@@ -9,7 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Mail, Copy, Check, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, Mail, Copy, Check } from 'lucide-react';
 
 interface SalesforceLoginProps {
   onSuccess?: () => void;
@@ -97,23 +97,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
           </p>
         </div>
 
-        {/* Progress Tracker */}
-        <div className="flex items-center justify-between text-sm text-sf-gray mb-6">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-sf-blue text-white flex items-center justify-center">
-              1
-            </div>
-            <ChevronRight className="mx-2" />
-            <div className="w-8 h-8 rounded-full border-2 border-sf-blue text-sf-blue flex items-center justify-center">
-              2
-            </div>
-            <ChevronRight className="mx-2" />
-            <div className="w-8 h-8 rounded-full border-2 border-sf-blue text-sf-blue flex items-center justify-center">
-              3
-            </div>
-          </div>
-        </div>
-
         <LoginForm onSubmit={handleSubmit} isLoading={isLoading} />
 
         <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-4">
@@ -162,14 +145,14 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
                   <p>Enable OAuth Settings:</p>
                   <ul className="list-disc list-inside ml-4 mt-2 space-y-2">
                     <li>Check "Enable OAuth Settings"</li>
-                    <li className="flex items-center">
+                    <li className="flex items-center space-x-2">
                       <span>Callback URL:</span>
-                      <code className="mx-2 px-2 py-1 bg-white rounded">{CALLBACK_URL}</code>
+                      <code className="px-2 py-1 bg-white rounded">{CALLBACK_URL}</code>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={copyCallbackUrl}
-                        className="ml-2"
+                        className="shrink-0"
                       >
                         {copiedUrl ? (
                           <Check className="h-4 w-4 text-green-500" />
