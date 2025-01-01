@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface LoginFormProps {
   onSubmit: (credentials: {
@@ -16,6 +17,7 @@ export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
     clientId: '',
     clientSecret: '',
   });
+  const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -28,7 +30,12 @@ export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-center text-sf-blue mb-4">
+        <Lock className="h-5 w-5 mr-2" />
+        <span className="text-sm font-medium">Secure Connection</span>
+      </div>
+
       <div className="space-y-2">
         <label htmlFor="clientId" className="text-sm font-medium">
           Client ID
@@ -37,7 +44,7 @@ export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
           id="clientId"
           name="clientId"
           type="text"
-          placeholder="Connected App Client ID"
+          placeholder="Enter the Client ID from your Connected App"
           required
           value={credentials.clientId}
           onChange={handleChange}
@@ -53,7 +60,7 @@ export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
           id="clientSecret"
           name="clientSecret"
           type="password"
-          placeholder="Connected App Client Secret"
+          placeholder="Enter the Client Secret from your Connected App"
           required
           value={credentials.clientSecret}
           onChange={handleChange}
