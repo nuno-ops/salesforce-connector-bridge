@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { ReactNode, useRef } from "react";
-import { toPDF } from 'react-to-pdf';
+import Pdf from 'react-to-pdf';
 import { useToast } from "@/hooks/use-toast";
 
 interface MainLayoutProps {
@@ -15,7 +15,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
 
   const handleDownload = async () => {
     try {
-      await toPDF(contentRef, {
+      await Pdf(contentRef.current, {
         filename: 'salesforce-dashboard-report.pdf',
         page: {
           margin: 20,
