@@ -31,34 +31,35 @@ export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
         description: "Please wait while we generate your report...",
       });
       
-      // 1. Expand all sections
-      await expandAllCollapsibles(contentRef.current);
+      // Clone the content for PDF generation
+      const clonedContent = contentRef.current.cloneNode(true) as HTMLElement;
+      document.body.appendChild(clonedContent);
+      clonedContent.style.position = 'absolute';
+      clonedContent.style.left = '-9999px';
+      clonedContent.style.width = `${contentRef.current.offsetWidth}px`;
+      
+      // 1. Expand all sections in the clone
+      await expandAllCollapsibles(clonedContent);
       console.log('Sections expanded');
       
-      // 2. Process all tabs
-      await handleTabsContent(contentRef.current);
+      // 2. Process all tabs in the clone
+      await handleTabsContent(clonedContent);
       console.log('Tabs processed');
       
       // 3. Wait for final render
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // 4. Generate PDF using html2canvas and jsPDF
-      const canvas = await html2canvas(contentRef.current, {
+      // 4. Generate PDF using html2canvas
+      const canvas = await html2canvas(clonedContent, {
         scale: 2,
         useCORS: true,
         logging: true,
-        windowWidth: contentRef.current.scrollWidth,
-        windowHeight: contentRef.current.scrollHeight,
-        onclone: (document) => {
-          // Ensure all sections are visible in cloned document
-          const clonedElement = document.body.querySelector('[data-pdf-content]');
-          if (clonedElement) {
-            clonedElement.querySelectorAll('[data-state]').forEach(el => {
-              el.setAttribute('data-state', 'open');
-            });
-          }
-        }
+        windowWidth: clonedContent.offsetWidth,
+        windowHeight: clonedContent.scrollHeight,
       });
+
+      // Clean up clone
+      document.body.removeChild(clonedContent);
 
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
