@@ -173,7 +173,7 @@ const Dashboard = () => {
               <p className="text-gray-600">Unlimited access to your dashboard and reports for a full month</p>
               <Button 
                 className="w-full bg-sf-blue hover:bg-sf-hover"
-                onClick={() => initiateCheckout('price_1QcmKuBqwIrd79CS0eDdpx8C')}
+                onClick={() => initiateCheckout('price_1QcpLNBqwIrd79CSxQ5cNF4M')}
               >
                 Subscribe Monthly
               </Button>
@@ -187,7 +187,7 @@ const Dashboard = () => {
               <p className="text-gray-600">Get a one-time comprehensive report of your Salesforce organization</p>
               <Button 
                 className="w-full bg-sf-blue hover:bg-sf-hover"
-                onClick={() => initiateCheckout('price_1QcmKGBqwIrd79CSDf8KrCZw')}
+                onClick={() => initiateCheckout('price_1QcpL9BqwIrd79CS00DpeBgL')}
               >
                 Purchase Report
               </Button>
