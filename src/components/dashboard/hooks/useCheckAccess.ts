@@ -13,12 +13,21 @@ export const useCheckAccess = () => {
     localStorage.removeItem('sf_access_token');
     localStorage.removeItem('sf_instance_url');
     localStorage.removeItem('sf_token_timestamp');
+    localStorage.removeItem('sf_subscription_status');
     window.location.reload();
   };
 
   useEffect(() => {
     const checkAccess = async () => {
       try {
+        // First check localStorage for cached subscription status
+        const cachedStatus = localStorage.getItem('sf_subscription_status');
+        if (cachedStatus === 'active') {
+          setHasAccess(true);
+          setIsCheckingAccess(false);
+          return;
+        }
+
         const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
         if (!orgId) throw new Error('No organization ID found');
 
@@ -34,6 +43,14 @@ export const useCheckAccess = () => {
         });
 
         if (error) throw error;
+
+        // Cache the subscription status
+        if (data?.hasAccess) {
+          localStorage.setItem('sf_subscription_status', 'active');
+        } else {
+          localStorage.removeItem('sf_subscription_status');
+        }
+
         setHasAccess(data?.hasAccess || false);
 
         if (success === 'true' && data?.hasAccess) {
@@ -46,6 +63,8 @@ export const useCheckAccess = () => {
           title: "Error",
           description: "Failed to verify access status."
         });
+        // Clear cached status on error
+        localStorage.removeItem('sf_subscription_status');
       } finally {
         setIsCheckingAccess(false);
       }
