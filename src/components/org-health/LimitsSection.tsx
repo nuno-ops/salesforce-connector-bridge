@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LimitCard } from './LimitCard';
 import { OrgLimits } from './types';
 import { Button } from '@/components/ui/button';
@@ -7,10 +7,15 @@ import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface LimitsSectionProps {
   limits: OrgLimits;
+  defaultExpanded?: boolean;
 }
 
-export const LimitsSection = ({ limits }: LimitsSectionProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const LimitsSection = ({ limits, defaultExpanded = false }: LimitsSectionProps) => {
+  const [isOpen, setIsOpen] = useState(defaultExpanded);
+
+  useEffect(() => {
+    setIsOpen(defaultExpanded);
+  }, [defaultExpanded]);
 
   return (
     <div className="space-y-2">

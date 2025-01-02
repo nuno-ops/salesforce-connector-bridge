@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MetricsCard } from './MetricsCard';
 import { calculateMonthlyMetrics } from './MetricsCalculator';
 import { Button } from "@/components/ui/button";
@@ -7,11 +7,16 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface MetricsSectionProps {
   metrics: any;
+  defaultExpanded?: boolean;
 }
 
-export const MetricsSection = ({ metrics }: MetricsSectionProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const MetricsSection = ({ metrics, defaultExpanded = false }: MetricsSectionProps) => {
+  const [isOpen, setIsOpen] = useState(defaultExpanded);
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics);
+
+  useEffect(() => {
+    setIsOpen(defaultExpanded);
+  }, [defaultExpanded]);
 
   return (
     <div className="space-y-2">

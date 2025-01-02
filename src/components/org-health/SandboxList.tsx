@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
@@ -13,10 +13,15 @@ interface SandboxInfo {
 
 interface SandboxListProps {
   sandboxes: SandboxInfo[];
+  defaultExpanded?: boolean;
 }
 
-export const SandboxList = ({ sandboxes }: SandboxListProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const SandboxList = ({ sandboxes, defaultExpanded = false }: SandboxListProps) => {
+  const [isOpen, setIsOpen] = useState(defaultExpanded);
+
+  useEffect(() => {
+    setIsOpen(defaultExpanded);
+  }, [defaultExpanded]);
 
   return (
     <div className="space-y-2">
