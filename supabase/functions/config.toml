@@ -2,3 +2,9 @@ project_id = "pnzdzneuynkyzfjwheej"
 
 [functions.salesforce-platform-licenses]
 verify_jwt = false
+
+[functions.stripe-checkout]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
