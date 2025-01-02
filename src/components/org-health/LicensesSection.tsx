@@ -1,22 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LicenseCard } from './LicenseCard';
-import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from './utils';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface LicensesSectionProps {
   userLicenses: any[];
   packageLicenses: any[];
   permissionSetLicenses: any[];
+  defaultExpanded?: boolean;
 }
 
 export const LicensesSection = ({ 
   userLicenses, 
   packageLicenses, 
-  permissionSetLicenses 
+  permissionSetLicenses,
+  defaultExpanded = false
 }: LicensesSectionProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultExpanded);
+
+  useEffect(() => {
+    setIsOpen(defaultExpanded);
+  }, [defaultExpanded]);
 
   return (
     <div className="space-y-2">
@@ -41,17 +46,17 @@ export const LicensesSection = ({
           <div className="space-y-6 pt-4">
             <LicenseCard 
               title="User Licenses" 
-              licenses={formatLicenseData(userLicenses)}
+              licenses={userLicenses}
               type="user"
             />
             <LicenseCard 
               title="Package Licenses" 
-              licenses={formatPackageLicenseData(packageLicenses)}
+              licenses={packageLicenses}
               type="package"
             />
             <LicenseCard 
               title="Permission Set Licenses" 
-              licenses={formatPermissionSetLicenseData(permissionSetLicenses)}
+              licenses={permissionSetLicenses}
               type="permissionSet"
             />
           </div>

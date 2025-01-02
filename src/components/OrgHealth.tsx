@@ -5,8 +5,12 @@ import { SandboxList } from './org-health/SandboxList';
 import { useOrgHealthData } from './org-health/useOrgHealthData';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export const OrgHealth = () => {
+  const [searchParams] = useSearchParams();
+  const [isExpanded, setIsExpanded] = useState(false);
   const {
     limits,
     sandboxes,
@@ -17,6 +21,10 @@ export const OrgHealth = () => {
     isLoading,
     error
   } = useOrgHealthData();
+
+  useEffect(() => {
+    setIsExpanded(searchParams.get('expanded') === 'true');
+  }, [searchParams]);
 
   if (isLoading) {
     return (
@@ -40,10 +48,11 @@ export const OrgHealth = () => {
         userLicenses={userLicenses || []}
         packageLicenses={packageLicenses || []}
         permissionSetLicenses={permissionSetLicenses || []}
+        defaultExpanded={isExpanded}
       />
-      <LimitsSection limits={limits!} />
-      <MetricsSection metrics={metrics} />
-      <SandboxList sandboxes={sandboxes || []} />
+      <LimitsSection limits={limits!} defaultExpanded={isExpanded} />
+      <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />
+      <SandboxList sandboxes={sandboxes || []} defaultExpanded={isExpanded} />
     </div>
   );
 };
