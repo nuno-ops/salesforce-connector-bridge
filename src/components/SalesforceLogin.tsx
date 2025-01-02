@@ -21,7 +21,10 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const { toast } = useToast();
 
-  const CALLBACK_URL = 'https://salesforce-connector-bridge.lovable.app/salesforce/callback';
+  // Update the callback URL to use https without a trailing colon
+  const CALLBACK_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:5173/salesforce/callback'
+    : `https://${window.location.hostname}/salesforce/callback`;
 
   const copyCallbackUrl = () => {
     navigator.clipboard.writeText(CALLBACK_URL);
