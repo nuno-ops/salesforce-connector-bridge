@@ -21,12 +21,28 @@ export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
     try {
       setIsGenerating(true);
       
+      console.log('Starting PDF generation process...');
+      
+      if (!contentRef.current) {
+        throw new Error('Content reference not found');
+      }
+
+      // Show loading toast
+      toast({
+        title: "Preparing PDF",
+        description: "Please wait while we generate your report...",
+      });
+      
+      console.log('Expanding collapsible sections...');
       await expandAllCollapsibles(contentRef.current);
+      
+      console.log('Processing tab content...');
       await handleTabsContent(contentRef.current);
       
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
+      console.log('Generating PDF with options...');
       const pdfOptions = await generatePDF(contentRef);
+      
+      console.log('Calling PDF generation...');
       await Pdf(() => contentRef.current, pdfOptions);
 
       toast({
@@ -42,6 +58,9 @@ export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
       });
     } finally {
       setIsGenerating(false);
+      console.log('Resetting sections...');
+      
+      // Wait before collapsing sections
       await new Promise(resolve => setTimeout(resolve, 1000));
       await collapseAllSections(contentRef.current);
     }
