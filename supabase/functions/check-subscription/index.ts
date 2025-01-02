@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { orgId } = await req.json()
+    const { orgId, sessionId, forceRefresh } = await req.json()
     
     if (!orgId) {
       throw new Error('Missing orgId')
@@ -22,37 +22,50 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     })
 
-    console.log('Checking subscription status for org:', orgId)
+    console.log('Checking subscription status for org:', orgId, 'sessionId:', sessionId)
 
-    // Check for active subscriptions
-    const subscriptions = await stripe.subscriptions.list({
-      status: 'active',
-      expand: ['data.customer'],
-    })
+    let hasValidPayment = false
 
-    const hasActiveSubscription = subscriptions.data.some(sub => 
-      sub.metadata.orgId === orgId && 
-      sub.items.data[0].price.id === 'price_1QcmKuBqwIrd79CS0eDdpx8C'
-    )
+    // If we have a session ID, verify it first
+    if (sessionId && forceRefresh) {
+      const session = await stripe.checkout.sessions.retrieve(sessionId)
+      if (session.payment_status === 'paid' && session.metadata?.orgId === orgId) {
+        console.log('Valid payment found in session')
+        hasValidPayment = true
+      }
+    }
 
-    // Check for completed one-time payments
-    const payments = await stripe.paymentIntents.list({
-      limit: 100,
-    })
+    if (!hasValidPayment) {
+      // Check for active subscriptions
+      const subscriptions = await stripe.subscriptions.list({
+        status: 'active',
+        expand: ['data.customer'],
+      })
 
-    const hasValidOneTimePayment = payments.data.some(payment => 
-      payment.metadata.orgId === orgId && 
-      payment.status === 'succeeded' &&
-      payment.amount_received > 0
-    )
+      hasValidPayment = subscriptions.data.some(sub => 
+        sub.metadata.orgId === orgId && 
+        sub.status === 'active'
+      )
 
-    console.log('Access check result:', { hasActiveSubscription, hasValidOneTimePayment })
+      if (!hasValidPayment) {
+        // Check for completed one-time payments
+        const payments = await stripe.paymentIntents.list({
+          limit: 100,
+        })
+
+        hasValidPayment = payments.data.some(payment => 
+          payment.metadata.orgId === orgId && 
+          payment.status === 'succeeded' &&
+          payment.amount_received > 0
+        )
+      }
+    }
+
+    console.log('Access check result:', { hasValidPayment })
 
     return new Response(
       JSON.stringify({ 
-        hasAccess: hasActiveSubscription || hasValidOneTimePayment,
-        subscriptionActive: hasActiveSubscription,
-        oneTimePaymentValid: hasValidOneTimePayment
+        hasAccess: hasValidPayment
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
