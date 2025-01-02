@@ -4,11 +4,6 @@ import { Download, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { 
-  expandAllCollapsibles, 
-  handleTabsContent, 
-  collapseAllSections 
-} from "@/utils/pdfGeneration";
 
 interface DownloadPdfButtonProps {
   contentRef: React.RefObject<HTMLDivElement>;
@@ -16,6 +11,24 @@ interface DownloadPdfButtonProps {
 
 export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const expandAllCollapsibles = async (element: HTMLElement) => {
+    // Find all collapsible triggers that are in closed state
+    const closedTriggers = element.querySelectorAll('[data-state="closed"]');
+    console.log(`Found ${closedTriggers.length} closed sections`);
+
+    // Click each trigger to expand its content
+    for (const trigger of closedTriggers) {
+      if (trigger instanceof HTMLElement) {
+        trigger.click();
+        // Wait for animation to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    // Additional wait to ensure all animations are complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  };
 
   const handleDownload = async () => {
     try {
@@ -30,36 +43,21 @@ export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
         title: "Preparing PDF",
         description: "Please wait while we generate your report...",
       });
+
+      // First, expand all sections in the actual content
+      await expandAllCollapsibles(contentRef.current);
       
-      // Clone the content for PDF generation
-      const clonedContent = contentRef.current.cloneNode(true) as HTMLElement;
-      document.body.appendChild(clonedContent);
-      clonedContent.style.position = 'absolute';
-      clonedContent.style.left = '-9999px';
-      clonedContent.style.width = `${contentRef.current.offsetWidth}px`;
-      
-      // 1. Expand all sections in the clone
-      await expandAllCollapsibles(clonedContent);
-      console.log('Sections expanded');
-      
-      // 2. Process all tabs in the clone
-      await handleTabsContent(clonedContent);
-      console.log('Tabs processed');
-      
-      // 3. Wait for final render
+      // Wait for all expansions to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // 4. Generate PDF using html2canvas
-      const canvas = await html2canvas(clonedContent, {
+
+      // Generate PDF using html2canvas
+      const canvas = await html2canvas(contentRef.current, {
         scale: 2,
         useCORS: true,
         logging: true,
-        windowWidth: clonedContent.offsetWidth,
-        windowHeight: clonedContent.scrollHeight,
+        windowWidth: contentRef.current.offsetWidth,
+        windowHeight: contentRef.current.scrollHeight,
       });
-
-      // Clean up clone
-      document.body.removeChild(clonedContent);
 
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
@@ -97,10 +95,6 @@ export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
       });
     } finally {
       setIsGenerating(false);
-      
-      // Wait before collapsing sections
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await collapseAllSections(contentRef.current);
     }
   };
 
