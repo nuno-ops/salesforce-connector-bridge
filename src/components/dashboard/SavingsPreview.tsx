@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Lock } from "lucide-react";
 import { useSavingsCalculations } from "../cost-savings/SavingsCalculator";
+import { useOrganizationData } from "../cost-savings/hooks/useOrganizationData";
 
 interface SavingsPreviewProps {
   userLicenses: any[];
@@ -16,10 +17,16 @@ export const SavingsPreview = ({
   sandboxes,
   onViewReport
 }: SavingsPreviewProps) => {
+  const {
+    licensePrice,
+    users,
+    oauthTokens
+  } = useOrganizationData();
+
   const { totalSavings } = useSavingsCalculations({
-    users: [],
-    oauthTokens: [],
-    licensePrice: 100,
+    users,
+    oauthTokens,
+    licensePrice,
     sandboxes,
     storageUsage: 0,
     userLicenses

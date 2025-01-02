@@ -13,9 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, orgId } = await req.json()
+    const { priceId, orgId, mode } = await req.json()
     
-    if (!priceId || !orgId) {
+    if (!priceId || !orgId || !mode) {
       throw new Error('Missing required parameters')
     }
 
@@ -23,11 +23,11 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     })
 
-    console.log('Creating checkout session for:', { priceId, orgId })
+    console.log('Creating checkout session for:', { priceId, orgId, mode })
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: priceId === 'price_1QcmKuBqwIrd79CS0eDdpx8C' ? 'subscription' : 'payment',
+      mode: mode,
       success_url: `${req.headers.get('origin')}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/?canceled=true`,
       metadata: {

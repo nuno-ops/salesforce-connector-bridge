@@ -49,7 +49,11 @@ const Dashboard = () => {
       if (!orgId) throw new Error('No organization ID found');
 
       const { data, error } = await supabase.functions.invoke('stripe-checkout', {
-        body: { priceId, orgId }
+        body: { 
+          priceId, 
+          mode: priceId.includes('monthly') ? 'subscription' : 'payment',
+          orgId 
+        }
       });
 
       if (error) throw error;
