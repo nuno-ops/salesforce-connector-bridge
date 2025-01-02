@@ -1,4 +1,5 @@
 import { toast } from "@/components/ui/use-toast";
+import { Options } from 'react-to-pdf';
 
 const ANIMATION_DELAY = 1000;
 const RENDER_DELAY = 2000;
@@ -74,8 +75,10 @@ export const collapseAllSections = async (element: Element | null) => {
   }
 };
 
-export const generatePDF = async (contentRef: React.RefObject<HTMLDivElement>) => {
-  if (!contentRef.current) return;
+export const generatePDF = async (contentRef: React.RefObject<HTMLDivElement>): Promise<Options> => {
+  if (!contentRef.current) {
+    throw new Error('Content reference is not available');
+  }
   
   const contentHeight = contentRef.current.scrollHeight;
   
@@ -89,7 +92,7 @@ export const generatePDF = async (contentRef: React.RefObject<HTMLDivElement>) =
     overrides: {
       pdf: {
         compress: true,
-        unit: 'px'
+        unit: 'px' as const // Explicitly type as literal
       },
       canvas: {
         useCORS: true,
