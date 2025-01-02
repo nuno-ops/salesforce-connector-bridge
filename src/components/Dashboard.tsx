@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CreditCard, FileText, Lock, DollarSign } from "lucide-react";
+import { calculateStorageUsage, calculateApiUsage, calculateTotalSavings } from "./dashboard/utils/usageCalculations";
 
 const Dashboard = () => {
   const [showContractDialog, setShowContractDialog] = useState(true);
@@ -87,30 +88,12 @@ const Dashboard = () => {
     checkAccess();
   }, [toast]);
 
-  const calculateTotalSavings = () => {
-    if (!userLicenses || !packageLicenses || !sandboxes) return 0;
-    
-    const unusedLicensesSavings = userLicenses.reduce((total, license) => {
-      const unused = license.total - license.used;
-      return total + (unused * 100 * 12); // Assuming $100 per license per month
-    }, 0);
-
-    const unusedPackagesSavings = packageLicenses.reduce((total, pkg) => {
-      const unused = pkg.total - pkg.used;
-      return total + (unused * 50 * 12); // Assuming $50 per package license per month
-    }, 0);
-
-    const sandboxSavings = sandboxes.length > 1 ? (sandboxes.length - 1) * 5000 : 0; // $5000 per excess sandbox
-
-    return unusedLicensesSavings + unusedPackagesSavings + sandboxSavings;
-  };
-
   if (isHealthDataLoading || isCheckingAccess) {
     return <LoadingSpinner />;
   }
 
   if (!hasAccess) {
-    const totalPotentialSavings = calculateTotalSavings();
+    const totalPotentialSavings = calculateTotalSavings(userLicenses, packageLicenses, sandboxes);
 
     if (!showPaymentPlans) {
       return (
@@ -208,8 +191,8 @@ const Dashboard = () => {
   const formattedUserLicenses = formatLicenseData(userLicenses);
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
-  const storageUsage = calculateStorageUsage();
-  const apiUsage = calculateApiUsage();
+  const storageUsage = calculateStorageUsage(limits);
+  const apiUsage = calculateApiUsage(limits);
 
   return (
     <MainLayout onDisconnect={handleDisconnect}>
