@@ -12,12 +12,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CreditCard, FileText } from "lucide-react";
+import { CreditCard, FileText, Lock, DollarSign } from "lucide-react";
 
 const Dashboard = () => {
   const [showContractDialog, setShowContractDialog] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [showPaymentPlans, setShowPaymentPlans] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -86,18 +87,22 @@ const Dashboard = () => {
     checkAccess();
   }, [toast]);
 
-  const calculateStorageUsage = () => {
-    if (!limits) return 0;
-    const totalStorage = limits.DataStorageMB.Max + limits.FileStorageMB.Max;
-    const usedStorage = totalStorage - (limits.DataStorageMB.Remaining + limits.FileStorageMB.Remaining);
-    return (usedStorage / totalStorage) * 100;
-  };
+  const calculateTotalSavings = () => {
+    if (!userLicenses || !packageLicenses || !sandboxes) return 0;
+    
+    const unusedLicensesSavings = userLicenses.reduce((total, license) => {
+      const unused = license.total - license.used;
+      return total + (unused * 100 * 12); // Assuming $100 per license per month
+    }, 0);
 
-  const calculateApiUsage = () => {
-    if (!limits) return 0;
-    return limits.DailyApiRequests ? 
-      ((limits.DailyApiRequests.Max - limits.DailyApiRequests.Remaining) / limits.DailyApiRequests.Max) * 100 
-      : 0;
+    const unusedPackagesSavings = packageLicenses.reduce((total, pkg) => {
+      const unused = pkg.total - pkg.used;
+      return total + (unused * 50 * 12); // Assuming $50 per package license per month
+    }, 0);
+
+    const sandboxSavings = sandboxes.length > 1 ? (sandboxes.length - 1) * 5000 : 0; // $5000 per excess sandbox
+
+    return unusedLicensesSavings + unusedPackagesSavings + sandboxSavings;
   };
 
   if (isHealthDataLoading || isCheckingAccess) {
@@ -105,6 +110,59 @@ const Dashboard = () => {
   }
 
   if (!hasAccess) {
+    const totalPotentialSavings = calculateTotalSavings();
+
+    if (!showPaymentPlans) {
+      return (
+        <MainLayout onDisconnect={handleDisconnect}>
+          <div className="space-y-8">
+            <Card className="p-8 bg-gradient-to-r from-sf-blue to-sf-hover text-white">
+              <div className="space-y-6 text-center">
+                <DollarSign className="h-16 w-16 mx-auto" />
+                <h2 className="text-3xl font-bold">
+                  Potential Annual Savings Identified
+                </h2>
+                <p className="text-5xl font-bold">
+                  ${totalPotentialSavings.toLocaleString()}
+                </p>
+                <p className="text-lg opacity-90">
+                  We've analyzed your Salesforce organization and identified significant cost-saving opportunities
+                </p>
+                <Button 
+                  onClick={() => setShowPaymentPlans(true)}
+                  size="lg"
+                  variant="secondary"
+                  className="w-full md:w-auto"
+                >
+                  View Detailed Report
+                </Button>
+              </div>
+            </Card>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="p-6">
+                <Lock className="h-5 w-5 text-sf-blue mb-2" />
+                <h3 className="font-semibold">License Optimization</h3>
+                <p className="text-sm text-gray-600">Identify unused and underutilized licenses</p>
+              </Card>
+              
+              <Card className="p-6">
+                <Lock className="h-5 w-5 text-sf-blue mb-2" />
+                <h3 className="font-semibold">Package Analysis</h3>
+                <p className="text-sm text-gray-600">Review and optimize package licenses</p>
+              </Card>
+              
+              <Card className="p-6">
+                <Lock className="h-5 w-5 text-sf-blue mb-2" />
+                <h3 className="font-semibold">Infrastructure Review</h3>
+                <p className="text-sm text-gray-600">Optimize sandbox and storage usage</p>
+              </Card>
+            </div>
+          </div>
+        </MainLayout>
+      );
+    }
+
     return (
       <MainLayout onDisconnect={handleDisconnect}>
         <div className="space-y-8">
