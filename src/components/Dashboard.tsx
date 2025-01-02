@@ -31,6 +31,11 @@ const Dashboard = () => {
     isLoading: isHealthDataLoading,
   } = useOrgHealthData();
 
+  // Format the license data early
+  const formattedUserLicenses = formatLicenseData(userLicenses);
+  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
+  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
+
   const handleDisconnect = () => {
     localStorage.removeItem('sf_access_token');
     localStorage.removeItem('sf_instance_url');
@@ -93,7 +98,12 @@ const Dashboard = () => {
   }
 
   if (!hasAccess) {
-    const totalPotentialSavings = calculateTotalSavings(userLicenses, packageLicenses, sandboxes);
+    // Use formatted license data for calculations
+    const totalPotentialSavings = calculateTotalSavings(formattedUserLicenses, formattedPackageLicenses, sandboxes);
+    console.log('Calculated savings:', totalPotentialSavings);
+    console.log('User licenses:', formattedUserLicenses);
+    console.log('Package licenses:', formattedPackageLicenses);
+    console.log('Sandboxes:', sandboxes);
 
     if (!showPaymentPlans) {
       return (
@@ -188,9 +198,6 @@ const Dashboard = () => {
     );
   }
 
-  const formattedUserLicenses = formatLicenseData(userLicenses);
-  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
-  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
   const storageUsage = calculateStorageUsage(limits);
   const apiUsage = calculateApiUsage(limits);
 
