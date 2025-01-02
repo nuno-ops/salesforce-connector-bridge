@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { ReactNode, useRef } from "react";
+import { ReactNode, useRef, useState } from "react";
 import Pdf from 'react-to-pdf';
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,15 +12,32 @@ interface MainLayoutProps {
 export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const handleDownload = async () => {
     try {
+      setIsGeneratingPdf(true);
+      
+      // Find all collapsible sections and expand them
+      if (contentRef.current) {
+        const collapsibleButtons = contentRef.current.querySelectorAll('[data-state="closed"]');
+        collapsibleButtons.forEach((button: any) => {
+          if (button.click) {
+            button.click();
+          }
+        });
+      }
+
+      // Wait a bit for sections to expand and content to render
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       await Pdf(() => contentRef.current, {
         filename: 'salesforce-dashboard-report.pdf',
         page: {
           margin: 20,
           format: 'a4',
-        }
+        },
+        resolution: 2, // Higher resolution for better quality
       });
       
       toast({
@@ -34,6 +51,18 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
         title: "Error",
         description: "Failed to generate PDF. Please try again.",
       });
+    } finally {
+      setIsGeneratingPdf(false);
+      
+      // Collapse sections back after PDF generation
+      if (contentRef.current) {
+        const expandedButtons = contentRef.current.querySelectorAll('[data-state="open"]');
+        expandedButtons.forEach((button: any) => {
+          if (button.click) {
+            button.click();
+          }
+        });
+      }
     }
   };
 
@@ -45,9 +74,10 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
             variant="outline" 
             onClick={handleDownload}
             className="flex items-center gap-2"
+            disabled={isGeneratingPdf}
           >
             <Download className="h-4 w-4" />
-            Download Report
+            {isGeneratingPdf ? "Generating PDF..." : "Download Report"}
           </Button>
           <Button 
             variant="outline" 
