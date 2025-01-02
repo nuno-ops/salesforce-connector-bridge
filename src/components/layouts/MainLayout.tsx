@@ -14,45 +14,79 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   const { toast } = useToast();
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
+  const expandAllCollapsibles = async () => {
+    if (!contentRef.current) return;
+    
+    // Find all collapsible buttons recursively
+    const findAndClickButtons = (element: Element) => {
+      // Find and click all closed collapsible triggers
+      element.querySelectorAll('[data-state="closed"]').forEach((button: any) => {
+        if (button.click) {
+          button.click();
+        }
+      });
+
+      // Process child elements
+      element.children.forEach(child => findAndClickButtons(child));
+    };
+
+    findAndClickButtons(contentRef.current);
+    
+    // Wait for animations to complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  };
+
+  const clickAllTabs = async () => {
+    if (!contentRef.current) return;
+    
+    // Store currently active tab
+    const activeTab = contentRef.current.querySelector('[role="tab"][data-state="active"]');
+    const activeTabValue = activeTab?.getAttribute('data-value');
+    
+    // Click all tab triggers
+    const tabTriggers = contentRef.current.querySelectorAll('[role="tab"]');
+    for (const trigger of tabTriggers) {
+      if (trigger instanceof HTMLElement) {
+        trigger.click();
+        // Wait for content to load
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    
+    // Return to original tab if it exists
+    if (activeTabValue) {
+      const originalTab = contentRef.current.querySelector(`[role="tab"][data-value="${activeTabValue}"]`);
+      if (originalTab instanceof HTMLElement) {
+        originalTab.click();
+      }
+    }
+  };
+
   const handleDownload = async () => {
     try {
       setIsGeneratingPdf(true);
       
-      // Find all collapsible sections and tabs
       if (contentRef.current) {
-        // First expand all collapsible sections
-        const collapsibleButtons = contentRef.current.querySelectorAll('[data-state="closed"]');
-        collapsibleButtons.forEach((button: any) => {
-          if (button.click) {
-            button.click();
-          }
-        });
-
-        // Then click all tab triggers to show their content
-        const tabTriggers = contentRef.current.querySelectorAll('[role="tab"]');
-        const originalActiveTab = contentRef.current.querySelector('[role="tab"][data-state="active"]');
+        // First expand everything
+        await expandAllCollapsibles();
         
-        // Store which tab was originally active
-        const originalActiveTabValue = originalActiveTab?.getAttribute('data-value');
+        // Then handle all tabs
+        await clickAllTabs();
         
-        // Click each tab to ensure its content is rendered
-        tabTriggers.forEach((trigger: any) => {
-          if (trigger.click) {
-            trigger.click();
-          }
-        });
-
-        // Wait for all content to be rendered
+        // Wait for all content to be fully rendered
         await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Generate PDF with all content visible
+        
+        // Calculate total height of content
+        const contentHeight = contentRef.current.scrollHeight;
+        
+        // Generate PDF with enhanced settings
         await Pdf(() => contentRef.current, {
           filename: 'salesforce-dashboard-report.pdf',
           page: {
             margin: 20,
             format: 'a4',
           },
-          resolution: 2,
+          resolution: 4, // Increased resolution
           overrides: {
             pdf: {
               compress: true,
@@ -63,36 +97,17 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
               useCORS: true,
               scale: 2,
               logging: true,
-              height: contentRef.current?.scrollHeight,
-              windowHeight: contentRef.current?.scrollHeight
+              height: contentHeight,
+              windowHeight: contentHeight
             }
           }
         });
 
-        // Wait before restoring original state
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Restore original active tab if it exists
-        if (originalActiveTabValue) {
-          const originalTab = contentRef.current.querySelector(`[role="tab"][data-value="${originalActiveTabValue}"]`);
-          if (originalTab instanceof HTMLElement) {
-            originalTab.click();
-          }
-        }
-
-        // Collapse sections back
-        const expandedButtons = contentRef.current.querySelectorAll('[data-state="open"]');
-        expandedButtons.forEach((button: any) => {
-          if (button.click) {
-            button.click();
-          }
+        toast({
+          title: "Success",
+          description: "Dashboard report has been downloaded successfully.",
         });
       }
-      
-      toast({
-        title: "Success",
-        description: "Dashboard report has been downloaded successfully.",
-      });
     } catch (error) {
       console.error('PDF generation error:', error);
       toast({
@@ -102,6 +117,18 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
       });
     } finally {
       setIsGeneratingPdf(false);
+      
+      // Wait before collapsing sections back
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Collapse sections back if needed
+      if (contentRef.current) {
+        contentRef.current.querySelectorAll('[data-state="open"]').forEach((button: any) => {
+          if (button.click) {
+            button.click();
+          }
+        });
+      }
     }
   };
 
