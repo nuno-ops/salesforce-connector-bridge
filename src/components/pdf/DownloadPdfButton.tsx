@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import Pdf from 'react-to-pdf';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { 
   expandAllCollapsibles, 
   handleTabsContent, 
-  collapseAllSections, 
-  generatePDF 
+  collapseAllSections 
 } from "@/utils/pdfGeneration";
 
 interface DownloadPdfButtonProps {
@@ -33,15 +33,55 @@ export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
       
       // 1. Expand all sections
       await expandAllCollapsibles(contentRef.current);
+      console.log('Sections expanded');
       
       // 2. Process all tabs
       await handleTabsContent(contentRef.current);
+      console.log('Tabs processed');
       
-      // 3. Generate PDF with calculated options
-      const pdfOptions = await generatePDF(contentRef);
+      // 3. Wait for final render
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // 4. Generate the PDF
-      await Pdf(() => contentRef.current, pdfOptions);
+      // 4. Generate PDF using html2canvas and jsPDF
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: true,
+        windowWidth: contentRef.current.scrollWidth,
+        windowHeight: contentRef.current.scrollHeight,
+        onclone: (document) => {
+          // Ensure all sections are visible in cloned document
+          const clonedElement = document.body.querySelector('[data-pdf-content]');
+          if (clonedElement) {
+            clonedElement.querySelectorAll('[data-state]').forEach(el => {
+              el.setAttribute('data-state', 'open');
+            });
+          }
+        }
+      });
+
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      // First page
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Additional pages if needed
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // Save the PDF
+      pdf.save('salesforce-dashboard-report.pdf');
 
       toast({
         title: "Success",
