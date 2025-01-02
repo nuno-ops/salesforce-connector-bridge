@@ -2,7 +2,16 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import Stripe from 'https://esm.sh/stripe@14.21.0'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -16,6 +25,8 @@ serve(async (req) => {
     const signature = req.headers.get('stripe-signature')
     const body = await req.text()
     
+    console.log('Received webhook with signature:', signature)
+    
     // Use constructEventAsync instead of constructEvent
     const event = await stripe.webhooks.constructEventAsync(
       body,
@@ -27,9 +38,16 @@ serve(async (req) => {
 
     switch (event.type) {
       case 'customer.subscription.created':
-      case 'customer.subscription.updated':
+      case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
-        await supabase
+        console.log('Processing subscription data:', {
+          orgId: subscription.metadata.orgId,
+          subscriptionId: subscription.id,
+          customerId: subscription.customer,
+          status: subscription.status
+        })
+
+        const { error } = await supabase
           .from('organization_subscriptions')
           .upsert({
             org_id: subscription.metadata.orgId,
@@ -42,29 +60,48 @@ serve(async (req) => {
           }, {
             onConflict: 'org_id'
           })
-        break
 
-      case 'customer.subscription.deleted':
-        const deletedSubscription = event.data.object as Stripe.Subscription
-        await supabase
+        if (error) {
+          console.error('Database error:', error)
+          throw error
+        }
+        console.log('Successfully updated subscription in database')
+        break
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription
+        console.log('Processing subscription deletion:', subscription.id)
+
+        const { error } = await supabase
           .from('organization_subscriptions')
           .update({
             status: 'canceled',
             updated_at: new Date().toISOString()
           })
-          .eq('stripe_subscription_id', deletedSubscription.id)
+          .eq('stripe_subscription_id', subscription.id)
+
+        if (error) {
+          console.error('Database error:', error)
+          throw error
+        }
+        console.log('Successfully marked subscription as canceled in database')
         break
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error processing webhook:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400 }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
     )
   }
 })
