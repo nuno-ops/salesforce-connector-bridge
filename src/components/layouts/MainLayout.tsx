@@ -52,14 +52,11 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
         },
         resolution: 2, // Higher resolution for better quality
         overrides: {
-          // Ensure content is visible in the PDF
           pdf: {
             compress: true,
-            putTotalPages: true,
             orientation: 'portrait',
             unit: 'px'
           },
-          // Override CSS to ensure visibility
           canvas: {
             useCORS: true,
             scale: 2,
