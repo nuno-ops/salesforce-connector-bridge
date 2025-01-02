@@ -16,7 +16,8 @@ serve(async (req) => {
     const signature = req.headers.get('stripe-signature')
     const body = await req.text()
     
-    const event = stripe.webhooks.constructEvent(
+    // Use constructEventAsync instead of constructEvent
+    const event = await stripe.webhooks.constructEventAsync(
       body,
       signature!,
       Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
