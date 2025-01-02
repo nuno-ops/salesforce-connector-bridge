@@ -17,47 +17,60 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   const expandAllCollapsibles = async () => {
     if (!contentRef.current) return;
     
-    // Find all collapsible buttons recursively
-    const findAndClickButtons = (element: Element) => {
+    const expandElements = async (element: Element) => {
       // Find and click all closed collapsible triggers
-      element.querySelectorAll('[data-state="closed"]').forEach((button: any) => {
-        if (button.click) {
-          button.click();
+      const closedTriggers = element.querySelectorAll('[data-state="closed"]');
+      for (const trigger of closedTriggers) {
+        if (trigger instanceof HTMLElement) {
+          trigger.click();
+          // Wait for animation and content loading
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
-      });
+      }
 
-      // Process child elements - convert HTMLCollection to Array
-      Array.from(element.children).forEach(child => findAndClickButtons(child));
+      // Process child elements
+      const children = Array.from(element.children);
+      for (const child of children) {
+        await expandElements(child);
+      }
     };
 
-    findAndClickButtons(contentRef.current);
-    
-    // Wait for animations to complete
+    await expandElements(contentRef.current);
+    // Final wait to ensure all animations complete
     await new Promise(resolve => setTimeout(resolve, 1000));
   };
 
   const clickAllTabs = async () => {
     if (!contentRef.current) return;
     
-    // Store currently active tab
-    const activeTab = contentRef.current.querySelector('[role="tab"][data-state="active"]');
-    const activeTabValue = activeTab?.getAttribute('data-value');
+    // Store currently active tabs
+    const activeTabs = new Map<string, string>();
+    const tabLists = contentRef.current.querySelectorAll('[role="tablist"]');
     
-    // Click all tab triggers
-    const tabTriggers = contentRef.current.querySelectorAll('[role="tab"]');
-    for (const trigger of tabTriggers) {
-      if (trigger instanceof HTMLElement) {
-        trigger.click();
-        // Wait for content to load
-        await new Promise(resolve => setTimeout(resolve, 500));
+    for (const tabList of tabLists) {
+      const activeTab = tabList.querySelector('[data-state="active"]');
+      const tabsGroup = tabList.getAttribute('aria-label') || '';
+      if (activeTab) {
+        activeTabs.set(tabsGroup, activeTab.getAttribute('data-value') || '');
       }
-    }
-    
-    // Return to original tab if it exists
-    if (activeTabValue) {
-      const originalTab = contentRef.current.querySelector(`[role="tab"][data-value="${activeTabValue}"]`);
-      if (originalTab instanceof HTMLElement) {
-        originalTab.click();
+
+      // Click all tabs in this group
+      const tabs = tabList.querySelectorAll('[role="tab"]');
+      for (const tab of tabs) {
+        if (tab instanceof HTMLElement) {
+          tab.click();
+          // Wait for content to load
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      // Restore original active tab
+      const originalTabValue = activeTabs.get(tabsGroup);
+      if (originalTabValue) {
+        const originalTab = tabList.querySelector(`[data-value="${originalTabValue}"]`);
+        if (originalTab instanceof HTMLElement) {
+          originalTab.click();
+        }
       }
     }
   };
@@ -86,7 +99,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
             margin: 20,
             format: 'a4',
           },
-          resolution: 4,
+          resolution: 2, // Increased resolution
           overrides: {
             pdf: {
               compress: true,
@@ -123,9 +136,10 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
       
       // Collapse sections back if needed
       if (contentRef.current) {
-        contentRef.current.querySelectorAll('[data-state="open"]').forEach((button: any) => {
-          if (button.click) {
-            button.click();
+        const openTriggers = contentRef.current.querySelectorAll('[data-state="open"]');
+        openTriggers.forEach((trigger: any) => {
+          if (trigger.click) {
+            trigger.click();
           }
         });
       }
