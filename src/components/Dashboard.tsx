@@ -3,19 +3,18 @@ import { MainLayout } from "@/components/layouts/MainLayout";
 import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
 import { ContractUploadDialog } from "@/components/salesforce/ContractUploadDialog";
-import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
-import { CostSavingsReport } from "@/components/CostSavingsReport";
-import { SalesforceUsers } from "@/components/SalesforceUsers";
-import { OrgHealth } from "@/components/OrgHealth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useCheckAccess } from "./dashboard/hooks/useCheckAccess";
 import { DashboardContent } from "./dashboard/DashboardContent";
 import { SavingsPreview } from "./dashboard/SavingsPreview";
 import { PaymentPlans } from "./dashboard/PaymentPlans";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const [showContractDialog, setShowContractDialog] = useState(true);
   const [showPaymentPlans, setShowPaymentPlans] = useState(false);
+  const { toast } = useToast();
   
   const {
     userLicenses = [],
@@ -32,6 +31,33 @@ const Dashboard = () => {
   const formattedUserLicenses = formatLicenseData(userLicenses);
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
+
+  const handleSubscribe = async (priceId: string) => {
+    try {
+      const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
+      if (!orgId) throw new Error('No organization ID found');
+
+      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+        body: { 
+          priceId,
+          orgId,
+          returnUrl: window.location.origin
+        }
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to initiate checkout. Please try again."
+      });
+    }
+  };
 
   if (isHealthDataLoading || isCheckingAccess) {
     return <LoadingSpinner />;
@@ -53,7 +79,7 @@ const Dashboard = () => {
 
     return (
       <MainLayout onDisconnect={handleDisconnect}>
-        <PaymentPlans />
+        <PaymentPlans onSubscribe={handleSubscribe} />
       </MainLayout>
     );
   }
