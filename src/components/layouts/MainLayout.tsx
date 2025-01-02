@@ -28,7 +28,20 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
         });
       }
 
-      // Wait a bit for sections to expand and content to render
+      // Wait for animations and content to render
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Find any remaining closed sections and try to expand them again
+      if (contentRef.current) {
+        const remainingClosedButtons = contentRef.current.querySelectorAll('[data-state="closed"]');
+        remainingClosedButtons.forEach((button: any) => {
+          if (button.click) {
+            button.click();
+          }
+        });
+      }
+
+      // Wait a bit more to ensure all content is fully rendered
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       await Pdf(() => contentRef.current, {
@@ -38,6 +51,23 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
           format: 'a4',
         },
         resolution: 2, // Higher resolution for better quality
+        overrides: {
+          // Ensure content is visible in the PDF
+          pdf: {
+            compress: true,
+            putTotalPages: true,
+            orientation: 'portrait',
+            unit: 'px'
+          },
+          // Override CSS to ensure visibility
+          canvas: {
+            useCORS: true,
+            scale: 2,
+            logging: true,
+            height: contentRef.current?.scrollHeight,
+            windowHeight: contentRef.current?.scrollHeight
+          }
+        }
       });
       
       toast({
@@ -54,15 +84,17 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
     } finally {
       setIsGeneratingPdf(false);
       
-      // Collapse sections back after PDF generation
-      if (contentRef.current) {
-        const expandedButtons = contentRef.current.querySelectorAll('[data-state="open"]');
-        expandedButtons.forEach((button: any) => {
-          if (button.click) {
-            button.click();
-          }
-        });
-      }
+      // Wait a bit before collapsing sections back
+      setTimeout(() => {
+        if (contentRef.current) {
+          const expandedButtons = contentRef.current.querySelectorAll('[data-state="open"]');
+          expandedButtons.forEach((button: any) => {
+            if (button.click) {
+              button.click();
+            }
+          });
+        }
+      }, 1000);
     }
   };
 
