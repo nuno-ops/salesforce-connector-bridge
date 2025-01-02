@@ -1,10 +1,10 @@
 project_id = "pnzdzneuynkyzfjwheej"
 
-[functions.salesforce-platform-licenses]
+[check-subscription]
 verify_jwt = false
 
-[functions.stripe-checkout]
+[stripe-checkout]
 verify_jwt = false
 
-[functions.check-subscription]
+[stripe-webhook]
 verify_jwt = false

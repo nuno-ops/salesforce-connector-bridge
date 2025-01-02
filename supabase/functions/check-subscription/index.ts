@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import Stripe from 'https://esm.sh/stripe@14.21.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +23,11 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     })
 
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const supabase = createClient(supabaseUrl!, supabaseKey!)
+
     console.log('Checking subscription status for org:', orgId, 'sessionId:', sessionId)
 
     let hasValidPayment = false
@@ -31,24 +37,35 @@ serve(async (req) => {
       const session = await stripe.checkout.sessions.retrieve(sessionId)
       if (session.payment_status === 'paid' && session.metadata?.orgId === orgId) {
         console.log('Valid payment found in session')
-        hasValidPayment = true
+        
+        // If this was a subscription payment, the webhook will handle the update
+        if (session.mode === 'payment') {
+          hasValidPayment = true
+        }
       }
     }
 
     if (!hasValidPayment) {
-      // Check for active subscriptions
-      const subscriptions = await stripe.subscriptions.list({
-        status: 'active',
-        expand: ['data.customer'],
-      })
+      // Check for active subscription in our database
+      const { data: subscription } = await supabase
+        .from('organization_subscriptions')
+        .select('*')
+        .eq('org_id', orgId)
+        .eq('status', 'active')
+        .maybeSingle()
 
-      hasValidPayment = subscriptions.data.some(sub => 
-        sub.metadata.orgId === orgId && 
-        sub.status === 'active'
-      )
+      if (subscription) {
+        const now = new Date()
+        const periodEnd = new Date(subscription.current_period_end)
+        hasValidPayment = now <= periodEnd
+        console.log('Found active subscription:', { 
+          hasValidPayment, 
+          periodEnd: periodEnd.toISOString() 
+        })
+      }
 
       if (!hasValidPayment) {
-        // Check for completed one-time payments
+        // Check for completed one-time payments as fallback
         const payments = await stripe.paymentIntents.list({
           limit: 100,
         })
