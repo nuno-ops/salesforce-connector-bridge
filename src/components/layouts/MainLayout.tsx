@@ -26,8 +26,8 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
         }
       });
 
-      // Process child elements
-      element.children.forEach(child => findAndClickButtons(child));
+      // Process child elements - convert HTMLCollection to Array
+      Array.from(element.children).forEach(child => findAndClickButtons(child));
     };
 
     findAndClickButtons(contentRef.current);
@@ -86,7 +86,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
             margin: 20,
             format: 'a4',
           },
-          resolution: 4, // Increased resolution
+          resolution: 4,
           overrides: {
             pdf: {
               compress: true,
