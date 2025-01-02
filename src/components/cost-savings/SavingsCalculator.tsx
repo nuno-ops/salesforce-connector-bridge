@@ -8,6 +8,7 @@ import {
 import { calculatePlatformLicenseSavings } from "./utils/platformLicenseSavings";
 import { scrollToLicenseOptimization } from "./utils/scrollUtils";
 import { filterStandardSalesforceUsers, filterInactiveUsers } from "../users/utils/userFilters";
+import { useToast } from "@/hooks/use-toast";
 
 interface SavingsCalculatorProps {
   users: any[];
@@ -27,6 +28,8 @@ export const useSavingsCalculations = ({
   userLicenses
 }: SavingsCalculatorProps) => {
   const [platformLicenseSavings, setPlatformLicenseSavings] = useState({ savings: 0, count: 0 });
+  const [isInitialized, setIsInitialized] = useState(false);
+  const { toast } = useToast();
 
   // Filter standard Salesforce users first
   const standardUsers = filterStandardSalesforceUsers(users);
@@ -42,31 +45,49 @@ export const useSavingsCalculations = ({
   const sandboxSavingsCalc = calculateSandboxSavings(sandboxes);
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
 
-  // Calculate platform license savings asynchronously
+  // Calculate platform license savings with better error handling and retry logic
   useEffect(() => {
     const fetchPlatformSavings = async () => {
       try {
-        console.log('Calculating platform license savings...');
-        const result = await calculatePlatformLicenseSavings(licensePrice);
-        console.log('Platform license savings result:', result);
-        
-        // Calculate annual savings: number of users * (current license cost - platform license cost)
-        const platformLicenseCost = 25; // USD per month
-        const monthlySavingsPerUser = licensePrice - platformLicenseCost;
-        const annualSavings = result.count * monthlySavingsPerUser * 12;
-        
-        setPlatformLicenseSavings({ 
-          savings: annualSavings,
-          count: result.count 
-        });
+        if (!isInitialized && users.length > 0) {
+          console.log('Calculating platform license savings...');
+          const result = await calculatePlatformLicenseSavings(licensePrice);
+          console.log('Platform license savings result:', result);
+          
+          // Calculate annual savings: number of users * (current license cost - platform license cost)
+          const platformLicenseCost = 25; // USD per month
+          const monthlySavingsPerUser = licensePrice - platformLicenseCost;
+          const annualSavings = result.count * monthlySavingsPerUser * 12;
+          
+          setPlatformLicenseSavings({ 
+            savings: annualSavings,
+            count: result.count 
+          });
+          setIsInitialized(true);
+        }
       } catch (error) {
         console.error('Error calculating platform license savings:', error);
+        // Show error toast only on first attempt
+        if (!isInitialized) {
+          toast({
+            variant: "destructive",
+            title: "Error calculating platform license savings",
+            description: "Please refresh the page if the platform license optimization section is not visible."
+          });
+        }
         setPlatformLicenseSavings({ savings: 0, count: 0 });
       }
     };
 
     fetchPlatformSavings();
-  }, [licensePrice]);
+  }, [licensePrice, users, isInitialized, toast]);
+
+  // Reset initialization when users change
+  useEffect(() => {
+    if (users.length === 0) {
+      setIsInitialized(false);
+    }
+  }, [users]);
 
   const totalSavings = 
     inactiveUserSavings.savings +
