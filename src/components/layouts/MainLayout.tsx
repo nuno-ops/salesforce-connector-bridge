@@ -15,7 +15,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
 
   const handleDownload = async () => {
     try {
-      await Pdf(contentRef.current, {
+      await Pdf(() => contentRef.current, {
         filename: 'salesforce-dashboard-report.pdf',
         page: {
           margin: 20,
