@@ -18,54 +18,76 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
     try {
       setIsGeneratingPdf(true);
       
-      // Find all collapsible sections and expand them
+      // Find all collapsible sections and tabs
       if (contentRef.current) {
+        // First expand all collapsible sections
         const collapsibleButtons = contentRef.current.querySelectorAll('[data-state="closed"]');
         collapsibleButtons.forEach((button: any) => {
           if (button.click) {
             button.click();
           }
         });
-      }
 
-      // Wait for animations and content to render
-      await new Promise(resolve => setTimeout(resolve, 2000));
+        // Then click all tab triggers to show their content
+        const tabTriggers = contentRef.current.querySelectorAll('[role="tab"]');
+        const originalActiveTab = contentRef.current.querySelector('[role="tab"][data-state="active"]');
+        
+        // Store which tab was originally active
+        const originalActiveTabValue = originalActiveTab?.getAttribute('data-value');
+        
+        // Click each tab to ensure its content is rendered
+        tabTriggers.forEach((trigger: any) => {
+          if (trigger.click) {
+            trigger.click();
+          }
+        });
 
-      // Find any remaining closed sections and try to expand them again
-      if (contentRef.current) {
-        const remainingClosedButtons = contentRef.current.querySelectorAll('[data-state="closed"]');
-        remainingClosedButtons.forEach((button: any) => {
+        // Wait for all content to be rendered
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Generate PDF with all content visible
+        await Pdf(() => contentRef.current, {
+          filename: 'salesforce-dashboard-report.pdf',
+          page: {
+            margin: 20,
+            format: 'a4',
+          },
+          resolution: 2,
+          overrides: {
+            pdf: {
+              compress: true,
+              orientation: 'portrait',
+              unit: 'px'
+            },
+            canvas: {
+              useCORS: true,
+              scale: 2,
+              logging: true,
+              height: contentRef.current?.scrollHeight,
+              windowHeight: contentRef.current?.scrollHeight
+            }
+          }
+        });
+
+        // Wait before restoring original state
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Restore original active tab if it exists
+        if (originalActiveTabValue) {
+          const originalTab = contentRef.current.querySelector(`[role="tab"][data-value="${originalActiveTabValue}"]`);
+          if (originalTab instanceof HTMLElement) {
+            originalTab.click();
+          }
+        }
+
+        // Collapse sections back
+        const expandedButtons = contentRef.current.querySelectorAll('[data-state="open"]');
+        expandedButtons.forEach((button: any) => {
           if (button.click) {
             button.click();
           }
         });
       }
-
-      // Wait a bit more to ensure all content is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      await Pdf(() => contentRef.current, {
-        filename: 'salesforce-dashboard-report.pdf',
-        page: {
-          margin: 20,
-          format: 'a4',
-        },
-        resolution: 2, // Higher resolution for better quality
-        overrides: {
-          pdf: {
-            compress: true,
-            orientation: 'portrait',
-            unit: 'px'
-          },
-          canvas: {
-            useCORS: true,
-            scale: 2,
-            logging: true,
-            height: contentRef.current?.scrollHeight,
-            windowHeight: contentRef.current?.scrollHeight
-          }
-        }
-      });
       
       toast({
         title: "Success",
@@ -80,18 +102,6 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
       });
     } finally {
       setIsGeneratingPdf(false);
-      
-      // Wait a bit before collapsing sections back
-      setTimeout(() => {
-        if (contentRef.current) {
-          const expandedButtons = contentRef.current.querySelectorAll('[data-state="open"]');
-          expandedButtons.forEach((button: any) => {
-            if (button.click) {
-              button.click();
-            }
-          });
-        }
-      }, 1000);
     }
   };
 
