@@ -8,21 +8,21 @@ import { PrintableReport } from "./PrintableReport";
 import { createRoot } from 'react-dom/client';
 
 interface DownloadPdfButtonProps {
-  userLicenses: any[];
-  packageLicenses: any[];
-  permissionSetLicenses: any[];
-  sandboxes: any[];
-  limits: any;
-  metrics: any;
+  userLicenses?: any[];
+  packageLicenses?: any[];
+  permissionSetLicenses?: any[];
+  sandboxes?: any[];
+  limits?: any;
+  metrics?: any;
 }
 
 export const DownloadPdfButton = ({ 
-  userLicenses,
-  packageLicenses,
-  permissionSetLicenses,
-  sandboxes,
-  limits,
-  metrics
+  userLicenses = [],
+  packageLicenses = [],
+  permissionSetLicenses = [],
+  sandboxes = [],
+  limits = {},
+  metrics = {}
 }: DownloadPdfButtonProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
