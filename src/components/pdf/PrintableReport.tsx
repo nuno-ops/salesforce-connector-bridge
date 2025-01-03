@@ -8,7 +8,7 @@ import { ReportHeader } from "./sections/ReportHeader";
 import { SavingsSummary } from "./sections/SavingsSummary";
 import { LicenseOptimizationSection } from "./sections/LicenseOptimizationSection";
 import { OperationalMetricsSection } from "./sections/OperationalMetricsSection";
-import { filterStandardSalesforceUsers, filterInactiveUsers } from "../users/utils/userFilters";
+import { filterStandardSalesforceUsers, filterInactiveUsers, maskUsername } from "../users/utils/userFilters";
 
 interface PrintableReportProps {
   userLicenses: any[];
@@ -75,6 +75,7 @@ export const PrintableReport = ({
         integrationUsers={integrationUsers}
         platformUsers={platformUsers}
         getUserOAuthApps={getUserOAuthApps}
+        maskUsername={maskUsername}
       />
 
       {/* License Usage Section */}
@@ -134,58 +135,6 @@ export const PrintableReport = ({
                   <Progress value={(license.used / license.total) * 100} />
                 </div>
               ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Organization Limits */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Organization Limits</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4">
-            {/* Data Storage */}
-            <div className="border p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">Data Storage</h3>
-              <div className="flex justify-between mb-2">
-                <span>Usage</span>
-                <span>
-                  {limits?.DataStorageMB?.Max - limits?.DataStorageMB?.Remaining} / {limits?.DataStorageMB?.Max} MB
-                </span>
-              </div>
-              <Progress 
-                value={((limits?.DataStorageMB?.Max - limits?.DataStorageMB?.Remaining) / limits?.DataStorageMB?.Max) * 100} 
-              />
-            </div>
-
-            {/* File Storage */}
-            <div className="border p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">File Storage</h3>
-              <div className="flex justify-between mb-2">
-                <span>Usage</span>
-                <span>
-                  {limits?.FileStorageMB?.Max - limits?.FileStorageMB?.Remaining} / {limits?.FileStorageMB?.Max} MB
-                </span>
-              </div>
-              <Progress 
-                value={((limits?.FileStorageMB?.Max - limits?.FileStorageMB?.Remaining) / limits?.FileStorageMB?.Max) * 100} 
-              />
-            </div>
-
-            {/* API Requests */}
-            <div className="border p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">API Requests</h3>
-              <div className="flex justify-between mb-2">
-                <span>Daily Usage</span>
-                <span>
-                  {limits?.DailyApiRequests?.Max - limits?.DailyApiRequests?.Remaining} / {limits?.DailyApiRequests?.Max}
-                </span>
-              </div>
-              <Progress 
-                value={((limits?.DailyApiRequests?.Max - limits?.DailyApiRequests?.Remaining) / limits?.DailyApiRequests?.Max) * 100} 
-              />
             </div>
           </div>
         </CardContent>
