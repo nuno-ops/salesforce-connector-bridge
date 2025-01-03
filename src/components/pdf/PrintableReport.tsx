@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
-import { format } from "date-fns";
+import { format } from 'date-fns';
 
 interface PrintableReportProps {
   userLicenses: any[];
@@ -32,12 +32,13 @@ export const PrintableReport = ({
         <p className="text-muted-foreground">Generated on {format(new Date(), 'PPP')}</p>
       </div>
 
-      {/* Licenses Section */}
+      {/* License Usage Section */}
       <Card>
         <CardHeader>
           <CardTitle>License Usage</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* User Licenses */}
           <div>
             <h3 className="font-semibold mb-4">User Licenses</h3>
             <div className="grid gap-4">
@@ -53,6 +54,7 @@ export const PrintableReport = ({
             </div>
           </div>
 
+          {/* Package Licenses */}
           <div>
             <h3 className="font-semibold mb-4">Package Licenses</h3>
             <div className="grid gap-4">
@@ -73,6 +75,22 @@ export const PrintableReport = ({
               ))}
             </div>
           </div>
+
+          {/* Permission Set Licenses */}
+          <div>
+            <h3 className="font-semibold mb-4">Permission Set Licenses</h3>
+            <div className="grid gap-4">
+              {formattedPermissionSetLicenses.map((license, index) => (
+                <div key={index} className="border p-4 rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium">{license.name}</span>
+                    <span>{license.used} / {license.total}</span>
+                  </div>
+                  <Progress value={(license.used / license.total) * 100} />
+                </div>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -83,6 +101,7 @@ export const PrintableReport = ({
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4">
+            {/* Data Storage */}
             <div className="border p-4 rounded-lg">
               <h3 className="font-semibold mb-2">Data Storage</h3>
               <div className="flex justify-between mb-2">
@@ -96,6 +115,7 @@ export const PrintableReport = ({
               />
             </div>
 
+            {/* File Storage */}
             <div className="border p-4 rounded-lg">
               <h3 className="font-semibold mb-2">File Storage</h3>
               <div className="flex justify-between mb-2">
@@ -109,6 +129,7 @@ export const PrintableReport = ({
               />
             </div>
 
+            {/* API Requests */}
             <div className="border p-4 rounded-lg">
               <h3 className="font-semibold mb-2">API Requests</h3>
               <div className="flex justify-between mb-2">
@@ -125,7 +146,7 @@ export const PrintableReport = ({
         </CardContent>
       </Card>
 
-      {/* Sandboxes */}
+      {/* Active Sandboxes */}
       <Card>
         <CardHeader>
           <CardTitle>Active Sandboxes</CardTitle>
@@ -143,6 +164,9 @@ export const PrintableReport = ({
                 )}
               </div>
             ))}
+            {sandboxes.length === 0 && (
+              <p className="text-muted-foreground text-center py-4">No active sandboxes found</p>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -4,7 +4,7 @@ import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 
 interface MainLayoutProps {
   children: ReactNode;
-  onDisconnect: () => void;
+  onDisconnect?: () => void;
 }
 
 export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {

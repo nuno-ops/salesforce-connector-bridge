@@ -6,35 +6,26 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { PrintableReport } from "./PrintableReport";
 import { createRoot } from 'react-dom/client';
+import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 
-interface DownloadPdfButtonProps {
-  userLicenses?: any[];
-  packageLicenses?: any[];
-  permissionSetLicenses?: any[];
-  sandboxes?: any[];
-  limits?: any;
-  metrics?: any;
-}
-
-export const DownloadPdfButton = ({ 
-  userLicenses = [],
-  packageLicenses = [],
-  permissionSetLicenses = [],
-  sandboxes = [],
-  limits = {},
-  metrics = {}
-}: DownloadPdfButtonProps) => {
+export const DownloadPdfButton = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const { 
+    userLicenses = [], 
+    packageLicenses = [], 
+    permissionSetLicenses = [],
+    sandboxes = [],
+    limits = {},
+    metrics = {},
+  } = useOrgHealthData();
 
   const generatePDF = async () => {
-    // Create a temporary container
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.left = '-9999px';
-    container.style.width = '1024px'; // Fixed width for consistent PDF generation
+    container.style.width = '1024px';
     document.body.appendChild(container);
 
-    // Render the PrintableReport in the container
     const root = createRoot(container);
     await new Promise<void>(resolve => {
       root.render(
@@ -47,7 +38,6 @@ export const DownloadPdfButton = ({
           metrics={metrics}
         />
       );
-      // Give time for the component to render
       setTimeout(resolve, 1000);
     });
 
@@ -58,19 +48,17 @@ export const DownloadPdfButton = ({
         logging: false,
       });
 
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const imgWidth = 210;
+      const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       const pdf = new jsPDF('p', 'mm', 'a4');
       
       let heightLeft = imgHeight;
       let position = 0;
       
-      // First page
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
       
-      // Additional pages if needed
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -91,7 +79,6 @@ export const DownloadPdfButton = ({
         description: "Failed to generate PDF. Please try again.",
       });
     } finally {
-      // Clean up
       root.unmount();
       document.body.removeChild(container);
     }
