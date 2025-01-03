@@ -2,6 +2,7 @@ import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDas
 import { CostSavingsReport } from "@/components/CostSavingsReport";
 import { SalesforceUsers } from "@/components/SalesforceUsers";
 import { OrgHealth } from "@/components/OrgHealth";
+import { DownloadPdfButton } from "../pdf/DownloadPdfButton";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -20,6 +21,16 @@ export const DashboardContent = ({
 }: DashboardContentProps) => {
   return (
     <div className="space-y-8">
+      <div className="flex justify-end">
+        <DownloadPdfButton
+          userLicenses={userLicenses}
+          packageLicenses={packageLicenses}
+          permissionSetLicenses={permissionSetLicenses}
+          sandboxes={sandboxes}
+          limits={limits}
+          metrics={{}} // Pass empty metrics object for now
+        />
+      </div>
       <OptimizationDashboard
         userLicenses={userLicenses}
         packageLicenses={packageLicenses}

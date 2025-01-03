@@ -1,85 +1,88 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { useSearchParams } from "react-router-dom";
+import { PrintableReport } from "./PrintableReport";
+import { createRoot } from 'react-dom/client';
 
 interface DownloadPdfButtonProps {
-  contentRef: React.RefObject<HTMLDivElement>;
+  userLicenses: any[];
+  packageLicenses: any[];
+  permissionSetLicenses: any[];
+  sandboxes: any[];
+  limits: any;
+  metrics: any;
 }
 
-export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
+export const DownloadPdfButton = ({ 
+  userLicenses,
+  packageLicenses,
+  permissionSetLicenses,
+  sandboxes,
+  limits,
+  metrics
+}: DownloadPdfButtonProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [searchParams] = useSearchParams();
-  
+
   const generatePDF = async () => {
-    if (!contentRef.current) {
-      throw new Error('Content reference not found');
-    }
+    // Create a temporary container
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.width = '1024px'; // Fixed width for consistent PDF generation
+    document.body.appendChild(container);
 
-    // Wait for all expansions to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const canvas = await html2canvas(contentRef.current, {
-      scale: 2,
-      useCORS: true,
-      logging: true,
-      windowWidth: contentRef.current.offsetWidth,
-      windowHeight: contentRef.current.scrollHeight,
+    // Render the PrintableReport in the container
+    const root = createRoot(container);
+    await new Promise<void>(resolve => {
+      root.render(
+        <PrintableReport
+          userLicenses={userLicenses}
+          packageLicenses={packageLicenses}
+          permissionSetLicenses={permissionSetLicenses}
+          sandboxes={sandboxes}
+          limits={limits}
+          metrics={metrics}
+        />
+      );
+      // Give time for the component to render
+      setTimeout(resolve, 1000);
     });
 
-    const imgWidth = 210; // A4 width in mm
-    const pageHeight = 297; // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    
-    let heightLeft = imgHeight;
-    let position = 0;
-    
-    // First page
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-    
-    // Additional pages if needed
-    while (heightLeft >= 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-    }
-    
-    pdf.save('salesforce-dashboard-report.pdf');
-  };
-
-  const handleDownload = async () => {
     try {
-      setIsGenerating(true);
-      
-      // Store current URL to refresh to same state
-      const currentUrl = window.location.href;
-
-      // Force expand all sections by setting URL parameter
-      window.history.pushState({}, '', `${window.location.pathname}?expanded=true`);
-      
-      // Show loading toast
-      toast({
-        title: "Preparing PDF",
-        description: "Please wait while we generate your report...",
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
       });
 
-      // Generate PDF
-      await generatePDF();
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF('p', 'mm', 'a4');
       
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      // First page
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Additional pages if needed
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save('salesforce-dashboard-report.pdf');
       toast({
         title: "Success",
         description: "Dashboard report has been downloaded successfully.",
       });
-
-      // Reset URL and refresh page
-      window.location.href = currentUrl;
-
     } catch (error) {
       console.error('PDF generation error:', error);
       toast({
@@ -87,6 +90,17 @@ export const DownloadPdfButton = ({ contentRef }: DownloadPdfButtonProps) => {
         title: "Error",
         description: "Failed to generate PDF. Please try again.",
       });
+    } finally {
+      // Clean up
+      root.unmount();
+      document.body.removeChild(container);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      setIsGenerating(true);
+      await generatePDF();
     } finally {
       setIsGenerating(false);
     }
