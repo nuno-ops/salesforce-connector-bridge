@@ -8,18 +8,16 @@ interface LicenseOptimizationSectionProps {
   integrationUsers: any[];
   platformUsers: any[];
   getUserOAuthApps: (userId: string) => string[];
-  maskUsername: (username: string) => string;
 }
 
 export const LicenseOptimizationSection = ({
   inactiveUsers,
   integrationUsers,
   platformUsers,
-  getUserOAuthApps,
-  maskUsername
+  getUserOAuthApps
 }: LicenseOptimizationSectionProps) => {
   return (
-    <Card className="mb-8">
+    <Card>
       <CardHeader>
         <CardTitle>License Optimization</CardTitle>
       </CardHeader>
@@ -38,7 +36,7 @@ export const LicenseOptimizationSection = ({
             <TableBody>
               {inactiveUsers.map((user) => (
                 <TableRow key={user.Id}>
-                  <TableCell>{maskUsername(user.Username)}</TableCell>
+                  <TableCell>{user.Username}</TableCell>
                   <TableCell>
                     {user.LastLoginDate 
                       ? format(new Date(user.LastLoginDate), 'PPp')
@@ -47,6 +45,13 @@ export const LicenseOptimizationSection = ({
                   <TableCell>{user.UserType}</TableCell>
                 </TableRow>
               ))}
+              {inactiveUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-4">
+                    No inactive users found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -65,7 +70,7 @@ export const LicenseOptimizationSection = ({
             <TableBody>
               {integrationUsers.map((user) => (
                 <TableRow key={user.Id}>
-                  <TableCell>{maskUsername(user.Username)}</TableCell>
+                  <TableCell>{user.Username}</TableCell>
                   <TableCell>{user.UserType}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
@@ -78,6 +83,13 @@ export const LicenseOptimizationSection = ({
                   </TableCell>
                 </TableRow>
               ))}
+              {integrationUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-4">
+                    No integration users found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -96,7 +108,7 @@ export const LicenseOptimizationSection = ({
             <TableBody>
               {platformUsers.map((user) => (
                 <TableRow key={user.Id}>
-                  <TableCell>{maskUsername(user.Username)}</TableCell>
+                  <TableCell>{user.Username}</TableCell>
                   <TableCell>
                     {user.LastLoginDate 
                       ? format(new Date(user.LastLoginDate), 'PPp')
@@ -105,6 +117,13 @@ export const LicenseOptimizationSection = ({
                   <TableCell>{user.Profile?.Name}</TableCell>
                 </TableRow>
               ))}
+              {platformUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-4">
+                    No platform license candidates found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

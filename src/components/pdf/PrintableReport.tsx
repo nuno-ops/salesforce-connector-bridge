@@ -8,7 +8,8 @@ import { ReportHeader } from "./sections/ReportHeader";
 import { SavingsSummary } from "./sections/SavingsSummary";
 import { LicenseOptimizationSection } from "./sections/LicenseOptimizationSection";
 import { OperationalMetricsSection } from "./sections/OperationalMetricsSection";
-import { filterStandardSalesforceUsers, filterInactiveUsers, maskUsername } from "../users/utils/userFilters";
+import { filterStandardSalesforceUsers, filterInactiveUsers } from "../users/utils/userFilters";
+import { useEffect, useState } from "react";
 
 interface PrintableReportProps {
   userLicenses: any[];
@@ -27,6 +28,7 @@ export const PrintableReport = ({
   limits,
   metrics
 }: PrintableReportProps) => {
+  const [isDataReady, setIsDataReady] = useState(false);
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics);
   
   // Get savings data
@@ -52,6 +54,7 @@ export const PrintableReport = ({
     const userOAuthApps = getUserOAuthApps(user.Id);
     return userOAuthApps.length > 0;
   });
+
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
   const getUserOAuthApps = (userId: string) => {
@@ -60,6 +63,17 @@ export const PrintableReport = ({
       .map(token => token.AppName)
       .filter((value, index, self) => self.indexOf(value) === index);
   };
+
+  // Wait for data to be loaded
+  useEffect(() => {
+    if (users.length > 0 && userLicenses.length > 0) {
+      setIsDataReady(true);
+    }
+  }, [users, userLicenses]);
+
+  if (!isDataReady) {
+    return <div>Loading report data...</div>;
+  }
 
   return (
     <div className="p-8 space-y-8 bg-white min-h-screen">
@@ -75,7 +89,6 @@ export const PrintableReport = ({
         integrationUsers={integrationUsers}
         platformUsers={platformUsers}
         getUserOAuthApps={getUserOAuthApps}
-        maskUsername={maskUsername}
       />
 
       {/* License Usage Section */}
@@ -114,22 +127,6 @@ export const PrintableReport = ({
                   </div>
                   <div className="flex justify-between mb-2">
                     <span>Usage</span>
-                    <span>{license.used} / {license.total}</span>
-                  </div>
-                  <Progress value={(license.used / license.total) * 100} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Permission Set Licenses */}
-          <div>
-            <h3 className="font-semibold mb-4">Permission Set Licenses</h3>
-            <div className="grid gap-4">
-              {permissionSetLicenses.map((license, index) => (
-                <div key={index} className="border p-4 rounded-lg">
-                  <div className="flex justify-between mb-2">
-                    <span className="font-medium">{license.name}</span>
                     <span>{license.used} / {license.total}</span>
                   </div>
                   <Progress value={(license.used / license.total) * 100} />
