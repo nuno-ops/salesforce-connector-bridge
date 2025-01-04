@@ -20,13 +20,18 @@ export const LicenseCard = ({ title, licenses, type }: LicenseCardProps) => {
     searchTerm
   });
 
+  console.log('Before filtering:', {
+    licenses,
+    firstLicenseComplete: licenses[0],
+    nameProperty: licenses[0]?.name,
+    type,
+    searchTerm
+  });
+
   const filteredLicenses = licenses.filter(license => {
-    console.log('License filter check:', {
-      license,
-      name: license.name,
-      hasNameProperty: 'name' in license,
-      nameValue: license.name,
-      searchTerm,
+    console.log('Filtering license:', {
+      licenseName: license.name,
+      completeObject: license,
       wouldPass: license.name?.toLowerCase().includes(searchTerm.toLowerCase())
     });
 
