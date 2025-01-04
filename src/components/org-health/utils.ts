@@ -1,4 +1,6 @@
-export const formatLicenseData = (licenses: any[]) => {
+import { LicenseInfo } from "./types";
+
+export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
   console.log('Formatting user licenses. Raw input:', licenses);
   
   return licenses.map(license => {
@@ -17,7 +19,7 @@ export const formatLicenseData = (licenses: any[]) => {
   });
 };
 
-export const formatPackageLicenseData = (licenses: any[]) => {
+export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
   console.log('Formatting package licenses:', licenses);
   
   return licenses.map(license => {
@@ -37,7 +39,7 @@ export const formatPackageLicenseData = (licenses: any[]) => {
   });
 };
 
-export const formatPermissionSetLicenseData = (licenses: any[]) => {
+export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] => {
   console.log('Formatting permission set licenses:', licenses);
   
   return licenses.map(license => {
