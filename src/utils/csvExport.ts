@@ -9,8 +9,8 @@ interface ExportData {
   permissionSetLicenses: any[];
   sandboxes: any[];
   limits: any;
-  oauthTokens?: any[];
   users?: any[];
+  oauthTokens?: any[];
 }
 
 export const generateReportCSV = (data: ExportData) => {
@@ -24,24 +24,59 @@ export const generateReportCSV = (data: ExportData) => {
     users = []
   } = data;
 
-  // Format license data
-  const formattedUserLicenses = formatLicenseData(userLicenses).map(license => ({
-    ...license,
-    available: license.total - license.used,
-    usagePercentage: ((license.used / license.total) * 100).toFixed(1)
-  }));
+  console.log('Raw user licenses:', userLicenses);
+  console.log('Raw package licenses:', packageLicenses);
+  console.log('Raw permission set licenses:', permissionSetLicenses);
 
-  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses).map(license => ({
-    ...license,
-    available: license.total - license.used,
-    usagePercentage: ((license.used / license.total) * 100).toFixed(1)
-  }));
+  // Format license data with safe number handling
+  const formattedUserLicenses = formatLicenseData(userLicenses).map(license => {
+    const total = Number(license.total) || 0;
+    const used = Number(license.used) || 0;
+    const available = total - used;
+    const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
+    
+    return {
+      ...license,
+      total,
+      used,
+      available,
+      usagePercentage
+    };
+  });
 
-  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses).map(license => ({
-    ...license,
-    available: license.total - license.used,
-    usagePercentage: ((license.used / license.total) * 100).toFixed(1)
-  }));
+  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses).map(license => {
+    const total = Number(license.total) || 0;
+    const used = Number(license.used) || 0;
+    const available = total - used;
+    const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
+    
+    return {
+      ...license,
+      total,
+      used,
+      available,
+      usagePercentage
+    };
+  });
+
+  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses).map(license => {
+    const total = Number(license.total) || 0;
+    const used = Number(license.used) || 0;
+    const available = total - used;
+    const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
+    
+    return {
+      ...license,
+      total,
+      used,
+      available,
+      usagePercentage
+    };
+  });
+
+  console.log('Formatted user licenses:', formattedUserLicenses);
+  console.log('Formatted package licenses:', formattedPackageLicenses);
+  console.log('Formatted permission set licenses:', formattedPermissionSetLicenses);
 
   // Filter users
   const standardUsers = filterStandardSalesforceUsers(users);
@@ -67,10 +102,10 @@ export const generateReportCSV = (data: ExportData) => {
     ['User Licenses'],
     ['Name', 'Total', 'Used', 'Available', 'Usage %'],
     ...formattedUserLicenses.map(license => [
-      license.name,
-      license.total || 0,
-      license.used || 0,
-      license.available || 0,
+      license.name || 'Unknown',
+      license.total,
+      license.used,
+      license.available,
       `${license.usagePercentage}%`
     ]),
     [''],
@@ -79,12 +114,12 @@ export const generateReportCSV = (data: ExportData) => {
     ['Package Licenses'],
     ['Name', 'Total', 'Used', 'Available', 'Usage %', 'Status'],
     ...formattedPackageLicenses.map(license => [
-      license.name,
-      license.total || 0,
-      license.used || 0,
-      license.available || 0,
+      license.name || 'Unknown',
+      license.total,
+      license.used,
+      license.available,
       `${license.usagePercentage}%`,
-      license.status
+      license.status || 'Unknown'
     ]),
     [''],
 
@@ -92,10 +127,10 @@ export const generateReportCSV = (data: ExportData) => {
     ['Permission Set Licenses'],
     ['Name', 'Total', 'Used', 'Available', 'Usage %'],
     ...formattedPermissionSetLicenses.map(license => [
-      license.name,
-      license.total || 0,
-      license.used || 0,
-      license.available || 0,
+      license.name || 'Unknown',
+      license.total,
+      license.used,
+      license.available,
       `${license.usagePercentage}%`
     ]),
     [''],
@@ -104,9 +139,9 @@ export const generateReportCSV = (data: ExportData) => {
     ['Inactive Users'],
     ['Username', 'Last Login', 'User Type', 'Profile'],
     ...inactiveUsers.map(user => [
-      user.Username,
+      user.Username || 'Unknown',
       user.LastLoginDate || 'Never',
-      user.UserType,
+      user.UserType || 'Unknown',
       user.Profile?.Name || 'N/A'
     ]),
     [''],
@@ -115,9 +150,9 @@ export const generateReportCSV = (data: ExportData) => {
     ['Integration User Candidates'],
     ['Username', 'Last Login', 'User Type', 'Profile'],
     ...potentialIntegrationUsers.map(user => [
-      user.Username,
+      user.Username || 'Unknown',
       user.LastLoginDate || 'Never',
-      user.UserType,
+      user.UserType || 'Unknown',
       user.Profile?.Name || 'N/A'
     ]),
     [''],
@@ -126,8 +161,8 @@ export const generateReportCSV = (data: ExportData) => {
     ['Sandboxes'],
     ['Name', 'Type', 'Status'],
     ...sandboxes.map(sandbox => [
-      sandbox.SandboxName,
-      sandbox.LicenseType,
+      sandbox.SandboxName || 'Unknown',
+      sandbox.LicenseType || 'Unknown',
       sandbox.Status || 'Active'
     ]),
     [''],
@@ -136,19 +171,19 @@ export const generateReportCSV = (data: ExportData) => {
     ['Organization Limits'],
     ['Limit Type', 'Used', 'Total', 'Remaining', 'Usage %'],
     ['Data Storage (MB)', 
-      limits?.DataStorageMB?.Max - limits?.DataStorageMB?.Remaining || 0,
+      (limits?.DataStorageMB?.Max - limits?.DataStorageMB?.Remaining) || 0,
       limits?.DataStorageMB?.Max || 0,
       limits?.DataStorageMB?.Remaining || 0,
       `${(((limits?.DataStorageMB?.Max - limits?.DataStorageMB?.Remaining) / limits?.DataStorageMB?.Max) * 100 || 0).toFixed(1)}%`
     ],
     ['File Storage (MB)',
-      limits?.FileStorageMB?.Max - limits?.FileStorageMB?.Remaining || 0,
+      (limits?.FileStorageMB?.Max - limits?.FileStorageMB?.Remaining) || 0,
       limits?.FileStorageMB?.Max || 0,
       limits?.FileStorageMB?.Remaining || 0,
       `${(((limits?.FileStorageMB?.Max - limits?.FileStorageMB?.Remaining) / limits?.FileStorageMB?.Max) * 100 || 0).toFixed(1)}%`
     ],
     ['Daily API Requests',
-      limits?.DailyApiRequests?.Max - limits?.DailyApiRequests?.Remaining || 0,
+      (limits?.DailyApiRequests?.Max - limits?.DailyApiRequests?.Remaining) || 0,
       limits?.DailyApiRequests?.Max || 0,
       limits?.DailyApiRequests?.Remaining || 0,
       `${(((limits?.DailyApiRequests?.Max - limits?.DailyApiRequests?.Remaining) / limits?.DailyApiRequests?.Max) * 100 || 0).toFixed(1)}%`
