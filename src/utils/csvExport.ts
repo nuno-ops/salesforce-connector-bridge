@@ -1,8 +1,8 @@
-import { ExportData } from './types';
-import { createLicenseSection } from './sections/licenseSection';
-import { createSandboxSection } from './sections/sandboxSection';
-import { createLimitsSection } from './sections/limitsSection';
-import { createUserSection } from './sections/userSection';
+import { ExportData } from '@/utils/csv/types';
+import { createLicenseSection } from '@/utils/csv/sections/licenseSection';
+import { createSandboxSection } from '@/utils/csv/sections/sandboxSection';
+import { createLimitsSection } from '@/utils/csv/sections/limitsSection';
+import { createUserSection } from '@/utils/csv/sections/userSection';
 import { filterStandardSalesforceUsers, filterInactiveUsers } from '@/components/users/utils/userFilters';
 import { 
   calculateInactiveUserSavings,
