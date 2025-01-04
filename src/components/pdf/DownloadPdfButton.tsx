@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import { PrintableReport } from "./PrintableReport";
-import { createRoot } from 'react-dom/client';
 import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
+import { renderPdfContent } from "./PdfContentRenderer";
+import { 
+  PDF_CONFIG, 
+  calculatePdfDimensions, 
+  createPdfDocument, 
+  addPageContent 
+} from "@/utils/pdfUtils";
 
 export const DownloadPdfButton = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -23,84 +26,43 @@ export const DownloadPdfButton = () => {
   } = useOrgHealthData();
 
   const generatePDF = async () => {
-    const container = document.createElement('div');
-    const containerElement = container as HTMLElement;
-    containerElement.style.position = 'absolute';
-    containerElement.style.left = '-9999px';
-    containerElement.style.width = '1024px';
-    document.body.appendChild(container);
-
-    const root = createRoot(container);
-
+    console.log('Starting PDF generation...');
+    
     try {
-      await new Promise<void>((resolve) => {
-        root.render(
-          <PrintableReport
-            userLicenses={userLicenses}
-            packageLicenses={packageLicenses}
-            permissionSetLicenses={permissionSetLicenses}
-            sandboxes={sandboxes}
-            limits={limits}
-            metrics={metrics}
-          />
-        );
-        setTimeout(resolve, 3000); // Increased timeout for better rendering
-      });
-
-      console.log('Generating canvas...');
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        windowWidth: 1024,
-        onclone: (clonedDoc) => {
-          const element = clonedDoc.querySelector('#pdf-content');
-          if (element instanceof HTMLElement) {
-            element.style.display = 'block';
-            element.style.width = '1024px';
-          }
+      // Render content to canvas
+      const { canvas, cleanup } = await renderPdfContent({
+        data: {
+          userLicenses,
+          packageLicenses,
+          permissionSetLicenses,
+          sandboxes,
+          limits,
+          metrics
         }
       });
 
       console.log('Canvas generated, creating PDF...');
+      
+      // Get canvas data
       const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'pt',
-        format: 'a4'
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      // Calculate scale to fit width while maintaining aspect ratio
-      const scale = pageWidth / canvas.width;
-      const scaledHeight = canvas.height * scale;
-
-      // Add first page
-      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, scaledHeight);
-
-      // Add additional pages if content exceeds one page
-      if (scaledHeight > pageHeight) {
-        const totalPages = Math.ceil(scaledHeight / pageHeight);
-        
-        for (let i = 1; i < totalPages; i++) {
-          pdf.addPage();
-          pdf.addImage(
-            imgData,
-            'JPEG',
-            0,
-            -(pageHeight * i),
-            pageWidth,
-            scaledHeight
-          );
-        }
+      
+      // Create PDF document
+      const pdf = createPdfDocument();
+      
+      // Calculate dimensions
+      const { scaledHeight } = calculatePdfDimensions(canvas);
+      
+      // Calculate number of pages needed
+      const totalPages = Math.ceil(scaledHeight / PDF_CONFIG.PAGE_HEIGHT);
+      
+      // Add content to pages
+      for (let i = 0; i < totalPages; i++) {
+        addPageContent(pdf, imgData, i, scaledHeight);
       }
       
       console.log('Saving PDF...');
       pdf.save('salesforce-dashboard-report.pdf');
+      
       toast({
         title: "Success",
         description: "Dashboard report has been downloaded successfully.",
@@ -113,8 +75,6 @@ export const DownloadPdfButton = () => {
         description: "Failed to generate PDF. Please try again.",
       });
     } finally {
-      root.unmount();
-      document.body.removeChild(container);
       setIsGenerating(false);
     }
   };
