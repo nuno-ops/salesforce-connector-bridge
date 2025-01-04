@@ -4,6 +4,7 @@ import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
 import { createUserSection } from './csv/sections/userSection';
 import { filterStandardSalesforceUsers, filterInactiveUsers } from '@/components/users/utils/userFilters';
+import { calculateTotalSavings } from '@/components/dashboard/utils/usageCalculations';
 
 export const generateReportCSV = (data: ExportData) => {
   console.log('Generating CSV with raw data:', data);
@@ -22,6 +23,13 @@ export const generateReportCSV = (data: ExportData) => {
   // Get platform license users
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
+  // Calculate total potential annual savings
+  const totalSavings = calculateTotalSavings(
+    data.userLicenses,
+    data.packageLicenses,
+    data.sandboxes
+  );
+
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses),
     createLicenseSection('Package Licenses', data.packageLicenses),
@@ -35,6 +43,7 @@ export const generateReportCSV = (data: ExportData) => {
 
   const csvContent: string[][] = [
     ['Salesforce Organization Cost Optimization Report'],
+    ['Potential Annual Savings:', `$${totalSavings.toLocaleString()}`],
     ['Generated on:', new Date().toLocaleString()],
     ['']
   ];
