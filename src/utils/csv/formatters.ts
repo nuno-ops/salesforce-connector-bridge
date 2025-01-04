@@ -1,4 +1,4 @@
-import { FormattedLicense } from './types';
+import { FormattedLicense, RawLicense } from './types';
 
 export const formatNumber = (value: number | undefined | null): number => {
   console.log('formatNumber input:', value);
@@ -26,7 +26,7 @@ export const calculateUsagePercentage = (used: number, total: number): string =>
   return ((used / total) * 100).toFixed(1);
 };
 
-export const formatLicenseData = (license: any): FormattedLicense => {
+export const formatLicenseData = (license: RawLicense): FormattedLicense => {
   console.log('formatLicenseData input:', license);
   
   // Ensure we have the basic required fields

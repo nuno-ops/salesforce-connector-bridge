@@ -5,6 +5,15 @@ export interface RawLicense {
   status?: string;
 }
 
+export interface FormattedLicense {
+  name: string;
+  total: number;
+  used: number;
+  available: number;
+  usagePercentage: string;
+  status?: string;
+}
+
 export interface ExportData {
   userLicenses: RawLicense[];
   packageLicenses: RawLicense[];
