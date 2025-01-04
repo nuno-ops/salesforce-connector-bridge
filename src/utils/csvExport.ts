@@ -55,16 +55,11 @@ export const generateReportCSV = async (data: ExportData) => {
   // Get platform license users
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
-  // Format license data using the formatLicense utility
-  const formattedUserLicenses = (data.userLicenses || []).map(formatLicense);
-  const formattedPackageLicenses = (data.packageLicenses || []).map(formatLicense);
-  const formattedPermissionSetLicenses = (data.permissionSetLicenses || []).map(formatLicense);
-
   const sections = [
     savingsSummarySection,
-    createLicenseSection('User Licenses', formattedUserLicenses),
-    createLicenseSection('Package Licenses', formattedPackageLicenses),
-    createLicenseSection('Permission Set Licenses', formattedPermissionSetLicenses),
+    createLicenseSection('User Licenses', data.userLicenses || []),
+    createLicenseSection('Package Licenses', data.packageLicenses || []),
+    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
     createSandboxSection(data.sandboxes || []),
     createLimitsSection(data.limits),
     createUserSection('Inactive Users', inactiveUsers),
