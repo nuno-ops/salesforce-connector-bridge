@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { PrintableReport } from "./PrintableReport";
@@ -10,6 +10,7 @@ import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
 
 export const DownloadPdfButton = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
   const { 
     userLicenses = [], 
     packageLicenses = [], 
@@ -17,6 +18,8 @@ export const DownloadPdfButton = () => {
     sandboxes = [],
     limits = {},
     metrics = {},
+    isLoading,
+    error
   } = useOrgHealthData();
 
   const generatePDF = async () => {
@@ -27,45 +30,63 @@ export const DownloadPdfButton = () => {
     document.body.appendChild(container);
 
     const root = createRoot(container);
-    await new Promise<void>(resolve => {
-      root.render(
-        <PrintableReport
-          userLicenses={userLicenses}
-          packageLicenses={packageLicenses}
-          permissionSetLicenses={permissionSetLicenses}
-          sandboxes={sandboxes}
-          limits={limits}
-          metrics={metrics}
-        />
-      );
-      setTimeout(resolve, 1000);
-    });
 
     try {
+      // Wait for data to be ready
+      await new Promise<void>((resolve) => {
+        root.render(
+          <PrintableReport
+            userLicenses={userLicenses}
+            packageLicenses={packageLicenses}
+            permissionSetLicenses={permissionSetLicenses}
+            sandboxes={sandboxes}
+            limits={limits}
+            metrics={metrics}
+          />
+        );
+        // Give more time for components to render and data to load
+        setTimeout(resolve, 2000);
+      });
+
+      console.log('Generating canvas...');
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        logging: false,
+        logging: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 1024,
+        onclone: (clonedDoc) => {
+          const element = clonedDoc.querySelector('#pdf-content');
+          if (element) {
+            element.style.display = 'block';
+            element.style.width = '1024px';
+          }
+        }
       });
 
-      const imgWidth = 210;
-      const pageHeight = 297;
+      console.log('Canvas generated, creating PDF...');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       const pdf = new jsPDF('p', 'mm', 'a4');
       
       let heightLeft = imgHeight;
       let position = 0;
       
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+      // Add first page
+      pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
       
+      // Add subsequent pages if needed
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
       
+      console.log('Saving PDF...');
       pdf.save('salesforce-dashboard-report.pdf');
       toast({
         title: "Success",
@@ -81,17 +102,30 @@ export const DownloadPdfButton = () => {
     } finally {
       root.unmount();
       document.body.removeChild(container);
+      setIsGenerating(false);
     }
   };
 
   const handleDownload = async () => {
+    if (isLoading || isGenerating) return;
+    
     try {
       setIsGenerating(true);
       await generatePDF();
-    } finally {
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+      });
       setIsGenerating(false);
     }
   };
+
+  if (error) {
+    return null;
+  }
 
   return (
     <>
@@ -99,7 +133,7 @@ export const DownloadPdfButton = () => {
         variant="outline" 
         onClick={handleDownload}
         className="flex items-center gap-2"
-        disabled={isGenerating}
+        disabled={isGenerating || isLoading}
       >
         {isGenerating ? (
           <Loader2 className="h-4 w-4 animate-spin" />
