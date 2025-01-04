@@ -6,6 +6,7 @@ import { createUserSection } from './csv/sections/userSection';
 import { filterStandardSalesforceUsers, filterInactiveUsers } from '@/components/users/utils/userFilters';
 import { calculateInactiveUserSavings, calculateIntegrationUserSavings } from '@/components/cost-savings/utils/savingsCalculations';
 import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils/platformLicenseSavings';
+import { formatLicense } from './csv/formatters';
 
 export const generateReportCSV = async (data: ExportData) => {
   console.log('Generating CSV with raw data:', data);
@@ -54,12 +55,17 @@ export const generateReportCSV = async (data: ExportData) => {
   // Get platform license users
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
+  // Format license data using the formatLicense utility
+  const formattedUserLicenses = (data.userLicenses || []).map(formatLicense);
+  const formattedPackageLicenses = (data.packageLicenses || []).map(formatLicense);
+  const formattedPermissionSetLicenses = (data.permissionSetLicenses || []).map(formatLicense);
+
   const sections = [
     savingsSummarySection,
-    createLicenseSection('User Licenses', data.userLicenses),
-    createLicenseSection('Package Licenses', data.packageLicenses),
-    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses),
-    createSandboxSection(data.sandboxes),
+    createLicenseSection('User Licenses', data.userLicenses || []),
+    createLicenseSection('Package Licenses', data.packageLicenses || []),
+    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
+    createSandboxSection(data.sandboxes || []),
     createLimitsSection(data.limits),
     createUserSection('Inactive Users', inactiveUsers),
     createUserSection('Integration Users', integrationUsers),
