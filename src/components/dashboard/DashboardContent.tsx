@@ -5,6 +5,7 @@ import { OrgHealth } from "@/components/OrgHealth";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -25,17 +26,30 @@ export const DashboardContent = ({
   users = [],
   oauthTokens = []
 }: DashboardContentProps) => {
-  const handleExportReport = () => {
-    const csvContent = generateReportCSV({
-      userLicenses,
-      packageLicenses,
-      permissionSetLicenses,
-      sandboxes,
-      limits,
-      users,
-      oauthTokens
-    });
-    downloadCSV(csvContent, 'salesforce-optimization-report.csv');
+  const { toast } = useToast();
+
+  const handleExportReport = async () => {
+    try {
+      const csvContent = await generateReportCSV({
+        userLicenses,
+        packageLicenses,
+        permissionSetLicenses,
+        sandboxes,
+        limits,
+        users,
+        oauthTokens,
+        licensePrice: 100, // Default license price if not available
+        storageUsage: limits?.StorageUsed || 0
+      });
+      downloadCSV(csvContent, 'salesforce-optimization-report.csv');
+    } catch (error) {
+      console.error('Error generating CSV:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate the report. Please try again."
+      });
+    }
   };
 
   return (

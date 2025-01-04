@@ -11,6 +11,7 @@ import {
   calculateStorageSavings
 } from '@/components/cost-savings/utils/savingsCalculations';
 import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils/platformLicenseSavings';
+import { formatLicenseData } from '@/components/org-health/utils';
 
 export const generateReportCSV = async (data: ExportData) => {
   console.log('Generating CSV with raw data:', data);
@@ -19,13 +20,16 @@ export const generateReportCSV = async (data: ExportData) => {
   const standardUsers = filterStandardSalesforceUsers(data.users || []);
   const inactiveUsers = filterInactiveUsers(standardUsers);
   
+  // Format licenses to match the expected License type
+  const formattedUserLicenses = data.userLicenses ? formatLicenseData(data.userLicenses) : [];
+  
   // Calculate savings using the same functions as the dashboard
   const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, data.licensePrice || 100);
   const integrationUserSavings = calculateIntegrationUserSavings(
     standardUsers,
     data.oauthTokens || [],
     data.licensePrice || 100,
-    data.userLicenses || []
+    formattedUserLicenses
   );
   const sandboxSavingsCalc = calculateSandboxSavings(data.sandboxes || []);
   const storageSavingsCalc = calculateStorageSavings(data.storageUsage || 0);

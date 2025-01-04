@@ -18,6 +18,8 @@ export interface ExportData {
   limits: any;
   users?: any[];
   oauthTokens?: any[];
+  licensePrice?: number;
+  storageUsage?: number;
 }
 
 export interface CSVSection {
