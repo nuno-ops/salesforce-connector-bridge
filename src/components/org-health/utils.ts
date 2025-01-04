@@ -9,7 +9,7 @@ export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
   }
 
   const formatted = licenses.map(license => ({
-    name: license.Name,
+    name: license.Name || '',
     total: license.TotalLicenses,
     used: license.UsedLicenses,
     id: license.Id,
@@ -29,7 +29,7 @@ export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
   }
 
   const formatted = licenses.map(license => ({
-    name: license.NamespacePrefix,
+    name: license.NamespacePrefix || '',
     total: license.AllowedLicenses,
     used: license.UsedLicenses,
     status: license.Status,
@@ -50,7 +50,7 @@ export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] =
   }
 
   const formatted = licenses.map(license => ({
-    name: license.DeveloperName,
+    name: license.DeveloperName || '',
     total: license.TotalLicenses,
     used: license.UsedLicenses,
     id: license.Id,
