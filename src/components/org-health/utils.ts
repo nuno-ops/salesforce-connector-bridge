@@ -1,53 +1,77 @@
-import { UserLicense, PackageLicense, PermissionSetLicense } from './types';
-
-export const formatLicenseData = (licenses: UserLicense[]) => {
-  console.log('Formatting user licenses:', licenses);
+export const formatLicenseData = (licenses: any[]) => {
+  console.log('formatLicenseData - Input:', JSON.stringify(licenses, null, 2));
+  
   const formatted = licenses.map(license => {
-    console.log('Processing license:', license);
+    console.log('formatLicenseData - Processing license:', {
+      raw: license,
+      name: license.Name,
+      total: license.TotalLicenses,
+      used: license.UsedLicenses
+    });
+    
     const result = {
       ...license,
       total: license.TotalLicenses,
       used: license.UsedLicenses,
       name: license.Name || 'Unknown'
     };
-    console.log('Formatted license:', result);
+    
+    console.log('formatLicenseData - Formatted result:', result);
     return result;
   });
-  console.log('All formatted licenses:', formatted);
+
+  console.log('formatLicenseData - Final output:', JSON.stringify(formatted, null, 2));
   return formatted;
 };
 
-export const formatPackageLicenseData = (licenses: PackageLicense[]) => {
-  console.log('Formatting package licenses:', licenses);
+export const formatPackageLicenseData = (licenses: any[]) => {
+  console.log('formatPackageLicenseData - Input:', JSON.stringify(licenses, null, 2));
+  
   const formatted = licenses.map(license => {
-    console.log('Processing package license:', license);
+    console.log('formatPackageLicenseData - Processing license:', {
+      raw: license,
+      name: license.NamespacePrefix,
+      total: license.AllowedLicenses,
+      used: license.UsedLicenses
+    });
+    
     const result = {
       ...license,
       total: license.AllowedLicenses,
       used: license.UsedLicenses,
-      name: license.NamespacePrefix || 'Unknown',
-      status: license.Status
+      name: license.NamespacePrefix || 'Unknown'
     };
-    console.log('Formatted package license:', result);
+    
+    console.log('formatPackageLicenseData - Formatted result:', result);
     return result;
   });
-  console.log('All formatted package licenses:', formatted);
+
+  console.log('formatPackageLicenseData - Final output:', JSON.stringify(formatted, null, 2));
   return formatted;
 };
 
-export const formatPermissionSetLicenseData = (licenses: PermissionSetLicense[]) => {
-  console.log('Formatting permission set licenses:', licenses);
+export const formatPermissionSetLicenseData = (licenses: any[]) => {
+  console.log('formatPermissionSetLicenseData - Input:', JSON.stringify(licenses, null, 2));
+  
   const formatted = licenses.map(license => {
-    console.log('Processing permission set license:', license);
+    console.log('formatPermissionSetLicenseData - Processing license:', {
+      raw: license,
+      name: license.DeveloperName,
+      total: license.TotalLicenses,
+      used: license.UsedLicenses
+    });
+    
     const result = {
       ...license,
       total: license.TotalLicenses,
       used: license.UsedLicenses,
       name: license.DeveloperName || 'Unknown'
     };
-    console.log('Formatted permission set license:', result);
+    
+    console.log('formatPermissionSetLicenseData - Formatted result:', result);
     return result;
   });
-  console.log('All formatted permission set licenses:', formatted);
+
+  console.log('formatPermissionSetLicenseData - Final output:', JSON.stringify(formatted, null, 2));
   return formatted;
 };

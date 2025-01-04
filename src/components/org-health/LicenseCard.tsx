@@ -16,7 +16,11 @@ interface LicenseCardProps {
 }
 
 export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) => {
-  console.log('LicenseCard render:', { title, type, licenses });
+  console.log('LicenseCard render:', { 
+    title, 
+    type, 
+    licenses: JSON.stringify(licenses, null, 2) 
+  });
   
   const [isOpen, setIsOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,8 +50,11 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
 
   const filteredLicenses = licenses.filter(license => {
     console.log('Filtering license:', license);
+    console.log('License name:', license.name);
+    console.log('Search term:', searchTerm);
+    
     const searchResult = (license.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    console.log('Search result for', license.name, ':', searchResult);
+    console.log('Search result:', searchResult);
     return searchResult;
   });
 
