@@ -26,6 +26,7 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
   container.style.backgroundColor = '#ffffff';
   container.style.opacity = '1';
   container.style.visibility = 'visible';
+  container.style.minHeight = '500px'; // Ensure minimum height
   document.body.appendChild(container);
 
   return new Promise<{ canvas: HTMLCanvasElement; cleanup: () => void }>((resolve, reject) => {
@@ -40,7 +41,7 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
             width: '1024px', 
             backgroundColor: '#ffffff',
             padding: '40px',
-            minHeight: '500px' // Ensure minimum height
+            minHeight: '500px'
           }}>
             <PrintableReport {...data} />
           </div>
@@ -52,7 +53,12 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
       // Wait for content to be fully rendered
       setTimeout(async () => {
         try {
-          console.log('Container height:', container.offsetHeight);
+          console.log('Container dimensions:', {
+            width: container.offsetWidth,
+            height: container.offsetHeight,
+            scrollHeight: container.scrollHeight
+          });
+
           console.log('Starting canvas generation...');
           
           const canvas = await html2canvas(container, {
@@ -62,7 +68,7 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
             allowTaint: true,
             backgroundColor: '#ffffff',
             width: 1024,
-            height: container.offsetHeight || 500, // Fallback to minimum height
+            height: Math.max(container.offsetHeight, container.scrollHeight, 500),
             onclone: (clonedDoc) => {
               console.log('Cloning document for canvas generation...');
               const element = clonedDoc.querySelector('#pdf-content');
@@ -71,12 +77,21 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
                 element.style.width = '1024px';
                 element.style.opacity = '1';
                 element.style.visibility = 'visible';
-                console.log('PDF content element styled:', element.offsetHeight);
+                console.log('PDF content element dimensions:', {
+                  offsetHeight: element.offsetHeight,
+                  scrollHeight: element.scrollHeight,
+                  clientHeight: element.clientHeight
+                });
+              } else {
+                console.error('PDF content element not found in cloned document');
               }
             }
           });
 
-          console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+          console.log('Canvas dimensions:', {
+            width: canvas.width,
+            height: canvas.height
+          });
           
           if (canvas.height === 0) {
             throw new Error('Canvas height is 0, content might not be rendered properly');
@@ -95,7 +110,7 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
           document.body.removeChild(container);
           reject(error);
         }
-      }, 2000);
+      }, 2000); // Increased timeout to ensure content is rendered
 
     } catch (error) {
       console.error('Error during PDF content rendering:', error);

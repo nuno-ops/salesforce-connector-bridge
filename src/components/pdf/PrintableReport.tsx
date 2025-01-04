@@ -42,9 +42,14 @@ export const PrintableReport = ({
   const { licensePrice, users, oauthTokens } = useOrganizationData();
 
   useEffect(() => {
-    console.log('Processing data in useEffect');
+    console.log('Processing data in useEffect', {
+      usersLength: users?.length,
+      userLicensesLength: userLicenses?.length,
+      licensePrice
+    });
+
     if (users?.length > 0 && userLicenses?.length > 0) {
-      console.log('Data available for processing');
+      console.log('Setting processed data');
       setProcessedData({
         users,
         userLicenses,
@@ -55,7 +60,10 @@ export const PrintableReport = ({
 
   // Ensure we have all required data
   if (!processedData || !licensePrice) {
-    console.log('Waiting for data initialization...');
+    console.log('Waiting for data initialization...', {
+      processedData: !!processedData,
+      licensePrice: !!licensePrice
+    });
     return (
       <div className="p-8 space-y-8 bg-white min-h-screen">
         <p>Preparing report data...</p>
@@ -73,6 +81,7 @@ export const PrintableReport = ({
     userLicenses
   });
 
+  console.log('Rendering final report content');
   return (
     <div id="pdf-content" className="p-8 space-y-8 bg-white min-h-screen">
       <ReportHeader />
