@@ -22,13 +22,16 @@ export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
       allAvailableProps: Object.keys(license)
     });
     
-    return {
+    const formattedLicense: LicenseInfo = {
       name: license.Name || '',
-      total: license.TotalLicenses,
-      used: license.UsedLicenses,
+      total: Number(license.TotalLicenses) || 0,
+      used: Number(license.UsedLicenses) || 0,
       id: license.Id,
       type: 'user' as const
     };
+
+    console.log('Formatted user license:', formattedLicense);
+    return formattedLicense;
   });
 
   console.log('formatLicenseData output:', {
@@ -63,14 +66,17 @@ export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
       allAvailableProps: Object.keys(license)
     });
 
-    return {
+    const formattedLicense: LicenseInfo = {
       name: license.NamespacePrefix || '',
-      total: license.AllowedLicenses,
-      used: license.UsedLicenses,
+      total: Number(license.AllowedLicenses) || 0,
+      used: Number(license.UsedLicenses) || 0,
       status: license.Status,
       id: license.Id,
       type: 'package' as const
     };
+
+    console.log('Formatted package license:', formattedLicense);
+    return formattedLicense;
   });
 
   console.log('formatPackageLicenseData output:', {
@@ -104,13 +110,16 @@ export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] =
       allAvailableProps: Object.keys(license)
     });
 
-    return {
-      name: license.DeveloperName || '',  // Changed from Name to DeveloperName
-      total: license.TotalLicenses,
-      used: license.UsedLicenses,
+    const formattedLicense: LicenseInfo = {
+      name: license.DeveloperName || '',
+      total: Number(license.TotalLicenses) || 0,
+      used: Number(license.UsedLicenses) || 0,
       id: license.Id,
       type: 'permissionSet' as const
     };
+
+    console.log('Formatted permission set license:', formattedLicense);
+    return formattedLicense;
   });
 
   console.log('formatPermissionSetLicenseData output:', {
