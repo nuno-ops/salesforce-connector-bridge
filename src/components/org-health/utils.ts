@@ -38,10 +38,14 @@ export const formatPermissionSetLicenseData = (licenses: any[]) => {
   return licenses.map(license => {
     console.log('Processing permission set license:', license);
     
+    // Use DeveloperName for permission set licenses
     const result = {
       name: license.DeveloperName || 'Unknown',
       total: license.TotalLicenses,
-      used: license.UsedLicenses
+      used: license.UsedLicenses,
+      // Add any additional metadata that might be useful
+      id: license.Id,
+      type: 'permissionSet'
     };
     
     console.log('Formatted permission set license:', result);
