@@ -1,14 +1,21 @@
 import { RawLicense } from '../types';
+import { 
+  getLicenseName, 
+  getLicenseTotal, 
+  getLicenseUsed, 
+  getLicenseStatus,
+  calculateUsagePercentage 
+} from '../formatters';
 
 export const createLicenseSection = (title: string, licenses: RawLicense[]) => {
   console.log(`Creating ${title} section with raw data:`, licenses);
   
   const rows = licenses.map(license => {
-    const name = license.Name || license.NamespacePrefix || license.DeveloperName || 'Unknown';
-    const total = license.TotalLicenses || license.AllowedLicenses || 0;
-    const used = license.UsedLicenses || 0;
+    const name = getLicenseName(license);
+    const total = getLicenseTotal(license);
+    const used = getLicenseUsed(license);
     const available = total === -1 ? 'Unlimited' : (total - used).toString();
-    const usagePercentage = total === -1 ? '0.0' : ((used / total) * 100).toFixed(1);
+    const usagePercentage = calculateUsagePercentage(used, total);
 
     return [
       name,
@@ -16,7 +23,7 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]) => {
       used.toString(),
       available,
       `${usagePercentage}%`,
-      license.Status || 'Active'
+      getLicenseStatus(license)
     ];
   });
 

@@ -1,6 +1,5 @@
 import { ExportData } from './types';
 import { createLicenseSection } from './sections/licenseSection';
-import { createUserSection } from './sections/userSection';
 import { createSandboxSection } from './sections/sandboxSection';
 import { createLimitsSection } from './sections/limitsSection';
 
