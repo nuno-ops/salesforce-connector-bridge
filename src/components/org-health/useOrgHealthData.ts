@@ -52,6 +52,15 @@ const fetchOrgHealthData = async () => {
     fetchWithTimeout('salesforce-users', { access_token, instance_url })
   ]);
 
+  console.log('Raw license data from Salesforce:', {
+    permissionSet: licensesData?.permissionSetLicenses?.[0],
+    package: licensesData?.packageLicenses?.[0],
+    user: licensesData?.userLicenses?.[0],
+    allPermissionSetProperties: licensesData?.permissionSetLicenses?.[0] ? Object.keys(licensesData.permissionSetLicenses[0]) : [],
+    allPackageProperties: licensesData?.packageLicenses?.[0] ? Object.keys(licensesData.packageLicenses[0]) : [],
+    allUserProperties: licensesData?.userLicenses?.[0] ? Object.keys(licensesData.userLicenses[0]) : []
+  });
+
   console.log('Successfully fetched all org health data');
 
   return {
