@@ -2,6 +2,12 @@ import { ExportData } from './types';
 import { formatLicenseData, formatCurrency } from './formatters';
 import { filterInactiveUsers, filterStandardSalesforceUsers } from "@/components/users/utils/userFilters";
 import { analyzeIntegrationOpportunities } from "@/components/cost-savings/utils/licenseCalculations";
+import { 
+  generateLicenseSection, 
+  generateUserSection, 
+  generateSandboxSection, 
+  generateLimitsSection 
+} from './sections';
 
 export const generateReportCSV = (data: ExportData) => {
   const {
@@ -37,6 +43,15 @@ export const generateReportCSV = (data: ExportData) => {
   console.log('CSV Generation - Formatted user licenses:', JSON.stringify(formattedUserLicenses, null, 2));
   console.log('CSV Generation - Formatted package licenses:', JSON.stringify(formattedPackageLicenses, null, 2));
   console.log('CSV Generation - Formatted permission set licenses:', JSON.stringify(formattedPermissionSetLicenses, null, 2));
+
+  // Filter and analyze users
+  const standardUsers = filterStandardSalesforceUsers(users);
+  const inactiveUsers = filterInactiveUsers(standardUsers);
+  const potentialIntegrationUsers = analyzeIntegrationOpportunities(
+    standardUsers,
+    oauthTokens,
+    inactiveUsers
+  );
 
   const licensePrice = 150; // Default price if not set
   const totalAnnualSavings = (formattedUserLicenses.length + formattedPackageLicenses.length + formattedPermissionSetLicenses.length) * licensePrice * 12;

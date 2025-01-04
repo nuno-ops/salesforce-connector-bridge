@@ -1,12 +1,3 @@
-export interface FormattedLicense {
-  name: string;
-  total: number;
-  used: number;
-  available: number;
-  usagePercentage: string;
-  status?: string;
-}
-
 export interface ExportData {
   userLicenses: any[];
   packageLicenses: any[];
@@ -17,8 +8,11 @@ export interface ExportData {
   users?: any[];
 }
 
-export interface SavingsData {
-  amount: number;
-  count: number;
-  details: string;
+export interface FormattedLicense {
+  name: string;
+  total: number;
+  used: number;
+  available: number;
+  usagePercentage: string;
+  status?: string;
 }
