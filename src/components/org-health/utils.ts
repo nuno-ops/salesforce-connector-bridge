@@ -1,7 +1,12 @@
 import { LicenseInfo } from './types';
 
 export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
-  console.log('formatLicenseData input raw:', licenses[0]);
+  console.log('formatLicenseData input:', {
+    rawData: licenses,
+    firstItem: licenses[0],
+    allProperties: licenses[0] ? Object.keys(licenses[0]) : [],
+    totalItems: licenses.length
+  });
   
   if (!Array.isArray(licenses)) {
     console.warn('formatLicenseData received non-array input:', licenses);
@@ -13,7 +18,8 @@ export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
       rawName: license.Name,
       rawTotal: license.TotalLicenses,
       rawUsed: license.UsedLicenses,
-      rawId: license.Id
+      rawId: license.Id,
+      allAvailableProps: Object.keys(license)
     });
     
     return {
@@ -25,13 +31,23 @@ export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
     };
   });
 
-  console.log('formatLicenseData first formatted result:', formatted[0]);
+  console.log('formatLicenseData output:', {
+    firstFormatted: formatted[0],
+    totalFormatted: formatted.length,
+    sample: formatted.slice(0, 2)
+  });
+  
   return formatted;
 };
 
 export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
-  console.log('formatPackageLicenseData input raw:', licenses[0]);
-  
+  console.log('formatPackageLicenseData input:', {
+    rawData: licenses,
+    firstItem: licenses[0],
+    allProperties: licenses[0] ? Object.keys(licenses[0]) : [],
+    totalItems: licenses.length
+  });
+
   if (!Array.isArray(licenses)) {
     console.warn('formatPackageLicenseData received non-array input:', licenses);
     return [];
@@ -43,9 +59,10 @@ export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
       rawTotal: license.AllowedLicenses,
       rawUsed: license.UsedLicenses,
       rawStatus: license.Status,
-      rawId: license.Id
+      rawId: license.Id,
+      allAvailableProps: Object.keys(license)
     });
-    
+
     return {
       name: license.NamespacePrefix || '',
       total: license.AllowedLicenses,
@@ -56,13 +73,23 @@ export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
     };
   });
 
-  console.log('formatPackageLicenseData first formatted result:', formatted[0]);
+  console.log('formatPackageLicenseData output:', {
+    firstFormatted: formatted[0],
+    totalFormatted: formatted.length,
+    sample: formatted.slice(0, 2)
+  });
+
   return formatted;
 };
 
 export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] => {
-  console.log('formatPermissionSetLicenseData input raw:', licenses[0]);
-  
+  console.log('formatPermissionSetLicenseData input:', {
+    rawData: licenses,
+    firstItem: licenses[0],
+    allProperties: licenses[0] ? Object.keys(licenses[0]) : [],
+    totalItems: licenses.length
+  });
+
   if (!Array.isArray(licenses)) {
     console.warn('formatPermissionSetLicenseData received non-array input:', licenses);
     return [];
@@ -73,9 +100,10 @@ export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] =
       rawName: license.DeveloperName,
       rawTotal: license.TotalLicenses,
       rawUsed: license.UsedLicenses,
-      rawId: license.Id
+      rawId: license.Id,
+      allAvailableProps: Object.keys(license)
     });
-    
+
     return {
       name: license.DeveloperName || '',
       total: license.TotalLicenses,
@@ -85,6 +113,11 @@ export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] =
     };
   });
 
-  console.log('formatPermissionSetLicenseData first formatted result:', formatted[0]);
+  console.log('formatPermissionSetLicenseData output:', {
+    firstFormatted: formatted[0],
+    totalFormatted: formatted.length,
+    sample: formatted.slice(0, 2)
+  });
+
   return formatted;
 };

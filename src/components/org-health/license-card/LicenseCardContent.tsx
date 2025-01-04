@@ -17,6 +17,7 @@ export const LicenseCardContent = ({
   console.log('LicenseCardContent received:', {
     licensesLength: licenses?.length,
     firstLicense: licenses?.[0],
+    licenseProperties: licenses?.[0] ? Object.keys(licenses[0]) : [],
     searchTerm,
     type
   });
@@ -32,7 +33,8 @@ export const LicenseCardContent = ({
   console.log('Grouped licenses details:', {
     groupCount: Object.keys(groupedLicenses).length,
     groups: Object.keys(groupedLicenses),
-    firstGroupSize: Object.values(groupedLicenses)[0]?.length
+    firstGroupSize: Object.values(groupedLicenses)[0]?.length,
+    sampleGroup: Object.values(groupedLicenses)[0]?.slice(0, 2)
   });
 
   return (
