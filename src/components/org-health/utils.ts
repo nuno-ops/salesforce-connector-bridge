@@ -2,7 +2,7 @@ export const formatLicenseData = (licenses: any[]) => {
   console.log('Formatting user licenses:', licenses);
   
   return licenses.map(license => {
-    console.log('Processing license:', license);
+    console.log('Processing user license:', license);
     
     const result = {
       name: license.Name || 'Unknown',
@@ -10,7 +10,7 @@ export const formatLicenseData = (licenses: any[]) => {
       used: license.UsedLicenses
     };
     
-    console.log('Formatted license:', result);
+    console.log('Formatted user license:', result);
     return result;
   });
 };
@@ -33,22 +33,20 @@ export const formatPackageLicenseData = (licenses: any[]) => {
 };
 
 export const formatPermissionSetLicenseData = (licenses: any[]) => {
-  console.log('Formatting permission set licenses:', licenses);
+  console.log('Formatting permission set licenses. Raw input:', JSON.stringify(licenses, null, 2));
   
   return licenses.map(license => {
-    console.log('Processing permission set license:', license);
+    console.log('Processing permission set license. Raw input:', JSON.stringify(license, null, 2));
     
-    // Use DeveloperName for permission set licenses
     const result = {
       name: license.DeveloperName || 'Unknown',
       total: license.TotalLicenses,
       used: license.UsedLicenses,
-      // Add any additional metadata that might be useful
       id: license.Id,
       type: 'permissionSet'
     };
     
-    console.log('Formatted permission set license:', result);
+    console.log('Formatted permission set license result:', JSON.stringify(result, null, 2));
     return result;
   });
 };

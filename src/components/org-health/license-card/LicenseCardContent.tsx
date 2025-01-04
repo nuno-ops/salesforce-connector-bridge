@@ -15,7 +15,7 @@ export const LicenseCardContent = ({
   type 
 }: LicenseCardContentProps) => {
   console.log('LicenseCardContent received:', {
-    licenses,
+    licenses: JSON.stringify(licenses, null, 2),
     searchTerm,
     type
   });
@@ -28,19 +28,19 @@ export const LicenseCardContent = ({
   };
 
   const groupedLicenses = groupLicensesByType(licenses, type);
-  console.log('Grouped licenses:', groupedLicenses);
+  console.log('Grouped licenses:', JSON.stringify(groupedLicenses, null, 2));
 
   return (
     <div className="space-y-6">
       {Object.entries(groupedLicenses).map(([group, groupLicenses]) => {
-        console.log(`Rendering group ${group}:`, groupLicenses);
+        console.log(`Rendering group ${group}:`, JSON.stringify(groupLicenses, null, 2));
         return (
           <div key={group} className="space-y-2">
             <h3 className="font-medium text-lg">{group}</h3>
             <div className="grid gap-4">
               {(groupLicenses as LicenseInfo[])
                 .filter(license => {
-                  console.log('Filtering license:', license);
+                  console.log('Filtering license:', JSON.stringify(license, null, 2));
                   console.log('License name:', license.name);
                   console.log('Search term:', searchTerm);
                   const result = (license.name || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -48,7 +48,7 @@ export const LicenseCardContent = ({
                   return result;
                 })
                 .map((license, index) => {
-                  console.log('Rendering license:', license);
+                  console.log('Rendering license:', JSON.stringify(license, null, 2));
                   return (
                     <TooltipProvider key={index}>
                       <Tooltip>
@@ -60,9 +60,6 @@ export const LicenseCardContent = ({
                                 <div className="text-sm text-muted-foreground mt-1">
                                   <p>Used: {license.used} / {license.total}</p>
                                   <p>Available: {license.total - license.used}</p>
-                                  {license.status && (
-                                    <p className="mt-1">Status: {license.status}</p>
-                                  )}
                                 </div>
                               </div>
                               <span className={`text-sm font-medium ${getUsageColor(license.used, license.total)}`}>

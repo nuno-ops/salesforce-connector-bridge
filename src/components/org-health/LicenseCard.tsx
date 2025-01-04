@@ -16,7 +16,7 @@ interface LicenseCardProps {
 }
 
 export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) => {
-  console.log('LicenseCard render:', { 
+  console.log('LicenseCard render. Props:', { 
     title, 
     type, 
     licenses: JSON.stringify(licenses, null, 2) 
@@ -49,16 +49,20 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
   };
 
   const filteredLicenses = licenses.filter(license => {
-    console.log('Filtering license:', license);
+    console.log('Filtering license:', JSON.stringify(license, null, 2));
     console.log('License name:', license.name);
     console.log('Search term:', searchTerm);
+    
+    if (!license.name) {
+      console.warn('License missing name property:', license);
+    }
     
     const searchResult = (license.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     console.log('Search result:', searchResult);
     return searchResult;
   });
 
-  console.log('Filtered licenses:', filteredLicenses);
+  console.log('Filtered licenses:', JSON.stringify(filteredLicenses, null, 2));
 
   return (
     <Card>
