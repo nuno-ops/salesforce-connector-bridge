@@ -6,7 +6,6 @@ import { createUserSection } from './csv/sections/userSection';
 import { filterStandardSalesforceUsers, filterInactiveUsers } from '@/components/users/utils/userFilters';
 import { calculateInactiveUserSavings, calculateIntegrationUserSavings } from '@/components/cost-savings/utils/savingsCalculations';
 import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils/platformLicenseSavings';
-import { formatLicense } from './csv/formatters';
 
 export const generateReportCSV = async (data: ExportData) => {
   console.log('Generating CSV with raw data:', data);
