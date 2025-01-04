@@ -24,9 +24,11 @@ export const DownloadPdfButton = () => {
 
   const generatePDF = async () => {
     const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.width = '1024px';
+    // Type assertion to HTMLElement to access style property
+    const containerElement = container as HTMLElement;
+    containerElement.style.position = 'absolute';
+    containerElement.style.left = '-9999px';
+    containerElement.style.width = '1024px';
     document.body.appendChild(container);
 
     const root = createRoot(container);
@@ -58,7 +60,7 @@ export const DownloadPdfButton = () => {
         windowWidth: 1024,
         onclone: (clonedDoc) => {
           const element = clonedDoc.querySelector('#pdf-content');
-          if (element) {
+          if (element instanceof HTMLElement) {
             element.style.display = 'block';
             element.style.width = '1024px';
           }
