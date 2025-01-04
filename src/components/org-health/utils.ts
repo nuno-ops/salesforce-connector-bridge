@@ -8,7 +8,7 @@ export const formatLicenseData = (licenses: UserLicense[]) => {
       ...license,
       total: license.TotalLicenses,
       used: license.UsedLicenses,
-      name: license.Name
+      name: license.Name || 'Unknown'
     };
     console.log('Formatted license:', result);
     return result;
@@ -25,7 +25,7 @@ export const formatPackageLicenseData = (licenses: PackageLicense[]) => {
       ...license,
       total: license.AllowedLicenses,
       used: license.UsedLicenses,
-      name: license.NamespacePrefix,
+      name: license.NamespacePrefix || 'Unknown',
       status: license.Status
     };
     console.log('Formatted package license:', result);
@@ -43,7 +43,7 @@ export const formatPermissionSetLicenseData = (licenses: PermissionSetLicense[])
       ...license,
       total: license.TotalLicenses,
       used: license.UsedLicenses,
-      name: license.DeveloperName
+      name: license.DeveloperName || 'Unknown'
     };
     console.log('Formatted permission set license:', result);
     return result;
