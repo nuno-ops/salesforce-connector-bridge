@@ -15,7 +15,7 @@ import { formatLicenseData } from '@/components/org-health/utils';
 import { UserLicense } from '@/components/org-health/types';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
-  console.log('Starting CSV generation with data:', {
+  console.log('CSV Export - Starting with initial data:', {
     userLicenses: data.userLicenses?.length,
     packageLicenses: data.packageLicenses?.length,
     users: data.users?.length,
@@ -27,9 +27,9 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
 
   // Process users data
   const standardUsers = filterStandardSalesforceUsers(data.users || []);
-  console.log('Filtered standard users:', standardUsers.length);
+  console.log('CSV Export - Filtered standard users:', standardUsers.length);
   const inactiveUsers = filterInactiveUsers(standardUsers);
-  console.log('Filtered inactive users:', inactiveUsers.length);
+  console.log('CSV Export - Filtered inactive users:', inactiveUsers.length);
   
   // Convert RawLicense[] to UserLicense[] first
   const userLicenses: UserLicense[] = data.userLicenses ? data.userLicenses.map(license => ({
@@ -39,15 +39,15 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     UsedLicenses: license.UsedLicenses || 0
   })) : [];
 
-  console.log('Converted user licenses:', userLicenses.length);
+  console.log('CSV Export - Converted user licenses:', userLicenses.length);
 
   // Then format them to match the License type expected by calculation functions
   const formattedUserLicenses = formatLicenseData(userLicenses);
-  console.log('Formatted user licenses:', formattedUserLicenses.length);
+  console.log('CSV Export - Formatted user licenses:', formattedUserLicenses.length);
   
   // Calculate savings using the same functions as the dashboard
   const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, data.licensePrice || 100);
-  console.log('Inactive user savings calculation:', {
+  console.log('CSV Export - Inactive user savings calculation:', {
     count: inactiveUserSavings.count,
     savings: inactiveUserSavings.savings,
     licensePrice: data.licensePrice
@@ -59,27 +59,27 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     data.licensePrice || 100,
     formattedUserLicenses
   );
-  console.log('Integration user savings calculation:', {
+  console.log('CSV Export - Integration user savings calculation:', {
     count: integrationUserSavings.count,
     savings: integrationUserSavings.savings
   });
 
   const sandboxSavingsCalc = calculateSandboxSavings(data.sandboxes || []);
-  console.log('Sandbox savings calculation:', {
+  console.log('CSV Export - Sandbox savings calculation:', {
     count: sandboxSavingsCalc.count,
     savings: sandboxSavingsCalc.savings
   });
 
   const storageSavingsCalc = calculateStorageSavings(data.storageUsage || 0);
-  console.log('Storage savings calculation:', {
+  console.log('CSV Export - Storage savings calculation:', {
     potentialGBSavings: storageSavingsCalc.potentialGBSavings,
     savings: storageSavingsCalc.savings
   });
   
   // Calculate platform license savings - now properly awaited
-  console.log('Calculating platform license savings with price:', data.licensePrice);
+  console.log('CSV Export - Calculating platform license savings with price:', data.licensePrice);
   const platformLicenseSavings = await calculatePlatformLicenseSavings(data.licensePrice || 100);
-  console.log('Platform license savings result:', platformLicenseSavings);
+  console.log('CSV Export - Platform license savings result:', platformLicenseSavings);
 
   // Calculate total savings using the same formula as the dashboard
   const totalSavings = 
@@ -89,7 +89,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     storageSavingsCalc.savings +
     platformLicenseSavings.savings;
 
-  console.log('Final savings breakdown:', {
+  console.log('CSV Export - Final savings breakdown:', {
     inactiveUserSavings: inactiveUserSavings.savings,
     integrationUserSavings: integrationUserSavings.savings,
     sandboxSavings: sandboxSavingsCalc.savings,

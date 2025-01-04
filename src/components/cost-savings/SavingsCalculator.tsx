@@ -31,28 +31,45 @@ export const useSavingsCalculations = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
 
+  console.log('Dashboard - Initial data:', {
+    users: users?.length,
+    oauthTokens: oauthTokens?.length,
+    licensePrice,
+    sandboxes: sandboxes?.length,
+    storageUsage,
+    userLicenses: userLicenses?.length
+  });
+
   // Filter standard Salesforce users first
   const standardUsers = filterStandardSalesforceUsers(users);
+  console.log('Dashboard - Filtered standard users:', standardUsers.length);
   
   // Calculate static savings using filtered users
   const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
+  console.log('Dashboard - Inactive user savings:', inactiveUserSavings);
+
   const integrationUserSavings = calculateIntegrationUserSavings(
     standardUsers, 
     oauthTokens, 
     licensePrice,
     userLicenses
   );
+  console.log('Dashboard - Integration user savings:', integrationUserSavings);
+
   const sandboxSavingsCalc = calculateSandboxSavings(sandboxes);
+  console.log('Dashboard - Sandbox savings:', sandboxSavingsCalc);
+
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
+  console.log('Dashboard - Storage savings:', storageSavingsCalc);
 
   // Calculate platform license savings with better error handling and retry logic
   useEffect(() => {
     const fetchPlatformSavings = async () => {
       try {
         if (!isInitialized && users.length > 0) {
-          console.log('Calculating platform license savings...');
+          console.log('Dashboard - Calculating platform license savings...');
           const result = await calculatePlatformLicenseSavings(licensePrice);
-          console.log('Platform license savings result:', result);
+          console.log('Dashboard - Platform license savings result:', result);
           
           // Calculate annual savings: number of users * (current license cost - platform license cost)
           const platformLicenseCost = 25; // USD per month
@@ -95,6 +112,15 @@ export const useSavingsCalculations = ({
     sandboxSavingsCalc.savings +
     storageSavingsCalc.savings +
     platformLicenseSavings.savings;
+
+  console.log('Dashboard - Final savings breakdown:', {
+    inactiveUserSavings: inactiveUserSavings.savings,
+    integrationUserSavings: integrationUserSavings.savings,
+    sandboxSavings: sandboxSavingsCalc.savings,
+    storageSavings: storageSavingsCalc.savings,
+    platformLicenseSavings: platformLicenseSavings.savings,
+    totalSavings
+  });
 
   const savingsBreakdown = [
     {
