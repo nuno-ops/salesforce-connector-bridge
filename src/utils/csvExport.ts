@@ -11,6 +11,8 @@ import {
   calculateStorageSavings
 } from '@/components/cost-savings/utils/savingsCalculations';
 import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils/platformLicenseSavings';
+import { generateSavingsReportContent } from './csv/generators/savingsReportContent';
+import { downloadCSV } from './csv/download/csvDownload';
 import { formatLicenseData } from '@/components/org-health/utils';
 import { UserLicense } from '@/components/org-health/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,12 +97,12 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     savings: storageSavingsCalc.savings
   });
   
-  // Calculate platform license savings - now properly awaited
+  // Calculate platform license savings
   console.log('CSV Export - Calculating platform license savings with price:', licensePrice);
   const platformLicenseSavings = await calculatePlatformLicenseSavings(licensePrice);
   console.log('CSV Export - Platform license savings result:', platformLicenseSavings);
 
-  // Calculate total savings using the same formula as the dashboard
+  // Calculate total savings
   const totalSavings = 
     inactiveUserSavings.savings +
     integrationUserSavings.savings +
@@ -108,83 +110,23 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     storageSavingsCalc.savings +
     platformLicenseSavings.savings;
 
-  console.log('CSV Export - Final savings breakdown:', {
-    inactiveUserSavings: inactiveUserSavings.savings,
-    integrationUserSavings: integrationUserSavings.savings,
-    sandboxSavings: sandboxSavingsCalc.savings,
-    storageSavings: storageSavingsCalc.savings,
-    platformLicenseSavings: platformLicenseSavings.savings,
+  const savingsBreakdown = {
+    inactiveUserSavings,
+    integrationUserSavings,
+    platformLicenseSavings,
+    sandboxSavings: sandboxSavingsCalc,
+    storageSavings: storageSavingsCalc,
     totalSavings
-  });
+  };
 
-  const csvContent: string[][] = [
-    ['Salesforce Organization Cost Optimization Report'],
-    ['Generated on:', new Date().toLocaleString()],
-    [''],
-    ['Cost Overview'],
-    ['Current License Cost per User (Monthly):', `"$${licensePrice.toLocaleString('en-US')}"`],
-    ['Total Users:', `${standardUsers.length}`],
-    [''],
-    ['Savings Summary'],
-    ['Total Annual Potential Savings:', `"$${Math.round(totalSavings).toLocaleString('en-US')}"`],
-    [''],
-    ['Detailed Savings Breakdown'],
-    ['Category', 'Annual Savings', 'Monthly Savings', 'Details'],
-    [
-      'Inactive User Licenses', 
-      `"$${inactiveUserSavings.savings.toLocaleString('en-US')}"`,
-      `"$${(inactiveUserSavings.savings / 12).toLocaleString('en-US')}"`,
-      `${inactiveUserSavings.count} inactive users @ $${licensePrice}/month each`
-    ],
-    [
-      'Integration User Optimization', 
-      `"$${integrationUserSavings.savings.toLocaleString('en-US')}"`,
-      `"$${(integrationUserSavings.savings / 12).toLocaleString('en-US')}"`,
-      `${integrationUserSavings.count} users @ $${licensePrice}/month each`
-    ],
-    [
-      'Platform License Optimization', 
-      `"$${platformLicenseSavings.savings.toLocaleString('en-US')}"`,
-      `"$${(platformLicenseSavings.savings / 12).toLocaleString('en-US')}"`,
-      `${platformLicenseSavings.count} users @ $${licensePrice - 25}/month savings each`
-    ],
-    [
-      'Sandbox Optimization', 
-      `"$${sandboxSavingsCalc.savings.toLocaleString('en-US')}"`,
-      `"$${(sandboxSavingsCalc.savings / 12).toLocaleString('en-US')}"`,
-      `${sandboxSavingsCalc.count} excess sandboxes`
-    ],
-    [
-      'Storage Optimization', 
-      `"$${storageSavingsCalc.savings.toLocaleString('en-US')}"`,
-      `"$${(storageSavingsCalc.savings / 12).toLocaleString('en-US')}"`,
-      `${storageSavingsCalc.potentialGBSavings}GB potential reduction`
-    ],
-    [''],
-    ['Percentage Breakdown'],
-    ['Category', 'Percentage of Total Savings'],
-    [
-      'Inactive User Licenses',
-      `${((inactiveUserSavings.savings / totalSavings) * 100).toFixed(1)}%`
-    ],
-    [
-      'Integration User Optimization',
-      `${((integrationUserSavings.savings / totalSavings) * 100).toFixed(1)}%`
-    ],
-    [
-      'Platform License Optimization',
-      `${((platformLicenseSavings.savings / totalSavings) * 100).toFixed(1)}%`
-    ],
-    [
-      'Sandbox Optimization',
-      `${((sandboxSavingsCalc.savings / totalSavings) * 100).toFixed(1)}%`
-    ],
-    [
-      'Storage Optimization',
-      `${((storageSavingsCalc.savings / totalSavings) * 100).toFixed(1)}%`
-    ],
-    ['']
-  ];
+  console.log('CSV Export - Final savings breakdown:', savingsBreakdown);
+
+  // Generate CSV content using the new generator
+  const csvContent = generateSavingsReportContent({
+    licensePrice,
+    standardUsers,
+    savingsBreakdown
+  });
 
   console.log('Creating sandbox section with data:', data.sandboxes);
   console.log('Creating limits section with data:', data.limits);
@@ -213,17 +155,4 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   return csvContent.map(row => row.join(',')).join('\n');
 };
 
-export const downloadCSV = (content: string, filename: string) => {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-};
+export { downloadCSV };
