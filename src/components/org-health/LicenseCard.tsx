@@ -16,6 +16,8 @@ interface LicenseCardProps {
 }
 
 export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) => {
+  console.log('LicenseCard render:', { title, type, licenses });
+  
   const [isOpen, setIsOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -42,6 +44,15 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
     window.URL.revokeObjectURL(url);
   };
 
+  const filteredLicenses = licenses.filter(license => {
+    console.log('Filtering license:', license);
+    const searchResult = (license.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    console.log('Search result for', license.name, ':', searchResult);
+    return searchResult;
+  });
+
+  console.log('Filtered licenses:', filteredLicenses);
+
   return (
     <Card>
       <LicenseCardHeader 
@@ -62,7 +73,7 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
               />
             </div>
             <LicenseCardContent 
-              licenses={licenses}
+              licenses={filteredLicenses}
               searchTerm={searchTerm}
               type={type}
             />

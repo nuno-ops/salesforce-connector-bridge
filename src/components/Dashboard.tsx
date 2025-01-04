@@ -30,9 +30,17 @@ const Dashboard = () => {
   const { hasAccess, isCheckingAccess, handleDisconnect } = useCheckAccess();
 
   // Safely format the license data, ensuring we don't process undefined values
+  console.log('Raw user licenses:', userLicenses);
   const formattedUserLicenses = userLicenses ? formatLicenseData(userLicenses) : [];
+  console.log('Formatted user licenses:', formattedUserLicenses);
+
+  console.log('Raw package licenses:', packageLicenses);
   const formattedPackageLicenses = packageLicenses ? formatPackageLicenseData(packageLicenses) : [];
+  console.log('Formatted package licenses:', formattedPackageLicenses);
+
+  console.log('Raw permission set licenses:', permissionSetLicenses);
   const formattedPermissionSetLicenses = permissionSetLicenses ? formatPermissionSetLicenseData(permissionSetLicenses) : [];
+  console.log('Formatted permission set licenses:', formattedPermissionSetLicenses);
 
   const handleSubscribe = async (priceId: string) => {
     try {
