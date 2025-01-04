@@ -23,6 +23,11 @@ export const LicensesSection = ({
     setIsOpen(defaultExpanded);
   }, [defaultExpanded]);
 
+  // Ensure we're working with arrays and not strings
+  const parsedUserLicenses = Array.isArray(userLicenses) ? userLicenses : [];
+  const parsedPackageLicenses = Array.isArray(packageLicenses) ? packageLicenses : [];
+  const parsedPermissionSetLicenses = Array.isArray(permissionSetLicenses) ? permissionSetLicenses : [];
+
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -46,17 +51,17 @@ export const LicensesSection = ({
           <div className="space-y-6 pt-4">
             <LicenseCard 
               title="User Licenses" 
-              licenses={userLicenses}
+              licenses={parsedUserLicenses}
               type="user"
             />
             <LicenseCard 
               title="Package Licenses" 
-              licenses={packageLicenses}
+              licenses={parsedPackageLicenses}
               type="package"
             />
             <LicenseCard 
               title="Permission Set Licenses" 
-              licenses={permissionSetLicenses}
+              licenses={parsedPermissionSetLicenses}
               type="permissionSet"
             />
           </div>

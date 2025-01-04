@@ -19,7 +19,7 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
   console.log('LicenseCard render. Props:', { 
     title, 
     type, 
-    licenses: JSON.stringify(licenses, null, 2) 
+    licenses: licenses 
   });
   
   const [isOpen, setIsOpen] = useState(true);
@@ -49,20 +49,12 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
   };
 
   const filteredLicenses = licenses.filter(license => {
-    console.log('Filtering license:', license);
-    console.log('License name:', license.name);
-    console.log('Search term:', searchTerm);
-    
     if (!license.name) {
       console.warn('License missing name property:', license);
+      return false;
     }
-    
-    const searchResult = (license.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    console.log('Search result:', searchResult);
-    return searchResult;
+    return license.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
-
-  console.log('Filtered licenses:', JSON.stringify(filteredLicenses, null, 2));
 
   return (
     <Card>
