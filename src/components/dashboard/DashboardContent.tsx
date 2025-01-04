@@ -4,6 +4,7 @@ import { SalesforceUsers } from "@/components/SalesforceUsers";
 import { OrgHealth } from "@/components/OrgHealth";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -11,7 +12,8 @@ interface DashboardContentProps {
   permissionSetLicenses: any[];
   sandboxes: any[];
   limits: any;
-  onExportReport: () => void;
+  users?: any[];
+  oauthTokens?: any[];
 }
 
 export const DashboardContent = ({
@@ -20,14 +22,28 @@ export const DashboardContent = ({
   permissionSetLicenses,
   sandboxes,
   limits,
-  onExportReport
+  users = [],
+  oauthTokens = []
 }: DashboardContentProps) => {
+  const handleExportReport = () => {
+    const csvContent = generateReportCSV({
+      userLicenses,
+      packageLicenses,
+      permissionSetLicenses,
+      sandboxes,
+      limits,
+      users,
+      oauthTokens
+    });
+    downloadCSV(csvContent, 'salesforce-optimization-report.csv');
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Organization Health Dashboard</h1>
         <Button
-          onClick={onExportReport}
+          onClick={handleExportReport}
           variant="outline"
           className="flex items-center gap-2"
         >

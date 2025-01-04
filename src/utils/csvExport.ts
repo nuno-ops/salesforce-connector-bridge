@@ -10,6 +10,7 @@ interface ExportData {
   sandboxes: any[];
   limits: any;
   oauthTokens?: any[];
+  users?: any[]; // Add users to the interface
 }
 
 export const generateReportCSV = (data: ExportData) => {
@@ -19,16 +20,18 @@ export const generateReportCSV = (data: ExportData) => {
     permissionSetLicenses,
     sandboxes,
     limits,
-    oauthTokens = []
+    oauthTokens = [],
+    users = [] // Destructure users with default empty array
   } = data;
 
   const formattedUserLicenses = formatLicenseData(userLicenses);
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
 
-  // Calculate savings
-  const standardUsers = filterStandardSalesforceUsers(userLicenses);
+  // Filter standard Salesforce users first
+  const standardUsers = filterStandardSalesforceUsers(users);
   const inactiveUsers = filterInactiveUsers(standardUsers);
+  
   const licensePrice = 150; // Default price if not set
   
   const inactiveSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
