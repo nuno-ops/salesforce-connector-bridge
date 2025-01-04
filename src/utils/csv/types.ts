@@ -1,26 +1,14 @@
-export interface RawLicense {
-  Id: string;
-  Name?: string;
-  TotalLicenses?: number;
-  UsedLicenses?: number;
-  NamespacePrefix?: string;
-  Status?: string;
-  IsProvisioned?: boolean;
-  AllowedLicenses?: number;
-  DeveloperName?: string;
-}
-
 export interface ExportData {
-  userLicenses: RawLicense[];
-  packageLicenses: RawLicense[];
-  permissionSetLicenses: RawLicense[];
+  userLicenses: any[];
+  packageLicenses: any[];
+  permissionSetLicenses: any[];
   sandboxes: any[];
   limits: any;
-  oauthTokens?: any[];
   users?: any[];
+  oauthTokens?: any[];
 }
 
-export interface CsvSection {
+export interface CSVSection {
   title: string;
   headers: string[];
   rows: string[][];
