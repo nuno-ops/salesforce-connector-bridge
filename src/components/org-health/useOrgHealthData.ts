@@ -46,9 +46,10 @@ const fetchOrgHealthData = async () => {
   ]);
 
   // Then fetch less critical data
-  const [sandboxData, metricsData] = await Promise.all([
+  const [sandboxData, metricsData, usersData] = await Promise.all([
     fetchWithTimeout('salesforce-sandboxes', { access_token, instance_url }),
-    fetchWithTimeout('salesforce-metrics', { access_token, instance_url })
+    fetchWithTimeout('salesforce-metrics', { access_token, instance_url }),
+    fetchWithTimeout('salesforce-users', { access_token, instance_url })
   ]);
 
   console.log('Successfully fetched all org health data');
@@ -59,7 +60,9 @@ const fetchOrgHealthData = async () => {
     userLicenses: licensesData?.userLicenses || [],
     packageLicenses: licensesData?.packageLicenses || [],
     permissionSetLicenses: licensesData?.permissionSetLicenses || [],
-    metrics: metricsData
+    metrics: metricsData,
+    users: usersData?.users || [],
+    oauthTokens: usersData?.oauthTokens || []
   };
 };
 
@@ -108,6 +111,8 @@ export const useOrgHealthData = () => {
     packageLicenses: data?.packageLicenses || [],
     permissionSetLicenses: data?.permissionSetLicenses || [],
     metrics: data?.metrics || null,
+    users: data?.users || [],
+    oauthTokens: data?.oauthTokens || [],
     isLoading,
     error: error ? (error as Error).message : null
   };
