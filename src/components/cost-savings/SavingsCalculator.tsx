@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
-import {
-  calculateInactiveUserSavings,
-  calculateIntegrationUserSavings,
-  calculateSandboxSavings,
-  calculateStorageSavings
-} from "./utils/savingsCalculations";
-import { calculatePlatformLicenseSavings } from "./utils/platformLicenseSavings";
+import { calculateInactiveUserSavings } from "./utils/inactiveUserSavings";
+import { calculateSandboxSavings } from "./utils/sandboxSavings";
+import { calculateStorageSavings } from "./utils/storageSavings";
 import { scrollToLicenseOptimization } from "./utils/scrollUtils";
 import { filterStandardSalesforceUsers } from "../users/utils/userFilters";
 import { useToast } from "@/hooks/use-toast";
+import { usePlatformLicenseSavings } from "./hooks/usePlatformLicenseSavings";
+import { useIntegrationUserSavings } from "./hooks/useIntegrationUserSavings";
 
 interface SavingsCalculatorProps {
   users: any[];
@@ -27,10 +25,6 @@ export const useSavingsCalculations = ({
   storageUsage,
   userLicenses
 }: SavingsCalculatorProps) => {
-  const [platformLicenseSavings, setPlatformLicenseSavings] = useState({ savings: 0, count: 0, users: [] });
-  const [isInitialized, setIsInitialized] = useState(false);
-  const { toast } = useToast();
-
   console.log('Dashboard - Initial data:', {
     users: users?.length,
     oauthTokens: oauthTokens?.length,
@@ -48,9 +42,13 @@ export const useSavingsCalculations = ({
   const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
   console.log('Dashboard - Inactive user savings:', inactiveUserSavings);
 
-  const integrationUserSavings = calculateIntegrationUserSavings(
-    standardUsers, 
-    oauthTokens, 
+  // Use the new hooks for platform and integration savings
+  const platformLicenseSavings = usePlatformLicenseSavings(licensePrice);
+  console.log('Dashboard - Platform license savings:', platformLicenseSavings);
+
+  const integrationUserSavings = useIntegrationUserSavings(
+    standardUsers,
+    oauthTokens,
     licensePrice,
     userLicenses
   );
@@ -62,54 +60,19 @@ export const useSavingsCalculations = ({
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
   console.log('Dashboard - Storage savings:', storageSavingsCalc);
 
-  // Calculate platform license savings with better error handling
-  useEffect(() => {
-    const fetchPlatformSavings = async () => {
-      try {
-        if (!isInitialized && standardUsers.length > 0) {
-          console.log('Dashboard - Calculating platform license savings...');
-          const result = await calculatePlatformLicenseSavings(licensePrice);
-          console.log('Dashboard - Platform license savings result:', result);
-          
-          setPlatformLicenseSavings(result);
-          setIsInitialized(true);
-        }
-      } catch (error) {
-        console.error('Error calculating platform license savings:', error);
-        if (!isInitialized) {
-          toast({
-            variant: "destructive",
-            title: "Error calculating platform license savings",
-            description: "Please refresh the page if the platform license optimization section is not visible."
-          });
-        }
-        setPlatformLicenseSavings({ savings: 0, count: 0, users: [] });
-      }
-    };
-
-    fetchPlatformSavings();
-  }, [licensePrice, standardUsers, isInitialized, toast]);
-
-  // Reset initialization when users change
-  useEffect(() => {
-    if (users.length === 0) {
-      setIsInitialized(false);
-    }
-  }, [users]);
-
   const totalSavings = 
     inactiveUserSavings.savings +
     integrationUserSavings.savings +
+    platformLicenseSavings.savings +
     sandboxSavingsCalc.savings +
-    storageSavingsCalc.savings +
-    platformLicenseSavings.savings;
+    storageSavingsCalc.savings;
 
   console.log('Dashboard - Final savings breakdown:', {
     inactiveUserSavings: inactiveUserSavings.savings,
     integrationUserSavings: integrationUserSavings.savings,
+    platformLicenseSavings: platformLicenseSavings.savings,
     sandboxSavings: sandboxSavingsCalc.savings,
     storageSavings: storageSavingsCalc.savings,
-    platformLicenseSavings: platformLicenseSavings.savings,
     totalSavings
   });
 
@@ -146,6 +109,9 @@ export const useSavingsCalculations = ({
 
   return {
     totalSavings,
-    savingsBreakdown
+    savingsBreakdown,
+    platformUsers: platformLicenseSavings.users,
+    integrationUsers: integrationUserSavings.users,
+    inactiveUsers: inactiveUserSavings.users
   };
 };
