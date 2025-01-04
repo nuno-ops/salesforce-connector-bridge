@@ -46,7 +46,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   console.log('CSV Export - Formatted user licenses:', formattedUserLicenses.length);
   
   // Calculate savings using the same functions as the dashboard
-  const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, data.licensePrice || 100);
+  const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, data.licensePrice);
   console.log('CSV Export - Inactive user savings calculation:', {
     count: inactiveUserSavings.count,
     savings: inactiveUserSavings.savings,
@@ -56,7 +56,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   const integrationUserSavings = calculateIntegrationUserSavings(
     standardUsers,
     data.oauthTokens || [],
-    data.licensePrice || 100,
+    data.licensePrice,
     formattedUserLicenses
   );
   console.log('CSV Export - Integration user savings calculation:', {
@@ -78,7 +78,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   
   // Calculate platform license savings - now properly awaited
   console.log('CSV Export - Calculating platform license savings with price:', data.licensePrice);
-  const platformLicenseSavings = await calculatePlatformLicenseSavings(data.licensePrice || 100);
+  const platformLicenseSavings = await calculatePlatformLicenseSavings(data.licensePrice);
   console.log('CSV Export - Platform license savings result:', platformLicenseSavings);
 
   // Calculate total savings using the same formula as the dashboard
@@ -112,6 +112,10 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     ['Storage Optimization', `"$${storageSavingsCalc.savings.toLocaleString('en-US')}"`, `${storageSavingsCalc.potentialGBSavings}GB potential reduction`],
     ['']
   ];
+
+  console.log('Creating sandbox section with data:', data.sandboxes);
+  console.log('Creating limits section with data:', data.limits);
+  console.log('Creating Inactive Users section with', inactiveUsers.length, 'users');
 
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses || []),
