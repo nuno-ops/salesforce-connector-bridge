@@ -128,9 +128,19 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     savingsBreakdown
   });
 
-  console.log('Creating sandbox section with data:', data.sandboxes);
-  console.log('Creating limits section with data:', data.limits);
-  console.log('Creating Inactive Users section with', inactiveUsers.length, 'users');
+  // Get integration users and platform users
+  const integrationUsers = standardUsers.filter(user => {
+    const userTokens = (data.oauthTokens || []).filter(token => token.UserId === user.Id);
+    return userTokens.length >= 2 && userTokens.some(token => token.UseCount > 1000);
+  });
+
+  const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
+
+  console.log('Creating user sections with:', {
+    inactiveUsers: inactiveUsers.length,
+    integrationUsers: integrationUsers.length,
+    platformUsers: platformUsers.length
+  });
 
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses || []),
@@ -139,15 +149,17 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     createSandboxSection(data.sandboxes || []),
     createLimitsSection(data.limits),
     createUserSection('Inactive Users', inactiveUsers),
+    createUserSection('Integration User Candidates', integrationUsers),
+    createUserSection('Platform License Candidates', platformUsers),
   ];
 
   sections.forEach(section => {
     if (section) {
       csvContent.push(
+        [''],
         [section.title],
         section.headers,
-        ...section.rows,
-        ['']
+        ...section.rows
       );
     }
   });
