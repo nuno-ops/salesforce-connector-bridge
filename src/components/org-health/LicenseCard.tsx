@@ -49,7 +49,7 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
   };
 
   const filteredLicenses = licenses.filter(license => {
-    console.log('Filtering license:', JSON.stringify(license, null, 2));
+    console.log('Filtering license:', license);
     console.log('License name:', license.name);
     console.log('Search term:', searchTerm);
     
