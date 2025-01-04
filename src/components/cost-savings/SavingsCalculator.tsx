@@ -27,7 +27,7 @@ export const useSavingsCalculations = ({
   storageUsage,
   userLicenses
 }: SavingsCalculatorProps) => {
-  const [platformLicenseSavings, setPlatformLicenseSavings] = useState({ savings: 0, count: 0 });
+  const [platformLicenseSavings, setPlatformLicenseSavings] = useState({ savings: 0, count: 0, users: [] });
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
 
@@ -62,34 +62,16 @@ export const useSavingsCalculations = ({
   const storageSavingsCalc = calculateStorageSavings(storageUsage);
   console.log('Dashboard - Storage savings:', storageSavingsCalc);
 
-  // Calculate platform license savings with better error handling and retry logic
+  // Calculate platform license savings with better error handling
   useEffect(() => {
     const fetchPlatformSavings = async () => {
       try {
         if (!isInitialized && standardUsers.length > 0) {
-          console.log('Dashboard - Calculating platform license savings for standard users...');
+          console.log('Dashboard - Calculating platform license savings...');
           const result = await calculatePlatformLicenseSavings(licensePrice);
           console.log('Dashboard - Platform license savings result:', result);
           
-          // Only count platform-eligible users who are standard Salesforce users
-          const eligibleUsers = result.users.filter(user => 
-            user.isPlatformEligible && 
-            user.Profile?.UserLicense?.Name === 'Salesforce' &&
-            user.UserType === 'Standard'
-          );
-          
-          const eligibleCount = eligibleUsers?.length || 0;
-          console.log('Dashboard - Eligible platform users after filtering:', eligibleCount);
-          
-          // Calculate annual savings: number of users * (current license cost - platform license cost)
-          const platformLicenseCost = 25; // USD per month
-          const monthlySavingsPerUser = licensePrice - platformLicenseCost;
-          const annualSavings = eligibleCount * monthlySavingsPerUser * 12;
-          
-          setPlatformLicenseSavings({ 
-            savings: annualSavings,
-            count: eligibleCount 
-          });
+          setPlatformLicenseSavings(result);
           setIsInitialized(true);
         }
       } catch (error) {
@@ -101,7 +83,7 @@ export const useSavingsCalculations = ({
             description: "Please refresh the page if the platform license optimization section is not visible."
           });
         }
-        setPlatformLicenseSavings({ savings: 0, count: 0 });
+        setPlatformLicenseSavings({ savings: 0, count: 0, users: [] });
       }
     };
 
