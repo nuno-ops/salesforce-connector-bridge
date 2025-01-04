@@ -4,48 +4,65 @@ import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
 import { createUserSection } from './csv/sections/userSection';
 import { filterStandardSalesforceUsers, filterInactiveUsers } from '@/components/users/utils/userFilters';
-import { calculateTotalSavings } from '@/components/dashboard/utils/usageCalculations';
+import { 
+  calculateInactiveUserSavings,
+  calculateIntegrationUserSavings,
+  calculateSandboxSavings,
+  calculateStorageSavings
+} from '@/components/cost-savings/utils/savingsCalculations';
+import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils/platformLicenseSavings';
 
-export const generateReportCSV = (data: ExportData) => {
+export const generateReportCSV = async (data: ExportData) => {
   console.log('Generating CSV with raw data:', data);
 
   // Process users data
   const standardUsers = filterStandardSalesforceUsers(data.users || []);
   const inactiveUsers = filterInactiveUsers(standardUsers);
   
-  // Find integration users (users with OAuth tokens)
-  const integrationUsers = standardUsers.filter(user => {
-    const userTokens = data.oauthTokens?.filter(token => token.UserId === user.Id) || [];
-    user.connectedApps = userTokens.map(token => token.AppName);
-    return userTokens.length > 0;
-  });
-
-  // Get platform license users
-  const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
-
-  // Calculate total potential annual savings
-  const totalSavings = calculateTotalSavings(
-    data.userLicenses,
-    data.packageLicenses,
-    data.sandboxes
+  // Calculate savings using the same functions as the dashboard
+  const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, data.licensePrice || 100);
+  const integrationUserSavings = calculateIntegrationUserSavings(
+    standardUsers,
+    data.oauthTokens || [],
+    data.licensePrice || 100,
+    data.userLicenses || []
   );
+  const sandboxSavingsCalc = calculateSandboxSavings(data.sandboxes || []);
+  const storageSavingsCalc = calculateStorageSavings(data.storageUsage || 0);
+  
+  // Calculate platform license savings
+  const platformLicenseSavings = await calculatePlatformLicenseSavings(data.licensePrice || 100);
+
+  // Calculate total savings using the same formula as the dashboard
+  const totalSavings = 
+    inactiveUserSavings.savings +
+    integrationUserSavings.savings +
+    sandboxSavingsCalc.savings +
+    storageSavingsCalc.savings +
+    platformLicenseSavings.savings;
 
   const csvContent: string[][] = [
     ['Salesforce Organization Cost Optimization Report'],
     ['Potential Annual Savings:', `"$${Math.round(totalSavings).toLocaleString('en-US')}"`],
     ['Generated on:', new Date().toLocaleString()],
+    [''],
+    ['Savings Breakdown'],
+    ['Category', 'Annual Savings', 'Details'],
+    ['Inactive User Licenses', `"$${inactiveUserSavings.savings.toLocaleString('en-US')}"`, `${inactiveUserSavings.count} inactive users`],
+    ['Integration User Optimization', `"$${integrationUserSavings.savings.toLocaleString('en-US')}"`, `${integrationUserSavings.count} potential conversions`],
+    ['Platform License Optimization', `"$${platformLicenseSavings.savings.toLocaleString('en-US')}"`, `${platformLicenseSavings.count} eligible users`],
+    ['Sandbox Optimization', `"$${sandboxSavingsCalc.savings.toLocaleString('en-US')}"`, `${sandboxSavingsCalc.count} excess sandboxes`],
+    ['Storage Optimization', `"$${storageSavingsCalc.savings.toLocaleString('en-US')}"`, `${storageSavingsCalc.potentialGBSavings}GB potential reduction`],
     ['']
   ];
 
   const sections = [
-    createLicenseSection('User Licenses', data.userLicenses),
-    createLicenseSection('Package Licenses', data.packageLicenses),
-    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses),
-    createSandboxSection(data.sandboxes),
+    createLicenseSection('User Licenses', data.userLicenses || []),
+    createLicenseSection('Package Licenses', data.packageLicenses || []),
+    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
+    createSandboxSection(data.sandboxes || []),
     createLimitsSection(data.limits),
     createUserSection('Inactive Users', inactiveUsers),
-    createUserSection('Integration Users', integrationUsers),
-    createUserSection('Platform License Users', platformUsers)
   ];
 
   sections.forEach(section => {
