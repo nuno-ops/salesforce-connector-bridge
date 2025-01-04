@@ -1,4 +1,4 @@
-import { RawLicense } from './types';
+import { RawLicense, License } from './types';
 
 export const formatNumber = (value: number | undefined | null): number => {
   if (value === undefined || value === null) {
@@ -16,6 +16,14 @@ export const formatNumber = (value: number | undefined | null): number => {
 export const calculateUsagePercentage = (used: number, total: number): string => {
   if (total === 0 || total === -1) return '0.0';
   return ((used / total) * 100).toFixed(1);
+};
+
+export const formatLicense = (license: RawLicense): License => {
+  return {
+    name: license.Name || license.NamespacePrefix || license.DeveloperName || 'Unknown',
+    total: license.TotalLicenses || license.AllowedLicenses || 0,
+    used: license.UsedLicenses || 0
+  };
 };
 
 export const getLicenseName = (license: RawLicense): string => {

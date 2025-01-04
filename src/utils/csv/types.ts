@@ -10,6 +10,12 @@ export interface RawLicense {
   DeveloperName?: string;
 }
 
+export interface License {
+  name: string;
+  total: number;
+  used: number;
+}
+
 export interface CSVSection {
   title: string;
   headers: string[];

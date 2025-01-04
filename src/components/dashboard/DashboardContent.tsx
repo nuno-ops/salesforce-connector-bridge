@@ -25,8 +25,8 @@ export const DashboardContent = ({
   users = [],
   oauthTokens = []
 }: DashboardContentProps) => {
-  const handleExportReport = () => {
-    const csvContent = generateReportCSV({
+  const handleExportReport = async () => {
+    const csvContent = await generateReportCSV({
       userLicenses,
       packageLicenses,
       permissionSetLicenses,
