@@ -30,6 +30,13 @@ export const generateReportCSV = (data: ExportData) => {
     data.sandboxes
   );
 
+  const csvContent: string[][] = [
+    ['Salesforce Organization Cost Optimization Report'],
+    ['Potential Annual Savings:', `$${Math.round(totalSavings).toLocaleString('en-US')}`],
+    ['Generated on:', new Date().toLocaleString()],
+    ['']
+  ];
+
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses),
     createLicenseSection('Package Licenses', data.packageLicenses),
@@ -39,13 +46,6 @@ export const generateReportCSV = (data: ExportData) => {
     createUserSection('Inactive Users', inactiveUsers),
     createUserSection('Integration Users', integrationUsers),
     createUserSection('Platform License Users', platformUsers)
-  ];
-
-  const csvContent: string[][] = [
-    ['Salesforce Organization Cost Optimization Report'],
-    ['Potential Annual Savings:', `$${totalSavings.toLocaleString('en-US', { maximumFractionDigits: 0 })}`],
-    ['Generated on:', new Date().toLocaleString()],
-    ['']
   ];
 
   sections.forEach(section => {
