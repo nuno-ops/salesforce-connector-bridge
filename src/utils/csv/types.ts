@@ -1,10 +1,11 @@
 export interface RawLicense {
-  Id?: string;
+  Id: string;
   Name?: string;
   TotalLicenses?: number;
   UsedLicenses?: number;
   NamespacePrefix?: string;
   Status?: string;
+  IsProvisioned?: boolean;
   AllowedLicenses?: number;
   DeveloperName?: string;
 }
