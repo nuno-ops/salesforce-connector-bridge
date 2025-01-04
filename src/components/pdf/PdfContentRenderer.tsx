@@ -20,13 +20,14 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
   
   // Create a temporary container
   const container = document.createElement('div');
+  container.id = 'pdf-container';
   container.style.position = 'absolute';
   container.style.left = '-9999px';
   container.style.width = '1024px';
   container.style.backgroundColor = '#ffffff';
   container.style.opacity = '1';
   container.style.visibility = 'visible';
-  container.style.minHeight = '500px'; // Ensure minimum height
+  container.style.minHeight = '500px';
   document.body.appendChild(container);
 
   return new Promise<{ canvas: HTMLCanvasElement; cleanup: () => void }>((resolve, reject) => {
@@ -37,12 +38,15 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
       // Render the content
       root.render(
         <React.StrictMode>
-          <div style={{ 
-            width: '1024px', 
-            backgroundColor: '#ffffff',
-            padding: '40px',
-            minHeight: '500px'
-          }}>
+          <div 
+            id="pdf-content"
+            style={{ 
+              width: '1024px', 
+              backgroundColor: '#ffffff',
+              padding: '40px',
+              minHeight: '500px'
+            }}
+          >
             <PrintableReport {...data} />
           </div>
         </React.StrictMode>
@@ -53,11 +57,16 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
       // Wait for content to be fully rendered
       setTimeout(async () => {
         try {
-          console.log('Container dimensions:', {
-            width: container.offsetWidth,
-            height: container.offsetHeight,
-            scrollHeight: container.scrollHeight
-          });
+          const pdfContent = container.querySelector('#pdf-content');
+          console.log('PDF content element found:', !!pdfContent);
+          if (pdfContent instanceof HTMLElement) {
+            console.log('PDF content dimensions:', {
+              offsetWidth: pdfContent.offsetWidth,
+              offsetHeight: pdfContent.offsetHeight,
+              scrollHeight: pdfContent.scrollHeight,
+              clientHeight: pdfContent.clientHeight
+            });
+          }
 
           console.log('Starting canvas generation...');
           
@@ -71,24 +80,29 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
             height: Math.max(container.offsetHeight, container.scrollHeight, 500),
             onclone: (clonedDoc) => {
               console.log('Cloning document for canvas generation...');
-              const element = clonedDoc.querySelector('#pdf-content');
-              if (element instanceof HTMLElement) {
-                element.style.display = 'block';
-                element.style.width = '1024px';
-                element.style.opacity = '1';
-                element.style.visibility = 'visible';
-                console.log('PDF content element dimensions:', {
-                  offsetHeight: element.offsetHeight,
-                  scrollHeight: element.scrollHeight,
-                  clientHeight: element.clientHeight
+              const clonedContent = clonedDoc.querySelector('#pdf-content');
+              console.log('Cloned content found:', !!clonedContent);
+              
+              if (clonedContent instanceof HTMLElement) {
+                clonedContent.style.display = 'block';
+                clonedContent.style.width = '1024px';
+                clonedContent.style.opacity = '1';
+                clonedContent.style.visibility = 'visible';
+                clonedContent.style.position = 'relative';
+                clonedContent.style.left = '0';
+                console.log('Cloned content dimensions:', {
+                  offsetHeight: clonedContent.offsetHeight,
+                  scrollHeight: clonedContent.scrollHeight,
+                  clientHeight: clonedContent.clientHeight
                 });
               } else {
                 console.error('PDF content element not found in cloned document');
+                throw new Error('PDF content element not found in cloned document');
               }
             }
           });
 
-          console.log('Canvas dimensions:', {
+          console.log('Canvas generated successfully:', {
             width: canvas.width,
             height: canvas.height
           });
@@ -110,7 +124,7 @@ export const renderPdfContent = async ({ data }: PdfContentRendererProps) => {
           document.body.removeChild(container);
           reject(error);
         }
-      }, 2000); // Increased timeout to ensure content is rendered
+      }, 3000); // Increased timeout to 3 seconds
 
     } catch (error) {
       console.error('Error during PDF content rendering:', error);

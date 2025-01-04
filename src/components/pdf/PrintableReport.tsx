@@ -27,43 +27,25 @@ export const PrintableReport = ({
   limits,
   metrics
 }: PrintableReportProps) => {
-  console.log('PrintableReport rendering with data:', {
-    userLicenses,
-    packageLicenses,
-    permissionSetLicenses,
-    sandboxes,
-    limits,
-    metrics
-  });
-
-  // Initialize state outside of any conditions
-  const [processedData, setProcessedData] = useState<any>(null);
+  const [isReady, setIsReady] = useState(false);
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics || {});
   const { licensePrice, users, oauthTokens } = useOrganizationData();
 
   useEffect(() => {
-    console.log('Processing data in useEffect', {
-      usersLength: users?.length,
-      userLicensesLength: userLicenses?.length,
-      licensePrice
-    });
-
-    if (users?.length > 0 && userLicenses?.length > 0) {
-      console.log('Setting processed data');
-      setProcessedData({
-        users,
-        userLicenses,
-        oauthTokens
+    if (users?.length > 0 && userLicenses?.length > 0 && licensePrice > 0) {
+      console.log('All data ready, setting isReady to true');
+      setIsReady(true);
+    } else {
+      console.log('Waiting for data:', {
+        usersLength: users?.length,
+        userLicensesLength: userLicenses?.length,
+        licensePrice
       });
     }
-  }, [users, userLicenses, oauthTokens]);
+  }, [users, userLicenses, licensePrice]);
 
-  // Ensure we have all required data
-  if (!processedData || !licensePrice) {
-    console.log('Waiting for data initialization...', {
-      processedData: !!processedData,
-      licensePrice: !!licensePrice
-    });
+  if (!isReady) {
+    console.log('Report not ready yet');
     return (
       <div className="p-8 space-y-8 bg-white min-h-screen">
         <p>Preparing report data...</p>
@@ -71,19 +53,18 @@ export const PrintableReport = ({
     );
   }
 
-  console.log('Calculating savings with license price:', licensePrice);
+  console.log('Rendering final report content');
   const { totalSavings, savingsBreakdown } = useSavingsCalculations({
-    users: processedData.users,
-    oauthTokens: processedData.oauthTokens,
+    users,
+    oauthTokens,
     licensePrice,
     sandboxes,
     storageUsage: limits?.StorageUsed || 0,
     userLicenses
   });
 
-  console.log('Rendering final report content');
   return (
-    <div id="pdf-content" className="p-8 space-y-8 bg-white min-h-screen">
+    <div className="p-8 space-y-8 bg-white min-h-screen">
       <ReportHeader />
       
       <SavingsSummary 
