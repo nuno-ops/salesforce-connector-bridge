@@ -13,19 +13,35 @@ interface LicenseCardProps {
 }
 
 export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) => {
-  console.log('LicenseCard render. Props:', { 
-    title, 
-    type, 
-    licenses: licenses 
+  console.log(`LicenseCard [${title}] render with:`, {
+    licensesLength: licenses?.length,
+    firstLicense: licenses?.[0],
+    type
   });
   
   const [isOpen, setIsOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Filter licenses based on search term
+  const filteredLicenses = licenses.filter(license => {
+    if (!license?.name) {
+      console.warn('License missing name property:', license);
+      return false;
+    }
+    const result = license.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return result;
+  });
+
+  console.log(`LicenseCard [${title}] filtered licenses:`, {
+    original: licenses?.length,
+    filtered: filteredLicenses?.length,
+    searchTerm
+  });
+
   const handleExport = () => {
     const csvContent = [
       ['Name', 'Total', 'Used', 'Available', 'Usage %'].join(','),
-      ...licenses.map(license => [
+      ...filteredLicenses.map(license => [
         license.name || 'Unknown',
         license.total,
         license.used,
@@ -44,15 +60,6 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   };
-
-  // Filter licenses based on search term
-  const filteredLicenses = licenses.filter(license => {
-    if (!license.name) {
-      console.warn('License missing name property:', license);
-      return false;
-    }
-    return license.name.toLowerCase().includes(searchTerm.toLowerCase());
-  });
 
   return (
     <Card>

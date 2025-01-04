@@ -15,7 +15,8 @@ export const LicenseCardContent = ({
   type 
 }: LicenseCardContentProps) => {
   console.log('LicenseCardContent received:', {
-    licenses,
+    licensesLength: licenses?.length,
+    firstLicense: licenses?.[0],
     searchTerm,
     type
   });
@@ -28,7 +29,11 @@ export const LicenseCardContent = ({
   };
 
   const groupedLicenses = groupLicensesByType(licenses, type);
-  console.log('Grouped licenses:', groupedLicenses);
+  console.log('Grouped licenses details:', {
+    groupCount: Object.keys(groupedLicenses).length,
+    groups: Object.keys(groupedLicenses),
+    firstGroupSize: Object.values(groupedLicenses)[0]?.length
+  });
 
   return (
     <div className="space-y-6">
