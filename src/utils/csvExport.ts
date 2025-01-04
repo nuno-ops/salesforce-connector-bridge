@@ -14,7 +14,7 @@ import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils
 import { formatLicenseData } from '@/components/org-health/utils';
 import { UserLicense } from '@/components/org-health/types';
 
-export const generateReportCSV = async (data: ExportData) => {
+export const generateReportCSV = async (data: ExportData): Promise<string> => {
   console.log('Generating CSV with raw data:', data);
 
   // Process users data
@@ -43,7 +43,7 @@ export const generateReportCSV = async (data: ExportData) => {
   const sandboxSavingsCalc = calculateSandboxSavings(data.sandboxes || []);
   const storageSavingsCalc = calculateStorageSavings(data.storageUsage || 0);
   
-  // Calculate platform license savings
+  // Calculate platform license savings - now properly awaited
   const platformLicenseSavings = await calculatePlatformLicenseSavings(data.licensePrice || 100);
 
   // Calculate total savings using the same formula as the dashboard
@@ -53,6 +53,15 @@ export const generateReportCSV = async (data: ExportData) => {
     sandboxSavingsCalc.savings +
     storageSavingsCalc.savings +
     platformLicenseSavings.savings;
+
+  console.log('Calculated savings breakdown:', {
+    inactiveUserSavings,
+    integrationUserSavings,
+    sandboxSavingsCalc,
+    storageSavingsCalc,
+    platformLicenseSavings,
+    totalSavings
+  });
 
   const csvContent: string[][] = [
     ['Salesforce Organization Cost Optimization Report'],
