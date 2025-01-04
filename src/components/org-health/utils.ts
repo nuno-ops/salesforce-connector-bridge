@@ -5,7 +5,6 @@ export const formatLicenseData = (licenses: any[]) => {
     console.log('Processing license:', license);
     
     const result = {
-      ...license,
       name: license.Name || 'Unknown',
       total: license.TotalLicenses,
       used: license.UsedLicenses
@@ -23,7 +22,6 @@ export const formatPackageLicenseData = (licenses: any[]) => {
     console.log('Processing package license:', license);
     
     const result = {
-      ...license,
       name: license.NamespacePrefix || 'Unknown',
       total: license.AllowedLicenses || 0,
       used: license.UsedLicenses || 0
@@ -41,7 +39,6 @@ export const formatPermissionSetLicenseData = (licenses: any[]) => {
     console.log('Processing permission set license:', license);
     
     const result = {
-      ...license,
       name: license.DeveloperName || 'Unknown',
       total: license.TotalLicenses,
       used: license.UsedLicenses
