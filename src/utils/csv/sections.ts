@@ -5,15 +5,16 @@ export const generateLicenseSection = (title: string, licenses: FormattedLicense
   console.log(`Generating ${title} section with data:`, licenses);
   return [
     [title],
-    ['Name', 'Total', 'Used', 'Available', 'Usage %'],
+    ['Name', 'Total', 'Used', 'Available', 'Usage %', 'Status'],
     ...licenses.map(license => {
-      console.log(`Processing license:`, license);
+      console.log(`Processing license in section:`, license);
       return [
         license.name,
         license.total.toString(),
         license.used.toString(),
         license.available.toString(),
-        `${license.usagePercentage}%`
+        `${license.usagePercentage}%`,
+        license.status || 'Active'
       ];
     }),
     ['']
