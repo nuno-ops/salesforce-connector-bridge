@@ -15,14 +15,18 @@ export const generateReportCSV = (data: ExportData) => {
     users = []
   } = data;
 
-  console.log('Raw data:', { userLicenses, packageLicenses, permissionSetLicenses });
+  console.log('Processing raw license data:', {
+    userLicenses,
+    packageLicenses,
+    permissionSetLicenses
+  });
 
   // Format license data
   const formattedUserLicenses = userLicenses.map(formatLicenseData);
   const formattedPackageLicenses = packageLicenses.map(formatLicenseData);
   const formattedPermissionSetLicenses = permissionSetLicenses.map(formatLicenseData);
 
-  console.log('Formatted licenses:', {
+  console.log('Formatted license data:', {
     formattedUserLicenses,
     formattedPackageLicenses,
     formattedPermissionSetLicenses
@@ -39,6 +43,13 @@ export const generateReportCSV = (data: ExportData) => {
 
   const licensePrice = 150; // Default price if not set
   const totalAnnualSavings = (inactiveUsers.length + potentialIntegrationUsers.length) * licensePrice * 12;
+
+  console.log('Savings calculations:', {
+    inactiveUsersCount: inactiveUsers.length,
+    potentialIntegrationUsersCount: potentialIntegrationUsers.length,
+    licensePrice,
+    totalAnnualSavings
+  });
 
   const csvContent = [
     ['Salesforce Organization Cost Optimization Report'],
