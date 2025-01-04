@@ -1,10 +1,16 @@
 import { subDays } from 'date-fns';
 import { User } from './types';
 
+interface InactiveUserResult {
+  savings: number;
+  count: number;
+  users: User[];
+}
+
 export const calculateInactiveUserSavings = (
   users: User[],
   licensePrice: number
-): { savings: number; count: number } => {
+): InactiveUserResult => {
   const thirtyDaysAgo = subDays(new Date(), 30);
   const inactiveUsers = users.filter(user => {
     if (!user.LastLoginDate) return true;
@@ -13,6 +19,7 @@ export const calculateInactiveUserSavings = (
 
   return {
     savings: inactiveUsers.length * licensePrice * 12, // Annual savings
-    count: inactiveUsers.length
+    count: inactiveUsers.length,
+    users: inactiveUsers
   };
 };
