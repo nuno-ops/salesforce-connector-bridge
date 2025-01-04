@@ -1,19 +1,19 @@
 import { RawLicense, CSVSection } from '../types';
-import { formatLicense } from '../formatters';
 
 export const createLicenseSection = (title: string, licenses: RawLicense[]): CSVSection => {
   return {
     title,
     headers: ['Name', 'Total Licenses', 'Used Licenses', 'Available Licenses', 'Usage %'],
-    rows: licenses.map(rawLicense => {
-      const license = formatLicense(rawLicense);
-      const available = license.total - license.used;
-      const usagePercentage = license.total > 0 ? ((license.used / license.total) * 100).toFixed(1) + '%' : 'N/A';
+    rows: licenses.map(license => {
+      const total = license.TotalLicenses || license.AllowedLicenses || 0;
+      const used = license.UsedLicenses || 0;
+      const available = total - used;
+      const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) + '%' : 'N/A';
 
       return [
-        license.name,
-        license.total.toString(),
-        license.used.toString(),
+        license.Name || license.NamespacePrefix || license.DeveloperName || 'Unknown',
+        total.toString(),
+        used.toString(),
         available.toString(),
         usagePercentage
       ];
