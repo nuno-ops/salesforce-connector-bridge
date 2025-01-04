@@ -9,12 +9,12 @@ export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
   }
 
   return licenses.map(license => {
-    const formatted = {
+    const formatted: LicenseInfo = {
       name: license.Name || 'Unknown License',
       total: license.TotalLicenses || 0,
       used: license.UsedLicenses || 0,
       id: license.Id,
-      type: 'user'
+      type: 'user' as const
     };
     
     console.log('Formatted user license:', formatted);
@@ -31,13 +31,13 @@ export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
   }
 
   return licenses.map(license => {
-    const formatted = {
+    const formatted: LicenseInfo = {
       name: license.NamespacePrefix || 'Unknown Package',
       total: license.AllowedLicenses === -1 ? Infinity : (license.AllowedLicenses || 0),
       used: license.UsedLicenses || 0,
       status: license.Status || 'Unknown',
       id: license.Id,
-      type: 'package'
+      type: 'package' as const
     };
     
     console.log('Formatted package license:', formatted);
@@ -54,12 +54,12 @@ export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] =
   }
 
   return licenses.map(license => {
-    const formatted = {
+    const formatted: LicenseInfo = {
       name: license.DeveloperName || 'Unknown Permission Set',
       total: license.TotalLicenses || 0,
       used: license.UsedLicenses || 0,
       id: license.Id,
-      type: 'permissionSet'
+      type: 'permissionSet' as const
     };
     
     console.log('Formatted permission set license:', formatted);
