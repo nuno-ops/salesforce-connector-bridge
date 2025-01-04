@@ -10,7 +10,6 @@ import { SavingsPreview } from "./dashboard/SavingsPreview";
 import { PaymentPlans } from "./dashboard/PaymentPlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
 
 const Dashboard = () => {
   const [showContractDialog, setShowContractDialog] = useState(true);
@@ -23,6 +22,8 @@ const Dashboard = () => {
     permissionSetLicenses = [],
     sandboxes = [],
     limits,
+    users = [],
+    oauthTokens = [],
     isLoading: isHealthDataLoading,
   } = useOrgHealthData();
 
@@ -32,35 +33,6 @@ const Dashboard = () => {
   const formattedUserLicenses = formatLicenseData(userLicenses);
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
-
-  const handleExportReport = () => {
-    try {
-      const csvContent = generateReportCSV({
-        userLicenses,
-        packageLicenses,
-        permissionSetLicenses,
-        sandboxes,
-        limits
-      });
-      
-      const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `salesforce-optimization-report-${orgId}-${new Date().toISOString().split('T')[0]}.csv`;
-      
-      downloadCSV(csvContent, filename);
-      
-      toast({
-        title: "Report Downloaded",
-        description: "Your report has been downloaded successfully.",
-      });
-    } catch (error) {
-      console.error('Error exporting report:', error);
-      toast({
-        variant: "destructive",
-        title: "Export Failed",
-        description: "Failed to generate the report. Please try again.",
-      });
-    }
-  };
 
   const handleSubscribe = async (priceId: string) => {
     try {
@@ -127,7 +99,8 @@ const Dashboard = () => {
         permissionSetLicenses={formattedPermissionSetLicenses}
         sandboxes={sandboxes}
         limits={limits}
-        onExportReport={handleExportReport}
+        users={users}
+        oauthTokens={oauthTokens}
       />
     </MainLayout>
   );
