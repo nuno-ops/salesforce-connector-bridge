@@ -7,7 +7,7 @@ import {
 } from "./utils/savingsCalculations";
 import { calculatePlatformLicenseSavings } from "./utils/platformLicenseSavings";
 import { scrollToLicenseOptimization } from "./utils/scrollUtils";
-import { filterStandardSalesforceUsers, filterInactiveUsers } from "../users/utils/userFilters";
+import { filterStandardSalesforceUsers } from "../users/utils/userFilters";
 import { useToast } from "@/hooks/use-toast";
 
 interface SavingsCalculatorProps {
@@ -66,25 +66,34 @@ export const useSavingsCalculations = ({
   useEffect(() => {
     const fetchPlatformSavings = async () => {
       try {
-        if (!isInitialized && users.length > 0) {
-          console.log('Dashboard - Calculating platform license savings...');
+        if (!isInitialized && standardUsers.length > 0) {
+          console.log('Dashboard - Calculating platform license savings for standard users...');
           const result = await calculatePlatformLicenseSavings(licensePrice);
           console.log('Dashboard - Platform license savings result:', result);
+          
+          // Only count platform-eligible users who are standard Salesforce users
+          const eligibleUsers = result.users?.filter(user => 
+            user.isPlatformEligible && 
+            user.Profile?.UserLicense?.Name === 'Salesforce' &&
+            user.UserType === 'Standard'
+          );
+          
+          const eligibleCount = eligibleUsers?.length || 0;
+          console.log('Dashboard - Eligible platform users after filtering:', eligibleCount);
           
           // Calculate annual savings: number of users * (current license cost - platform license cost)
           const platformLicenseCost = 25; // USD per month
           const monthlySavingsPerUser = licensePrice - platformLicenseCost;
-          const annualSavings = result.count * monthlySavingsPerUser * 12;
+          const annualSavings = eligibleCount * monthlySavingsPerUser * 12;
           
           setPlatformLicenseSavings({ 
             savings: annualSavings,
-            count: result.count 
+            count: eligibleCount 
           });
           setIsInitialized(true);
         }
       } catch (error) {
         console.error('Error calculating platform license savings:', error);
-        // Show error toast only on first attempt
         if (!isInitialized) {
           toast({
             variant: "destructive",
@@ -97,7 +106,7 @@ export const useSavingsCalculations = ({
     };
 
     fetchPlatformSavings();
-  }, [licensePrice, users, isInitialized, toast]);
+  }, [licensePrice, standardUsers, isInitialized, toast]);
 
   // Reset initialization when users change
   useEffect(() => {
