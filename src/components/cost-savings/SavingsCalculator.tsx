@@ -72,7 +72,7 @@ export const useSavingsCalculations = ({
           console.log('Dashboard - Platform license savings result:', result);
           
           // Only count platform-eligible users who are standard Salesforce users
-          const eligibleUsers = result.users?.filter(user => 
+          const eligibleUsers = result.users.filter(user => 
             user.isPlatformEligible && 
             user.Profile?.UserLicense?.Name === 'Salesforce' &&
             user.UserType === 'Standard'
