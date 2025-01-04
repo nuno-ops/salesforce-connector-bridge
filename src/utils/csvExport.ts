@@ -43,7 +43,7 @@ export const generateReportCSV = (data: ExportData) => {
 
   const csvContent: string[][] = [
     ['Salesforce Organization Cost Optimization Report'],
-    ['Potential Annual Savings:', `$${totalSavings.toLocaleString()}`],
+    ['Potential Annual Savings:', `$${totalSavings.toLocaleString('en-US', { maximumFractionDigits: 0 })}`],
     ['Generated on:', new Date().toLocaleString()],
     ['']
   ];
