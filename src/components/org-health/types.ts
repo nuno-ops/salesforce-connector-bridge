@@ -74,7 +74,7 @@ export interface MonthlyMetrics {
 }
 
 export interface LicenseInfo {
-  name?: string;
+  name: string; // Changed from optional to required
   total: number;
   used: number;
   status?: string;
