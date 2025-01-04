@@ -72,3 +72,12 @@ export interface MonthlyMetrics {
   leads: LeadRecord[];
   opportunities: OpportunityRecord[];
 }
+
+export interface LicenseInfo {
+  name?: string;
+  total: number;
+  used: number;
+  status?: string;
+  featureArea?: string;
+  lastModified?: string;
+}
