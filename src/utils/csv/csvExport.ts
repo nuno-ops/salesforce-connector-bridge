@@ -20,9 +20,20 @@ export const generateReportCSV = (data: ExportData) => {
   console.log('Raw permission set licenses:', permissionSetLicenses);
 
   // Format license data
-  const formattedUserLicenses = userLicenses.map(formatLicenseData);
-  const formattedPackageLicenses = packageLicenses.map(formatLicenseData);
-  const formattedPermissionSetLicenses = permissionSetLicenses.map(formatLicenseData);
+  const formattedUserLicenses = userLicenses.map(license => {
+    console.log('Processing user license:', license);
+    return formatLicenseData(license);
+  });
+  
+  const formattedPackageLicenses = packageLicenses.map(license => {
+    console.log('Processing package license:', license);
+    return formatLicenseData(license);
+  });
+  
+  const formattedPermissionSetLicenses = permissionSetLicenses.map(license => {
+    console.log('Processing permission set license:', license);
+    return formatLicenseData(license);
+  });
 
   console.log('Formatted user licenses:', formattedUserLicenses);
   console.log('Formatted package licenses:', formattedPackageLicenses);
