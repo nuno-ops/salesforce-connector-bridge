@@ -2,7 +2,8 @@ import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDas
 import { CostSavingsReport } from "@/components/CostSavingsReport";
 import { SalesforceUsers } from "@/components/SalesforceUsers";
 import { OrgHealth } from "@/components/OrgHealth";
-import { DownloadPdfButton } from "../pdf/DownloadPdfButton";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -10,6 +11,7 @@ interface DashboardContentProps {
   permissionSetLicenses: any[];
   sandboxes: any[];
   limits: any;
+  onExportReport: () => void;
 }
 
 export const DashboardContent = ({
@@ -17,10 +19,23 @@ export const DashboardContent = ({
   packageLicenses,
   permissionSetLicenses,
   sandboxes,
-  limits
+  limits,
+  onExportReport
 }: DashboardContentProps) => {
   return (
     <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Organization Health Dashboard</h1>
+        <Button
+          onClick={onExportReport}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Export Report
+        </Button>
+      </div>
+      
       <OptimizationDashboard
         userLicenses={userLicenses}
         packageLicenses={packageLicenses}
