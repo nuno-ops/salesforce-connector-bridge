@@ -1,7 +1,8 @@
 import { SalesforceUser } from '@/components/users/utils/userFilters';
 import { formatLastLoginDate } from '@/components/users/utils/userFilters';
+import { CSVSection } from '../types';
 
-export const createUserSection = (title: string, users: SalesforceUser[]) => {
+export const createUserSection = (title: string, users: SalesforceUser[]): CSVSection => {
   console.log(`Creating ${title} section with ${users.length} users`);
   
   return {

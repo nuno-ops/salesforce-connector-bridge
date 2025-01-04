@@ -13,6 +13,7 @@ export interface SalesforceUser {
     };
   };
   isPlatformEligible?: boolean;
+  connectedApps?: string[];
 }
 
 export const filterStandardSalesforceUsers = (users: SalesforceUser[]) => {
