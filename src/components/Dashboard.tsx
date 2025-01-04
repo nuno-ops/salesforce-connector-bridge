@@ -29,10 +29,10 @@ const Dashboard = () => {
 
   const { hasAccess, isCheckingAccess, handleDisconnect } = useCheckAccess();
 
-  // Format the license data early
-  const formattedUserLicenses = formatLicenseData(userLicenses);
-  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
-  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
+  // Safely format the license data, ensuring we don't process undefined values
+  const formattedUserLicenses = userLicenses ? formatLicenseData(userLicenses) : [];
+  const formattedPackageLicenses = packageLicenses ? formatPackageLicenseData(packageLicenses) : [];
+  const formattedPermissionSetLicenses = permissionSetLicenses ? formatPermissionSetLicenseData(permissionSetLicenses) : [];
 
   const handleSubscribe = async (priceId: string) => {
     try {
