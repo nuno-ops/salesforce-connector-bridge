@@ -27,23 +27,35 @@ export const PrintableReport = ({
   limits,
   metrics
 }: PrintableReportProps) => {
-  const [isDataReady, setIsDataReady] = useState(false);
+  console.log('PrintableReport rendering with data:', {
+    userLicenses,
+    packageLicenses,
+    permissionSetLicenses,
+    sandboxes,
+    limits,
+    metrics
+  });
+
+  // Initialize state outside of any conditions
+  const [processedData, setProcessedData] = useState<any>(null);
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics || {});
-  
-  const {
-    licensePrice,
-    users,
-    oauthTokens
-  } = useOrganizationData();
+  const { licensePrice, users, oauthTokens } = useOrganizationData();
 
   useEffect(() => {
-    if (users?.length > 0 && userLicenses?.length > 0 && oauthTokens) {
-      setIsDataReady(true);
+    console.log('Processing data in useEffect');
+    if (users?.length > 0 && userLicenses?.length > 0) {
+      console.log('Data available for processing');
+      setProcessedData({
+        users,
+        userLicenses,
+        oauthTokens
+      });
     }
   }, [users, userLicenses, oauthTokens]);
 
-  // Wait for data initialization
-  if (!isDataReady) {
+  // Ensure we have all required data
+  if (!processedData || !licensePrice) {
+    console.log('Waiting for data initialization...');
     return (
       <div className="p-8 space-y-8 bg-white min-h-screen">
         <p>Preparing report data...</p>
@@ -51,10 +63,10 @@ export const PrintableReport = ({
     );
   }
 
-  // Process users after ensuring data is available
+  console.log('Calculating savings with license price:', licensePrice);
   const { totalSavings, savingsBreakdown } = useSavingsCalculations({
-    users,
-    oauthTokens,
+    users: processedData.users,
+    oauthTokens: processedData.oauthTokens,
     licensePrice,
     sandboxes,
     storageUsage: limits?.StorageUsed || 0,
@@ -77,13 +89,11 @@ export const PrintableReport = ({
         getUserOAuthApps={(userId: string) => []}
       />
 
-      {/* License Usage Section */}
       <Card>
         <CardHeader>
           <CardTitle>License Usage</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* User Licenses */}
           <div>
             <h3 className="font-semibold mb-4">User Licenses</h3>
             <div className="grid gap-4">
@@ -99,7 +109,6 @@ export const PrintableReport = ({
             </div>
           </div>
 
-          {/* Package Licenses */}
           <div>
             <h3 className="font-semibold mb-4">Package Licenses</h3>
             <div className="grid gap-4">
