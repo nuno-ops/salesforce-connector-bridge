@@ -105,7 +105,7 @@ export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] =
     });
 
     return {
-      name: license.DeveloperName || '',
+      name: license.DeveloperName || '',  // Changed from Name to DeveloperName
       total: license.TotalLicenses,
       used: license.UsedLicenses,
       id: license.Id,
