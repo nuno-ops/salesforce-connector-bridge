@@ -6,7 +6,7 @@ export const formatLicenseData = (licenses: any[]) => {
     
     const result = {
       ...license,
-      name: license.Name || license.DeveloperName || 'Unknown',
+      name: license.Name || 'Unknown',
       total: license.TotalLicenses,
       used: license.UsedLicenses
     };
@@ -25,7 +25,7 @@ export const formatPackageLicenseData = (licenses: any[]) => {
     const result = {
       ...license,
       name: license.NamespacePrefix || 'Unknown',
-      total: license.TotalLicenses || 0,
+      total: license.AllowedLicenses || 0,
       used: license.UsedLicenses || 0
     };
     
