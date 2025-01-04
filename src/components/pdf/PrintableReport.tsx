@@ -27,25 +27,43 @@ export const PrintableReport = ({
   limits,
   metrics
 }: PrintableReportProps) => {
+  console.log('PrintableReport rendering with data:', {
+    userLicenses,
+    packageLicenses,
+    permissionSetLicenses,
+    sandboxes,
+    limits,
+    metrics
+  });
+
   const [isReady, setIsReady] = useState(false);
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics || {});
   const { licensePrice, users, oauthTokens } = useOrganizationData();
 
   useEffect(() => {
-    if (users?.length > 0 && userLicenses?.length > 0 && licensePrice > 0) {
-      console.log('All data ready, setting isReady to true');
-      setIsReady(true);
-    } else {
-      console.log('Waiting for data:', {
+    const checkData = () => {
+      console.log('Processing data in useEffect', {
         usersLength: users?.length,
         userLicensesLength: userLicenses?.length,
         licensePrice
       });
-    }
+
+      if (users?.length > 0 && userLicenses?.length > 0 && licensePrice > 0) {
+        console.log('All data ready, setting isReady to true');
+        setIsReady(true);
+      }
+    };
+
+    checkData();
   }, [users, userLicenses, licensePrice]);
 
   if (!isReady) {
     console.log('Report not ready yet');
+    console.log('Waiting for data:', {
+      usersLength: users?.length,
+      userLicensesLength: userLicenses?.length,
+      licensePrice
+    });
     return (
       <div className="p-8 space-y-8 bg-white min-h-screen">
         <p>Preparing report data...</p>
@@ -54,6 +72,8 @@ export const PrintableReport = ({
   }
 
   console.log('Rendering final report content');
+  console.log('Calculating savings with license price:', licensePrice);
+
   const { totalSavings, savingsBreakdown } = useSavingsCalculations({
     users,
     oauthTokens,
