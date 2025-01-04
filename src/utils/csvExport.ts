@@ -21,13 +21,16 @@ export const generateReportCSV = async (data: ExportData) => {
   const standardUsers = filterStandardSalesforceUsers(data.users || []);
   const inactiveUsers = filterInactiveUsers(standardUsers);
   
-  // Convert RawLicense[] to UserLicense[]
-  const formattedUserLicenses = data.userLicenses ? data.userLicenses.map(license => ({
+  // Convert RawLicense[] to UserLicense[] first
+  const userLicenses: UserLicense[] = data.userLicenses ? data.userLicenses.map(license => ({
     Id: license.Id,
     Name: license.Name || '',
     TotalLicenses: license.TotalLicenses || 0,
     UsedLicenses: license.UsedLicenses || 0
   })) : [];
+
+  // Then format them to match the License type expected by calculation functions
+  const formattedUserLicenses = formatLicenseData(userLicenses);
   
   // Calculate savings using the same functions as the dashboard
   const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, data.licensePrice || 100);
