@@ -1,22 +1,18 @@
 import { FormattedLicense } from './types';
-import { formatNumber, calculateUsagePercentage } from './formatters';
 
 export const generateLicenseSection = (title: string, licenses: FormattedLicense[]): string[][] => {
   console.log(`Generating ${title} section with data:`, licenses);
   return [
     [title],
     ['Name', 'Total', 'Used', 'Available', 'Usage %', 'Status'],
-    ...licenses.map(license => {
-      console.log(`Processing license in section:`, license);
-      return [
-        license.name,
-        license.total.toString(),
-        license.used.toString(),
-        license.available.toString(),
-        `${license.usagePercentage}%`,
-        license.status || 'Active'
-      ];
-    }),
+    ...licenses.map(license => [
+      license.name,
+      license.total.toString(),
+      license.used.toString(),
+      license.available.toString(),
+      `${license.usagePercentage}%`,
+      license.status || 'Active'
+    ]),
     ['']
   ];
 };
@@ -52,33 +48,26 @@ export const generateSandboxSection = (sandboxes: any[]): string[][] => {
 
 export const generateLimitsSection = (limits: any): string[][] => {
   console.log('Generating limits section with data:', limits);
-  const formatLimitRow = (name: string, limit: any) => {
-    if (!limit) {
-      console.log(`No limit data for ${name}`);
-      return [name, '0', '0', '0', '0%'];
-    }
-
-    const max = formatNumber(limit.Max);
-    const remaining = formatNumber(limit.Remaining);
-    const used = max - remaining;
-    const usagePercentage = calculateUsagePercentage(used, max);
-    
-    console.log(`Formatted ${name} limit:`, { max, remaining, used, usagePercentage });
-    
-    return [
-      name,
-      used.toString(),
-      max.toString(),
-      remaining.toString(),
-      `${usagePercentage}%`
-    ];
-  };
-
   return [
     ['Organization Limits'],
     ['Limit Type', 'Used', 'Total', 'Remaining', 'Usage %'],
-    formatLimitRow('Data Storage (MB)', limits?.DataStorageMB),
-    formatLimitRow('File Storage (MB)', limits?.FileStorageMB),
-    formatLimitRow('Daily API Requests', limits?.DailyApiRequests)
+    ['Data Storage (MB)', 
+      limits?.DataStorageMB?.Used?.toString() || '0',
+      limits?.DataStorageMB?.Max?.toString() || '0',
+      limits?.DataStorageMB?.Remaining?.toString() || '0',
+      `${((limits?.DataStorageMB?.Used || 0) / (limits?.DataStorageMB?.Max || 1) * 100).toFixed(1)}%`
+    ],
+    ['File Storage (MB)',
+      limits?.FileStorageMB?.Used?.toString() || '0',
+      limits?.FileStorageMB?.Max?.toString() || '0',
+      limits?.FileStorageMB?.Remaining?.toString() || '0',
+      `${((limits?.FileStorageMB?.Used || 0) / (limits?.FileStorageMB?.Max || 1) * 100).toFixed(1)}%`
+    ],
+    ['Daily API Requests',
+      limits?.DailyApiRequests?.Used?.toString() || '0',
+      limits?.DailyApiRequests?.Max?.toString() || '0',
+      limits?.DailyApiRequests?.Remaining?.toString() || '0',
+      `${((limits?.DailyApiRequests?.Used || 0) / (limits?.DailyApiRequests?.Max || 1) * 100).toFixed(1)}%`
+    ]
   ];
 };

@@ -20,29 +20,18 @@ export const generateReportCSV = (data: ExportData) => {
     users = []
   } = data;
 
-  console.log('CSV Generation - Raw user licenses:', JSON.stringify(userLicenses, null, 2));
-  console.log('CSV Generation - Raw package licenses:', JSON.stringify(packageLicenses, null, 2));
-  console.log('CSV Generation - Raw permission set licenses:', JSON.stringify(permissionSetLicenses, null, 2));
+  console.log('Raw user licenses:', userLicenses);
+  console.log('Raw package licenses:', packageLicenses);
+  console.log('Raw permission set licenses:', permissionSetLicenses);
 
-  // Format license data with safe number handling
-  const formattedUserLicenses = userLicenses.map(license => {
-    console.log('Formatting user license:', JSON.stringify(license, null, 2));
-    return formatLicenseData(license);
-  });
+  // Format license data
+  const formattedUserLicenses = userLicenses.map(license => formatLicenseData(license));
+  const formattedPackageLicenses = packageLicenses.map(license => formatLicenseData(license));
+  const formattedPermissionSetLicenses = permissionSetLicenses.map(license => formatLicenseData(license));
 
-  const formattedPackageLicenses = packageLicenses.map(license => {
-    console.log('Formatting package license:', JSON.stringify(license, null, 2));
-    return formatLicenseData(license);
-  });
-
-  const formattedPermissionSetLicenses = permissionSetLicenses.map(license => {
-    console.log('Formatting permission set license:', JSON.stringify(license, null, 2));
-    return formatLicenseData(license);
-  });
-
-  console.log('CSV Generation - Formatted user licenses:', JSON.stringify(formattedUserLicenses, null, 2));
-  console.log('CSV Generation - Formatted package licenses:', JSON.stringify(formattedPackageLicenses, null, 2));
-  console.log('CSV Generation - Formatted permission set licenses:', JSON.stringify(formattedPermissionSetLicenses, null, 2));
+  console.log('Formatted user licenses:', formattedUserLicenses);
+  console.log('Formatted package licenses:', formattedPackageLicenses);
+  console.log('Formatted permission set licenses:', formattedPermissionSetLicenses);
 
   // Filter and analyze users
   const standardUsers = filterStandardSalesforceUsers(users);
