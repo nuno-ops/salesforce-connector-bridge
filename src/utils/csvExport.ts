@@ -13,14 +13,33 @@ import {
 import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils/platformLicenseSavings';
 import { formatLicenseData } from '@/components/org-health/utils';
 import { UserLicense } from '@/components/org-health/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
+  // First, get the current license price from organization settings
+  const instanceUrl = localStorage.getItem('sf_instance_url');
+  const orgId = instanceUrl?.replace(/[^a-zA-Z0-9]/g, '_');
+  
+  let licensePrice = data.licensePrice;
+  
+  if (orgId) {
+    const { data: settings } = await supabase
+      .from('organization_settings')
+      .select('license_cost_per_user')
+      .eq('org_id', orgId)
+      .maybeSingle();
+    
+    if (settings?.license_cost_per_user) {
+      licensePrice = parseFloat(settings.license_cost_per_user.toString());
+    }
+  }
+
   console.log('CSV Export - Starting with initial data:', {
     userLicenses: data.userLicenses?.length,
     packageLicenses: data.packageLicenses?.length,
     users: data.users?.length,
     oauthTokens: data.oauthTokens?.length,
-    licensePrice: data.licensePrice,
+    licensePrice,
     sandboxes: data.sandboxes?.length,
     storageUsage: data.storageUsage
   });
@@ -46,17 +65,17 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   console.log('CSV Export - Formatted user licenses:', formattedUserLicenses.length);
   
   // Calculate savings using the same functions as the dashboard
-  const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, data.licensePrice);
+  const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
   console.log('CSV Export - Inactive user savings calculation:', {
     count: inactiveUserSavings.count,
     savings: inactiveUserSavings.savings,
-    licensePrice: data.licensePrice
+    licensePrice
   });
 
   const integrationUserSavings = calculateIntegrationUserSavings(
     standardUsers,
     data.oauthTokens || [],
-    data.licensePrice,
+    licensePrice,
     formattedUserLicenses
   );
   console.log('CSV Export - Integration user savings calculation:', {
@@ -77,8 +96,8 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   });
   
   // Calculate platform license savings - now properly awaited
-  console.log('CSV Export - Calculating platform license savings with price:', data.licensePrice);
-  const platformLicenseSavings = await calculatePlatformLicenseSavings(data.licensePrice);
+  console.log('CSV Export - Calculating platform license savings with price:', licensePrice);
+  const platformLicenseSavings = await calculatePlatformLicenseSavings(licensePrice);
   console.log('CSV Export - Platform license savings result:', platformLicenseSavings);
 
   // Calculate total savings using the same formula as the dashboard
@@ -95,7 +114,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     sandboxSavings: sandboxSavingsCalc.savings,
     storageSavings: storageSavingsCalc.savings,
     platformLicenseSavings: platformLicenseSavings.savings,
-    totalSavings: totalSavings
+    totalSavings
   });
 
   const csvContent: string[][] = [
