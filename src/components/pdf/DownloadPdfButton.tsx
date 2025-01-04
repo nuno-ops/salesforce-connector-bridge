@@ -44,7 +44,7 @@ export const DownloadPdfButton = () => {
             metrics={metrics}
           />
         );
-        setTimeout(resolve, 2000);
+        setTimeout(resolve, 3000); // Increased timeout for better rendering
       });
 
       console.log('Generating canvas...');
@@ -68,38 +68,33 @@ export const DownloadPdfButton = () => {
       const imgData = canvas.toDataURL('image/jpeg', 1.0);
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'mm',
+        unit: 'pt',
         format: 'a4'
       });
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      
-      const widthRatio = pageWidth / canvas.width;
-      const heightRatio = pageHeight / canvas.height;
-      const ratio = Math.min(widthRatio, heightRatio);
-      
-      const canvasWidth = canvas.width * ratio;
-      const canvasHeight = canvas.height * ratio;
-      
-      const marginX = (pageWidth - canvasWidth) / 2;
-      const marginY = (pageHeight - canvasHeight) / 2;
 
-      pdf.addImage(imgData, 'JPEG', marginX, marginY, canvasWidth, canvasHeight);
+      // Calculate scale to fit width while maintaining aspect ratio
+      const scale = pageWidth / canvas.width;
+      const scaledHeight = canvas.height * scale;
+
+      // Add first page
+      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, scaledHeight);
 
       // Add additional pages if content exceeds one page
-      const pagesCount = Math.ceil(canvasHeight / pageHeight);
-      
-      if (pagesCount > 1) {
-        for (let i = 1; i < pagesCount; i++) {
+      if (scaledHeight > pageHeight) {
+        const totalPages = Math.ceil(scaledHeight / pageHeight);
+        
+        for (let i = 1; i < totalPages; i++) {
           pdf.addPage();
           pdf.addImage(
             imgData,
             'JPEG',
-            marginX,
-            marginY - (pageHeight * i),
-            canvasWidth,
-            canvasHeight
+            0,
+            -(pageHeight * i),
+            pageWidth,
+            scaledHeight
           );
         }
       }
