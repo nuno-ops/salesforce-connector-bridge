@@ -9,7 +9,6 @@ import { ReportHeader } from "./sections/ReportHeader";
 import { SavingsSummary } from "./sections/SavingsSummary";
 import { LicenseOptimizationSection } from "./sections/LicenseOptimizationSection";
 import { OperationalMetricsSection } from "./sections/OperationalMetricsSection";
-import { filterStandardSalesforceUsers } from "../users/utils/userFilters";
 
 interface PrintableReportProps {
   userLicenses: any[];
@@ -29,7 +28,7 @@ export const PrintableReport = ({
   metrics
 }: PrintableReportProps) => {
   const [isDataReady, setIsDataReady] = useState(false);
-  const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics);
+  const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics || {});
   
   const {
     licensePrice,
@@ -37,7 +36,6 @@ export const PrintableReport = ({
     oauthTokens
   } = useOrganizationData();
 
-  // Initialize data only when everything is available
   useEffect(() => {
     if (users?.length > 0 && userLicenses?.length > 0 && oauthTokens) {
       setIsDataReady(true);
@@ -54,10 +52,8 @@ export const PrintableReport = ({
   }
 
   // Process users after ensuring data is available
-  const standardUsers = filterStandardSalesforceUsers(users);
-  
   const { totalSavings, savingsBreakdown } = useSavingsCalculations({
-    users: standardUsers,
+    users,
     oauthTokens,
     licensePrice,
     sandboxes,

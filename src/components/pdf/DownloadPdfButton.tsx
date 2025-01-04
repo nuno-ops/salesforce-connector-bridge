@@ -27,10 +27,11 @@ export const DownloadPdfButton = () => {
 
   const generatePDF = async () => {
     console.log('Starting PDF generation...');
+    let cleanup: (() => void) | undefined;
     
     try {
       // Render content to canvas
-      const { canvas, cleanup } = await renderPdfContent({
+      const result = await renderPdfContent({
         data: {
           userLicenses,
           packageLicenses,
@@ -40,6 +41,9 @@ export const DownloadPdfButton = () => {
           metrics
         }
       });
+
+      cleanup = result.cleanup;
+      const canvas = result.canvas;
 
       console.log('Canvas generated, creating PDF...');
       
@@ -57,6 +61,9 @@ export const DownloadPdfButton = () => {
       
       // Add content to pages
       for (let i = 0; i < totalPages; i++) {
+        if (i > 0) {
+          pdf.addPage();
+        }
         addPageContent(pdf, imgData, i, scaledHeight);
       }
       
@@ -75,6 +82,9 @@ export const DownloadPdfButton = () => {
         description: "Failed to generate PDF. Please try again.",
       });
     } finally {
+      if (cleanup) {
+        cleanup();
+      }
       setIsGenerating(false);
     }
   };
