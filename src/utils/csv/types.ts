@@ -1,17 +1,12 @@
 export interface RawLicense {
-  name: string;
-  total: number;
-  used: number;
-  status?: string;
-}
-
-export interface FormattedLicense {
-  name: string;
-  total: number;
-  used: number;
-  available: number;
-  usagePercentage: string;
-  status?: string;
+  Id?: string;
+  Name?: string;
+  TotalLicenses?: number;
+  UsedLicenses?: number;
+  NamespacePrefix?: string;
+  Status?: string;
+  AllowedLicenses?: number;
+  DeveloperName?: string;
 }
 
 export interface ExportData {

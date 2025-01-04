@@ -1,26 +1,14 @@
+// This file will no longer format the data, just pass it through
 import { UserLicense, PackageLicense, PermissionSetLicense } from './types';
 
 export const formatLicenseData = (licenses: UserLicense[]) => {
-  return licenses.map(license => ({
-    name: license.Name,
-    total: license.TotalLicenses,
-    used: license.UsedLicenses
-  }));
+  return licenses;
 };
 
 export const formatPackageLicenseData = (licenses: PackageLicense[]) => {
-  return licenses.map(license => ({
-    name: license.NamespacePrefix || 'Unnamed Package',
-    total: license.AllowedLicenses,
-    used: license.UsedLicenses,
-    status: license.Status
-  }));
+  return licenses;
 };
 
 export const formatPermissionSetLicenseData = (licenses: PermissionSetLicense[]) => {
-  return licenses.map(license => ({
-    name: license.DeveloperName,
-    total: license.TotalLicenses,
-    used: license.UsedLicenses
-  }));
+  return licenses;
 };

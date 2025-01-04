@@ -1,28 +1,16 @@
-import { ExportData, CsvSection } from './types';
+import { ExportData } from './types';
 import { createLicenseSection } from './sections/licenseSection';
 import { createUserSection } from './sections/userSection';
 import { createSandboxSection } from './sections/sandboxSection';
 import { createLimitsSection } from './sections/limitsSection';
-import { filterInactiveUsers, filterStandardSalesforceUsers } from "@/components/users/utils/userFilters";
-import { analyzeIntegrationOpportunities } from "@/components/cost-savings/utils/licenseCalculations";
 
 export const generateReportCSV = (data: ExportData) => {
   console.log('Generating CSV with raw data:', data);
 
-  const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
-  const inactiveUsers = filterInactiveUsers(standardUsers);
-  const potentialIntegrationUsers = analyzeIntegrationOpportunities(
-    standardUsers,
-    data.oauthTokens || [],
-    inactiveUsers
-  );
-
-  const sections: CsvSection[] = [
+  const sections = [
     createLicenseSection('User Licenses', data.userLicenses),
     createLicenseSection('Package Licenses', data.packageLicenses),
     createLicenseSection('Permission Set Licenses', data.permissionSetLicenses),
-    createUserSection('Inactive Users', inactiveUsers),
-    createUserSection('Integration User Candidates', potentialIntegrationUsers),
     createSandboxSection(data.sandboxes),
     createLimitsSection(data.limits)
   ];
@@ -30,7 +18,7 @@ export const generateReportCSV = (data: ExportData) => {
   const csvContent: string[][] = [
     ['Salesforce Organization Cost Optimization Report'],
     ['Generated on:', new Date().toLocaleString()],
-    [''],
+    ['']
   ];
 
   sections.forEach(section => {
