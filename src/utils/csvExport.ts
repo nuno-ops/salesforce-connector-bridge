@@ -4,8 +4,10 @@ import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
 import { createUserSection } from './csv/sections/userSection';
 import { filterStandardSalesforceUsers, filterInactiveUsers } from '@/components/users/utils/userFilters';
+import { calculateInactiveUserSavings, calculateIntegrationUserSavings } from '@/components/cost-savings/utils/savingsCalculations';
+import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils/platformLicenseSavings';
 
-export const generateReportCSV = (data: ExportData) => {
+export const generateReportCSV = async (data: ExportData) => {
   console.log('Generating CSV with raw data:', data);
 
   // Process users data
@@ -19,10 +21,41 @@ export const generateReportCSV = (data: ExportData) => {
     return userTokens.length > 0;
   });
 
+  // Calculate savings
+  const licensePrice = 100; // Default price if not provided
+  const inactiveSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
+  const integrationSavings = calculateIntegrationUserSavings(
+    standardUsers,
+    data.oauthTokens || [],
+    licensePrice,
+    data.userLicenses || []
+  );
+  const platformSavings = await calculatePlatformLicenseSavings(licensePrice);
+
+  const totalAnnualSavings = 
+    inactiveSavings.savings +
+    integrationSavings.savings +
+    platformSavings.savings;
+
+  // Create savings summary section
+  const savingsSummarySection = {
+    title: 'Potential Cost Savings Summary',
+    headers: ['Category', 'Annual Savings (USD)'],
+    rows: [
+      ['Total Potential Annual Savings', `$${totalAnnualSavings.toLocaleString()}`],
+      [''],
+      ['Breakdown by Category:'],
+      ['Inactive User Licenses', `$${inactiveSavings.savings.toLocaleString()}`],
+      ['Integration User Optimization', `$${integrationSavings.savings.toLocaleString()}`],
+      ['Platform License Optimization', `$${platformSavings.savings.toLocaleString()}`],
+    ]
+  };
+
   // Get platform license users
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
   const sections = [
+    savingsSummarySection,
     createLicenseSection('User Licenses', data.userLicenses),
     createLicenseSection('Package Licenses', data.packageLicenses),
     createLicenseSection('Permission Set Licenses', data.permissionSetLicenses),

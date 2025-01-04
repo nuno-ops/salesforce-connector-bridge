@@ -10,6 +10,12 @@ export interface RawLicense {
   DeveloperName?: string;
 }
 
+export interface CSVSection {
+  title: string;
+  headers: string[];
+  rows: string[][];
+}
+
 export interface ExportData {
   userLicenses: RawLicense[];
   packageLicenses: RawLicense[];
@@ -18,10 +24,4 @@ export interface ExportData {
   limits: any;
   users?: any[];
   oauthTokens?: any[];
-}
-
-export interface CSVSection {
-  title: string;
-  headers: string[];
-  rows: string[][];
 }
