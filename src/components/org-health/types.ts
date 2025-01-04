@@ -74,10 +74,11 @@ export interface MonthlyMetrics {
 }
 
 export interface LicenseInfo {
-  name: string; // Changed from optional to required
+  name: string;
   total: number;
   used: number;
+  id: string;
+  type: 'user' | 'package' | 'permissionSet';
   status?: string;
   featureArea?: string;
-  lastModified?: string;
 }

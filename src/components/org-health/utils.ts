@@ -1,13 +1,18 @@
 import { LicenseInfo } from "./types";
 
 export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
-  console.log('Formatting user licenses:', licenses);
+  console.log('Formatting user licenses - Input:', licenses);
   
+  if (!Array.isArray(licenses)) {
+    console.warn('Invalid licenses array provided to formatLicenseData');
+    return [];
+  }
+
   return licenses.map(license => {
     const formatted = {
-      name: license.Name,
-      total: license.TotalLicenses,
-      used: license.UsedLicenses,
+      name: license.Name || 'Unknown License',
+      total: license.TotalLicenses || 0,
+      used: license.UsedLicenses || 0,
       id: license.Id,
       type: 'user'
     };
@@ -18,14 +23,19 @@ export const formatLicenseData = (licenses: any[]): LicenseInfo[] => {
 };
 
 export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
-  console.log('Formatting package licenses:', licenses);
+  console.log('Formatting package licenses - Input:', licenses);
   
+  if (!Array.isArray(licenses)) {
+    console.warn('Invalid licenses array provided to formatPackageLicenseData');
+    return [];
+  }
+
   return licenses.map(license => {
     const formatted = {
-      name: license.NamespacePrefix,
-      total: license.AllowedLicenses === -1 ? Infinity : license.AllowedLicenses,
-      used: license.UsedLicenses,
-      status: license.Status,
+      name: license.NamespacePrefix || 'Unknown Package',
+      total: license.AllowedLicenses === -1 ? Infinity : (license.AllowedLicenses || 0),
+      used: license.UsedLicenses || 0,
+      status: license.Status || 'Unknown',
       id: license.Id,
       type: 'package'
     };
@@ -36,13 +46,18 @@ export const formatPackageLicenseData = (licenses: any[]): LicenseInfo[] => {
 };
 
 export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] => {
-  console.log('Formatting permission set licenses:', licenses);
+  console.log('Formatting permission set licenses - Input:', licenses);
   
+  if (!Array.isArray(licenses)) {
+    console.warn('Invalid licenses array provided to formatPermissionSetLicenseData');
+    return [];
+  }
+
   return licenses.map(license => {
     const formatted = {
-      name: license.DeveloperName,
-      total: license.TotalLicenses,
-      used: license.UsedLicenses,
+      name: license.DeveloperName || 'Unknown Permission Set',
+      total: license.TotalLicenses || 0,
+      used: license.UsedLicenses || 0,
       id: license.Id,
       type: 'permissionSet'
     };
@@ -53,6 +68,8 @@ export const formatPermissionSetLicenseData = (licenses: any[]): LicenseInfo[] =
 };
 
 export const groupLicensesByType = (licenses: LicenseInfo[], type: 'user' | 'package' | 'permissionSet') => {
+  console.log('Grouping licenses by type:', { type, licenses });
+  
   if (!Array.isArray(licenses)) {
     console.warn('Invalid licenses array provided to groupLicensesByType');
     return {};
@@ -86,6 +103,7 @@ export const groupLicensesByType = (licenses: LicenseInfo[], type: 'user' | 'pac
 };
 
 const getFeatureArea = (name: string): string => {
+  if (!name) return 'Other';
   const lowercaseName = name.toLowerCase();
   if (lowercaseName.includes('sales')) return 'Sales';
   if (lowercaseName.includes('service')) return 'Service';
@@ -96,6 +114,7 @@ const getFeatureArea = (name: string): string => {
 };
 
 const getLicenseType = (name: string): string => {
+  if (!name) return 'Other';
   if (name.includes('Platform')) return 'Platform';
   if (name.includes('Identity')) return 'Identity';
   if (name.includes('Guest')) return 'Guest';
