@@ -15,7 +15,7 @@ export const LicenseCardContent = ({
   type 
 }: LicenseCardContentProps) => {
   console.log('LicenseCardContent received:', {
-    licenses: JSON.stringify(licenses, null, 2),
+    licenses,
     searchTerm,
     type
   });
@@ -28,63 +28,48 @@ export const LicenseCardContent = ({
   };
 
   const groupedLicenses = groupLicensesByType(licenses, type);
-  console.log('Grouped licenses:', JSON.stringify(groupedLicenses, null, 2));
+  console.log('Grouped licenses:', groupedLicenses);
 
   return (
     <div className="space-y-6">
-      {Object.entries(groupedLicenses).map(([group, groupLicenses]) => {
-        console.log(`Rendering group ${group}:`, JSON.stringify(groupLicenses, null, 2));
-        return (
-          <div key={group} className="space-y-2">
-            <h3 className="font-medium text-lg">{group}</h3>
-            <div className="grid gap-4">
-              {(groupLicenses as LicenseInfo[])
-                .filter(license => {
-                  console.log('Filtering license:', JSON.stringify(license, null, 2));
-                  console.log('License name:', license.name);
-                  console.log('Search term:', searchTerm);
-                  const result = (license.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-                  console.log('Search result:', result);
-                  return result;
-                })
-                .map((license, index) => {
-                  console.log('Rendering license:', JSON.stringify(license, null, 2));
-                  return (
-                    <TooltipProvider key={index}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-medium">{license.name || 'Unknown'}</h4>
-                                <div className="text-sm text-muted-foreground mt-1">
-                                  <p>Used: {license.used} / {license.total}</p>
-                                  <p>Available: {license.total - license.used}</p>
-                                </div>
-                              </div>
-                              <span className={`text-sm font-medium ${getUsageColor(license.used, license.total)}`}>
-                                {((license.used / license.total) * 100).toFixed(1)}%
-                              </span>
-                            </div>
+      {Object.entries(groupedLicenses).map(([group, groupLicenses]) => (
+        <div key={group} className="space-y-2">
+          <h3 className="font-medium text-lg">{group}</h3>
+          <div className="grid gap-4">
+            {(groupLicenses as LicenseInfo[]).map((license, index) => (
+              <TooltipProvider key={index}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">{license.name || 'Unknown'}</h4>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            <p>Used: {license.used} / {license.total}</p>
+                            <p>Available: {license.total - license.used}</p>
                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {type === 'permissionSet' ? (
-                            <p>{PERMISSION_SET_DESCRIPTIONS[group as keyof typeof PERMISSION_SET_DESCRIPTIONS] || 
-                               'Provides specific feature access'}</p>
-                          ) : (
-                            <p>{LICENSE_TOOLTIPS[license.name as keyof typeof LICENSE_TOOLTIPS] || 
-                               'Provides Salesforce access and features'}</p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                })}
-            </div>
+                        </div>
+                        <span className={`text-sm font-medium ${getUsageColor(license.used, license.total)}`}>
+                          {((license.used / license.total) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {type === 'permissionSet' ? (
+                      <p>{PERMISSION_SET_DESCRIPTIONS[group as keyof typeof PERMISSION_SET_DESCRIPTIONS] || 
+                         'Provides specific feature access'}</p>
+                    ) : (
+                      <p>{LICENSE_TOOLTIPS[license.name as keyof typeof LICENSE_TOOLTIPS] || 
+                         'Provides Salesforce access and features'}</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 };

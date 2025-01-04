@@ -45,6 +45,7 @@ export const LicenseCard = ({ title, licenses = [], type }: LicenseCardProps) =>
     window.URL.revokeObjectURL(url);
   };
 
+  // Filter licenses based on search term
   const filteredLicenses = licenses.filter(license => {
     if (!license.name) {
       console.warn('License missing name property:', license);
