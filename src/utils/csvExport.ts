@@ -1,6 +1,7 @@
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
 import { filterInactiveUsers, filterStandardSalesforceUsers } from "@/components/users/utils/userFilters";
-import { calculateInactiveUserSavings, calculateIntegrationUserSavings } from "@/components/cost-savings/utils/savingsCalculations";
+import { calculateInactiveUserSavings } from "@/components/cost-savings/utils/savingsCalculations";
+import { analyzeIntegrationOpportunities } from "@/components/cost-savings/utils/licenseCalculations";
 
 interface ExportData {
   userLicenses: any[];
@@ -8,6 +9,7 @@ interface ExportData {
   permissionSetLicenses: any[];
   sandboxes: any[];
   limits: any;
+  oauthTokens?: any[];
 }
 
 export const generateReportCSV = (data: ExportData) => {
@@ -16,7 +18,8 @@ export const generateReportCSV = (data: ExportData) => {
     packageLicenses,
     permissionSetLicenses,
     sandboxes,
-    limits
+    limits,
+    oauthTokens = []
   } = data;
 
   const formattedUserLicenses = formatLicenseData(userLicenses);
@@ -29,14 +32,13 @@ export const generateReportCSV = (data: ExportData) => {
   const licensePrice = 150; // Default price if not set
   
   const inactiveSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
-  const integrationSavings = calculateIntegrationUserSavings(
-    standardUsers, 
-    [], // OAuth tokens
-    licensePrice,
-    userLicenses
+  const potentialIntegrationUsers = analyzeIntegrationOpportunities(
+    standardUsers,
+    oauthTokens,
+    inactiveUsers
   );
 
-  const totalAnnualSavings = inactiveSavings.savings + integrationSavings.savings;
+  const totalAnnualSavings = (inactiveUsers.length + potentialIntegrationUsers.length) * licensePrice * 12;
 
   const csvContent = [
     // Header & Summary
@@ -97,14 +99,12 @@ export const generateReportCSV = (data: ExportData) => {
     // Integration Users Section
     ['Integration User Candidates'],
     ['Username', 'Last Login', 'User Type', 'Profile'],
-    ...standardUsers
-      .filter(user => user.isIntegrationCandidate)
-      .map(user => [
-        user.Username,
-        user.LastLoginDate || 'Never',
-        user.UserType,
-        user.Profile?.Name || 'N/A'
-      ]),
+    ...potentialIntegrationUsers.map(user => [
+      user.Username,
+      user.LastLoginDate || 'Never',
+      user.UserType,
+      user.Profile?.Name || 'N/A'
+    ]),
     [''],
 
     // Sandboxes Section
