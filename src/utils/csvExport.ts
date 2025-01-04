@@ -62,9 +62,9 @@ export const generateReportCSV = async (data: ExportData) => {
 
   const sections = [
     savingsSummarySection,
-    createLicenseSection('User Licenses', data.userLicenses || []),
-    createLicenseSection('Package Licenses', data.packageLicenses || []),
-    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
+    createLicenseSection('User Licenses', formattedUserLicenses),
+    createLicenseSection('Package Licenses', formattedPackageLicenses),
+    createLicenseSection('Permission Set Licenses', formattedPermissionSetLicenses),
     createSandboxSection(data.sandboxes || []),
     createLimitsSection(data.limits),
     createUserSection('Inactive Users', inactiveUsers),
