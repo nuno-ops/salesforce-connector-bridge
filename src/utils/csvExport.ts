@@ -1,4 +1,6 @@
 import { formatLicenseData, formatPackageLicenseData, formatPermissionSetLicenseData } from "@/components/org-health/utils";
+import { filterInactiveUsers, filterStandardSalesforceUsers } from "@/components/users/utils/userFilters";
+import { calculateInactiveUserSavings, calculateIntegrationUserSavings } from "@/components/cost-savings/utils/savingsCalculations";
 
 interface ExportData {
   userLicenses: any[];
@@ -6,7 +8,6 @@ interface ExportData {
   permissionSetLicenses: any[];
   sandboxes: any[];
   limits: any;
-  totalSavings?: number;
 }
 
 export const generateReportCSV = (data: ExportData) => {
@@ -15,22 +16,34 @@ export const generateReportCSV = (data: ExportData) => {
     packageLicenses,
     permissionSetLicenses,
     sandboxes,
-    limits,
-    totalSavings
+    limits
   } = data;
 
   const formattedUserLicenses = formatLicenseData(userLicenses);
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
 
+  // Calculate savings
+  const standardUsers = filterStandardSalesforceUsers(userLicenses);
+  const inactiveUsers = filterInactiveUsers(standardUsers);
+  const licensePrice = 150; // Default price if not set
+  
+  const inactiveSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
+  const integrationSavings = calculateIntegrationUserSavings(
+    standardUsers, 
+    [], // OAuth tokens
+    licensePrice,
+    userLicenses
+  );
+
+  const totalAnnualSavings = inactiveSavings.savings + integrationSavings.savings;
+
   const csvContent = [
-    // Header
+    // Header & Summary
     ['Salesforce Organization Cost Optimization Report'],
     ['Generated on:', new Date().toLocaleString()],
     [''],
-
-    // Total Savings
-    ['Potential Annual Savings:', `$${totalSavings?.toLocaleString() || 0}`],
+    ['Potential Annual Savings:', `$${totalAnnualSavings.toLocaleString()}`],
     [''],
 
     // User Licenses Section
@@ -68,6 +81,30 @@ export const generateReportCSV = (data: ExportData) => {
       license.total - license.used,
       `${((license.used / license.total) * 100).toFixed(1)}%`
     ]),
+    [''],
+
+    // Inactive Users Section
+    ['Inactive Users'],
+    ['Username', 'Last Login', 'User Type', 'Profile'],
+    ...inactiveUsers.map(user => [
+      user.Username,
+      user.LastLoginDate || 'Never',
+      user.UserType,
+      user.Profile?.Name || 'N/A'
+    ]),
+    [''],
+
+    // Integration Users Section
+    ['Integration User Candidates'],
+    ['Username', 'Last Login', 'User Type', 'Profile'],
+    ...standardUsers
+      .filter(user => user.isIntegrationCandidate)
+      .map(user => [
+        user.Username,
+        user.LastLoginDate || 'Never',
+        user.UserType,
+        user.Profile?.Name || 'N/A'
+      ]),
     [''],
 
     // Sandboxes Section
