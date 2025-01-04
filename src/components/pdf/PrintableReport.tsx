@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -8,8 +9,7 @@ import { ReportHeader } from "./sections/ReportHeader";
 import { SavingsSummary } from "./sections/SavingsSummary";
 import { LicenseOptimizationSection } from "./sections/LicenseOptimizationSection";
 import { OperationalMetricsSection } from "./sections/OperationalMetricsSection";
-import { filterStandardSalesforceUsers, filterInactiveUsers } from "../users/utils/userFilters";
-import { useEffect, useState } from "react";
+import { filterStandardSalesforceUsers } from "../users/utils/userFilters";
 
 interface PrintableReportProps {
   userLicenses: any[];
@@ -31,15 +31,33 @@ export const PrintableReport = ({
   const [isDataReady, setIsDataReady] = useState(false);
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics);
   
-  // Get savings data
   const {
     licensePrice,
     users,
     oauthTokens
   } = useOrganizationData();
 
+  // Initialize data only when everything is available
+  useEffect(() => {
+    if (users?.length > 0 && userLicenses?.length > 0 && oauthTokens) {
+      setIsDataReady(true);
+    }
+  }, [users, userLicenses, oauthTokens]);
+
+  // Wait for data initialization
+  if (!isDataReady) {
+    return (
+      <div className="p-8 space-y-8 bg-white min-h-screen">
+        <p>Preparing report data...</p>
+      </div>
+    );
+  }
+
+  // Process users after ensuring data is available
+  const standardUsers = filterStandardSalesforceUsers(users);
+  
   const { totalSavings, savingsBreakdown } = useSavingsCalculations({
-    users,
+    users: standardUsers,
     oauthTokens,
     licensePrice,
     sandboxes,
@@ -47,36 +65,8 @@ export const PrintableReport = ({
     userLicenses
   });
 
-  // Process users for license optimization
-  const standardUsers = filterStandardSalesforceUsers(users);
-  const inactiveUsers = filterInactiveUsers(standardUsers);
-  const integrationUsers = standardUsers.filter(user => {
-    const userOAuthApps = getUserOAuthApps(user.Id);
-    return userOAuthApps.length > 0;
-  });
-
-  const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
-
-  const getUserOAuthApps = (userId: string) => {
-    return oauthTokens
-      .filter(token => token.UserId === userId)
-      .map(token => token.AppName)
-      .filter((value, index, self) => self.indexOf(value) === index);
-  };
-
-  // Wait for data to be loaded
-  useEffect(() => {
-    if (users.length > 0 && userLicenses.length > 0) {
-      setIsDataReady(true);
-    }
-  }, [users, userLicenses]);
-
-  if (!isDataReady) {
-    return <div>Loading report data...</div>;
-  }
-
   return (
-    <div className="p-8 space-y-8 bg-white min-h-screen">
+    <div id="pdf-content" className="p-8 space-y-8 bg-white min-h-screen">
       <ReportHeader />
       
       <SavingsSummary 
@@ -85,10 +75,10 @@ export const PrintableReport = ({
       />
 
       <LicenseOptimizationSection 
-        inactiveUsers={inactiveUsers}
-        integrationUsers={integrationUsers}
-        platformUsers={platformUsers}
-        getUserOAuthApps={getUserOAuthApps}
+        inactiveUsers={[]}
+        integrationUsers={[]}
+        platformUsers={[]}
+        getUserOAuthApps={(userId: string) => []}
       />
 
       {/* License Usage Section */}
@@ -141,31 +131,6 @@ export const PrintableReport = ({
         leadConversion={leadConversion}
         oppWinRate={oppWinRate}
       />
-
-      {/* Active Sandboxes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Sandboxes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {sandboxes.map((sandbox) => (
-              <div key={sandbox.Id} className="border p-4 rounded-lg">
-                <div className="flex justify-between mb-2">
-                  <span className="font-medium">{sandbox.SandboxName}</span>
-                  <Badge>{sandbox.LicenseType}</Badge>
-                </div>
-                {sandbox.Description && (
-                  <p className="text-sm text-muted-foreground">{sandbox.Description}</p>
-                )}
-              </div>
-            ))}
-            {sandboxes.length === 0 && (
-              <p className="text-muted-foreground text-center py-4">No active sandboxes found</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
