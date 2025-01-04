@@ -24,7 +24,6 @@ export const DownloadPdfButton = () => {
 
   const generatePDF = async () => {
     const container = document.createElement('div');
-    // Type assertion to HTMLElement to access style property
     const containerElement = container as HTMLElement;
     containerElement.style.position = 'absolute';
     containerElement.style.left = '-9999px';
@@ -34,7 +33,6 @@ export const DownloadPdfButton = () => {
     const root = createRoot(container);
 
     try {
-      // Wait for data to be ready
       await new Promise<void>((resolve) => {
         root.render(
           <PrintableReport
@@ -46,7 +44,6 @@ export const DownloadPdfButton = () => {
             metrics={metrics}
           />
         );
-        // Give more time for components to render and data to load
         setTimeout(resolve, 2000);
       });
 
@@ -68,24 +65,43 @@ export const DownloadPdfButton = () => {
       });
 
       console.log('Canvas generated, creating PDF...');
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       
-      let heightLeft = imgHeight;
-      let position = 0;
+      const widthRatio = pageWidth / canvas.width;
+      const heightRatio = pageHeight / canvas.height;
+      const ratio = Math.min(widthRatio, heightRatio);
       
-      // Add first page
-      pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      const canvasWidth = canvas.width * ratio;
+      const canvasHeight = canvas.height * ratio;
       
-      // Add subsequent pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      const marginX = (pageWidth - canvasWidth) / 2;
+      const marginY = (pageHeight - canvasHeight) / 2;
+
+      pdf.addImage(imgData, 'JPEG', marginX, marginY, canvasWidth, canvasHeight);
+
+      // Add additional pages if content exceeds one page
+      const pagesCount = Math.ceil(canvasHeight / pageHeight);
+      
+      if (pagesCount > 1) {
+        for (let i = 1; i < pagesCount; i++) {
+          pdf.addPage();
+          pdf.addImage(
+            imgData,
+            'JPEG',
+            marginX,
+            marginY - (pageHeight * i),
+            canvasWidth,
+            canvasHeight
+          );
+        }
       }
       
       console.log('Saving PDF...');
