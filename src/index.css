@@ -35,20 +35,16 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Custom toast viewport positioning */
+    --toast-viewport-padding: 25vh;
   }
 
   .dark {
@@ -98,4 +94,13 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom toast styling */
+[role="region"][aria-label="Notifications"] {
+  @apply fixed inset-0 flex items-center justify-center pointer-events-none;
+}
+
+[role="region"][aria-label="Notifications"] [role="status"] {
+  @apply pointer-events-auto max-w-md w-full bg-white shadow-lg rounded-lg border p-6 mx-4;
 }

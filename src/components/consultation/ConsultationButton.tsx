@@ -13,7 +13,6 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
   const CALENDLY_URL = 'https://calendly.com/salesforcesaver-support/30min';
 
   useEffect(() => {
-    // Check URL parameters for successful payment and redirect
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
     const redirect = urlParams.get('redirect');
@@ -27,21 +26,22 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
       
       // Show toast with link as backup
       toast({
-        title: "Schedule Your Consultation",
+        title: "🎉 Schedule Your Consultation",
         description: (
-          <div className="mt-2">
+          <div className="space-y-4">
+            <p className="text-lg font-medium">Thank you for your payment!</p>
             <p>If the scheduling page didn't open automatically, please click below:</p>
             <a 
               href={redirect} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-blue-500 hover:text-blue-700 underline mt-2 inline-block"
+              className="inline-block px-4 py-2 bg-sf-blue text-white rounded-md hover:bg-sf-hover transition-colors"
             >
               Open Calendly Scheduling
             </a>
           </div>
         ),
-        duration: 10000, // Show for 10 seconds to ensure user sees it
+        duration: 10000,
       });
     }
   }, [toast]);
@@ -80,15 +80,16 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
         
         // Show backup toast in case popup is blocked
         toast({
-          title: "Schedule Your Free Consultation",
+          title: "🎉 Schedule Your Free Consultation",
           description: (
-            <div className="mt-2">
+            <div className="space-y-4">
+              <p className="text-lg font-medium">You're eligible for a free consultation!</p>
               <p>If the scheduling page didn't open automatically, please click below:</p>
               <a 
                 href={CALENDLY_URL} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-blue-500 hover:text-blue-700 underline mt-2 inline-block"
+                className="inline-block px-4 py-2 bg-sf-blue text-white rounded-md hover:bg-sf-hover transition-colors"
               >
                 Open Calendly Scheduling
               </a>
