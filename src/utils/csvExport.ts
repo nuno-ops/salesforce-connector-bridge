@@ -105,7 +105,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
 
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
-  // Create all sections
+  // Create all sections with proper data
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses || []),
     createLicenseSection('Package Licenses', data.packageLicenses || []),
