@@ -28,6 +28,7 @@ export const useOrgHealthData = () => {
         sandboxes: data.sandboxes,
       });
 
+      // Ensure we have the correct structure for limits
       const defaultLimits: OrgLimits = {
         DataStorageMB: { Max: 0, Remaining: 0 },
         FileStorageMB: { Max: 0, Remaining: 0 },
@@ -36,16 +37,25 @@ export const useOrgHealthData = () => {
         HourlyTimeBasedWorkflow: { Max: 0, Remaining: 0 }
       };
 
+      // Merge received limits with defaults to ensure all required properties exist
+      const processedLimits = data.limits ? {
+        ...defaultLimits,
+        ...data.limits
+      } : defaultLimits;
+
+      // Process metrics data
+      const defaultMetrics = {
+        leads: [],
+        opportunities: []
+      };
+
       return {
         userLicenses: data.userLicenses as RawUserLicense[],
         packageLicenses: data.packageLicenses as RawPackageLicense[],
         permissionSetLicenses: data.permissionSetLicenses as RawPermissionSetLicense[],
-        sandboxes: data.sandboxes as SandboxInfo[],
-        limits: (data.limits as OrgLimits) || defaultLimits,
-        metrics: data.metrics as MonthlyMetrics || {
-          leads: [],
-          opportunities: []
-        },
+        sandboxes: data.sandboxes as SandboxInfo[] || [],
+        limits: processedLimits as OrgLimits,
+        metrics: data.metrics || defaultMetrics,
         users: data.users || [],
         oauthTokens: data.oauthTokens || [],
       };
