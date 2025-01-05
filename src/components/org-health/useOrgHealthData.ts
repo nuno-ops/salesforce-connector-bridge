@@ -13,22 +13,42 @@ export const useOrgHealthData = () => {
         throw new Error('Missing Salesforce credentials');
       }
 
-      const { data, error } = await supabase.functions.invoke('salesforce-licenses', {
+      // Fetch licenses data
+      const licensesResponse = await supabase.functions.invoke('salesforce-licenses', {
         body: { access_token, instance_url }
       });
 
-      if (error) throw error;
+      if (licensesResponse.error) throw licensesResponse.error;
 
-      console.log('useOrgHealthData raw response:', {
-        userLicenses: data.userLicenses,
-        packageLicenses: data.packageLicenses,
-        permissionSetLicenses: data.permissionSetLicenses,
-        limits: data.limits,
-        metrics: data.metrics,
-        sandboxes: data.sandboxes,
+      // Fetch limits data
+      const limitsResponse = await supabase.functions.invoke('salesforce-limits', {
+        body: { access_token, instance_url }
       });
 
-      // Ensure we have the correct structure for limits
+      if (limitsResponse.error) throw limitsResponse.error;
+
+      // Fetch sandboxes data
+      const sandboxesResponse = await supabase.functions.invoke('salesforce-sandboxes', {
+        body: { access_token, instance_url }
+      });
+
+      if (sandboxesResponse.error) throw sandboxesResponse.error;
+
+      // Fetch metrics data
+      const metricsResponse = await supabase.functions.invoke('salesforce-metrics', {
+        body: { access_token, instance_url }
+      });
+
+      if (metricsResponse.error) throw metricsResponse.error;
+
+      console.log('API Responses:', {
+        licenses: licensesResponse.data,
+        limits: limitsResponse.data,
+        sandboxes: sandboxesResponse.data,
+        metrics: metricsResponse.data
+      });
+
+      // Default limits structure that matches OrgLimits type
       const defaultLimits: OrgLimits = {
         DataStorageMB: { Max: 0, Remaining: 0 },
         FileStorageMB: { Max: 0, Remaining: 0 },
@@ -37,27 +57,15 @@ export const useOrgHealthData = () => {
         HourlyTimeBasedWorkflow: { Max: 0, Remaining: 0 }
       };
 
-      // Merge received limits with defaults to ensure all required properties exist
-      const processedLimits = data.limits ? {
-        ...defaultLimits,
-        ...data.limits
-      } : defaultLimits;
-
-      // Process metrics data
-      const defaultMetrics = {
-        leads: [],
-        opportunities: []
-      };
-
       return {
-        userLicenses: data.userLicenses as RawUserLicense[],
-        packageLicenses: data.packageLicenses as RawPackageLicense[],
-        permissionSetLicenses: data.permissionSetLicenses as RawPermissionSetLicense[],
-        sandboxes: data.sandboxes as SandboxInfo[] || [],
-        limits: processedLimits as OrgLimits,
-        metrics: data.metrics || defaultMetrics,
-        users: data.users || [],
-        oauthTokens: data.oauthTokens || [],
+        userLicenses: licensesResponse.data?.userLicenses || [],
+        packageLicenses: licensesResponse.data?.packageLicenses || [],
+        permissionSetLicenses: licensesResponse.data?.permissionSetLicenses || [],
+        sandboxes: sandboxesResponse.data?.records || [],
+        limits: { ...defaultLimits, ...limitsResponse.data },
+        metrics: metricsResponse.data || null,
+        users: [],  // Maintained for backward compatibility
+        oauthTokens: [], // Maintained for backward compatibility
       };
     }
   });
@@ -76,10 +84,7 @@ export const useOrgHealthData = () => {
     },
     users: data?.users || [],
     oauthTokens: data?.oauthTokens || [],
-    metrics: data?.metrics || {
-      leads: [],
-      opportunities: []
-    },
+    metrics: data?.metrics || null,
     isLoading,
     error: error ? (error as Error).message : null
   };
