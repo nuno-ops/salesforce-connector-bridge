@@ -5,7 +5,7 @@ export const createLimitsSection = (limits: any): CSVSection => {
   
   // Handle Data Storage
   if (limits.DataStorageMB) {
-    const used = limits.DataStorageMB.Used || 0;
+    const used = limits.DataStorageMB.Max - (limits.DataStorageMB.Remaining || 0);
     const max = limits.DataStorageMB.Max || 0;
     const remaining = limits.DataStorageMB.Remaining || 0;
     const usagePercentage = max > 0 ? ((used / max) * 100).toFixed(2) + '%' : '0%';
@@ -21,7 +21,7 @@ export const createLimitsSection = (limits: any): CSVSection => {
 
   // Handle File Storage
   if (limits.FileStorageMB) {
-    const used = limits.FileStorageMB.Used || 0;
+    const used = limits.FileStorageMB.Max - (limits.FileStorageMB.Remaining || 0);
     const max = limits.FileStorageMB.Max || 0;
     const remaining = limits.FileStorageMB.Remaining || 0;
     const usagePercentage = max > 0 ? ((used / max) * 100).toFixed(2) + '%' : '0%';
@@ -37,7 +37,7 @@ export const createLimitsSection = (limits: any): CSVSection => {
 
   // Handle API Requests
   if (limits.DailyApiRequests) {
-    const used = limits.DailyApiRequests.Used || 0;
+    const used = limits.DailyApiRequests.Max - (limits.DailyApiRequests.Remaining || 0);
     const max = limits.DailyApiRequests.Max || 0;
     const remaining = limits.DailyApiRequests.Remaining || 0;
     const usagePercentage = max > 0 ? ((used / max) * 100).toFixed(2) + '%' : '0%';

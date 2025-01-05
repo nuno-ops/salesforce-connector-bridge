@@ -12,26 +12,32 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   const standardUserCount = standardUsers.length;
   
+  // Calculate savings
+  const inactiveUserSavings = { savings: data.inactiveUserSavings || 0, count: data.inactiveUserCount || 0 };
+  const integrationUserSavings = { savings: data.integrationUserSavings || 0, count: data.integrationUserCount || 0 };
+  const platformLicenseSavings = { savings: data.platformLicenseSavings || 0, count: data.platformLicenseCount || 0 };
+  const sandboxSavings = { savings: data.sandboxSavings || 0, count: data.excessSandboxCount || 0 };
+  const storageSavings = { savings: data.storageSavings || 0, potentialGBSavings: data.potentialStorageReduction || 0 };
+  
+  const totalSavings = 
+    inactiveUserSavings.savings +
+    integrationUserSavings.savings +
+    platformLicenseSavings.savings +
+    sandboxSavings.savings +
+    storageSavings.savings;
+
   // Generate savings report content with actual license price
   const csvContent = generateSavingsReportContent({
     licensePrice: data.licensePrice || 140, // Default to 140 if not provided
     standardUsers: standardUserCount,
     savingsBreakdown: {
-      inactiveUserSavings: { savings: 0, count: 0 },
-      integrationUserSavings: { savings: 0, count: 0 },
-      platformLicenseSavings: { savings: 0, count: 0 },
-      sandboxSavings: { savings: 0, count: 0 },
-      storageSavings: { savings: 0, potentialGBSavings: 0 },
-      totalSavings: 0
+      inactiveUserSavings,
+      integrationUserSavings,
+      platformLicenseSavings,
+      sandboxSavings,
+      storageSavings,
+      totalSavings
     }
-  });
-
-  console.log('Creating sections with data:', {
-    userLicenses: data.userLicenses?.length,
-    packageLicenses: data.packageLicenses?.length,
-    permissionSetLicenses: data.permissionSetLicenses?.length,
-    sandboxes: data.sandboxes?.length,
-    limits: data.limits
   });
 
   // Create all sections
@@ -40,7 +46,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     createLicenseSection('Package Licenses', data.packageLicenses || []),
     createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
     createSandboxSection(data.sandboxes || []),
-    createLimitsSection(data.limits || {}),
+    createLimitsSection(data.limits || {})
   ];
 
   // Add all sections to CSV content
