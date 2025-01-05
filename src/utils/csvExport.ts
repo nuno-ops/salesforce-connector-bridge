@@ -3,20 +3,53 @@ import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilt
 import { createLicenseSection } from './csv/sections/licenseSection';
 import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
+import { supabase } from "@/integrations/supabase/client";
+import { normalizeOrgId } from '@/utils/orgIdUtils';
+
+const fetchLicensePrice = async (): Promise<number> => {
+  const instanceUrl = localStorage.getItem('sf_instance_url');
+  if (!instanceUrl) {
+    console.error('No organization ID found');
+    return 100; // Default fallback
+  }
+
+  const orgId = normalizeOrgId(instanceUrl);
+  console.log('Fetching license price for org:', orgId);
+  
+  const { data: settings, error } = await supabase
+    .from('organization_settings')
+    .select('license_cost_per_user')
+    .eq('org_id', orgId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching license price:', error);
+    return 100; // Default fallback
+  }
+
+  if (settings?.license_cost_per_user) {
+    const cost = parseFloat(settings.license_cost_per_user.toString());
+    console.log('Found license price in settings:', cost);
+    return cost;
+  }
+
+  console.log('No license price found in settings, using default');
+  return 100; // Default fallback
+};
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
   // Process users data
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   const standardUserCount = standardUsers.length;
-  const licensePrice = data.licensePrice || 140; // Default to 140 if not provided
+  const licensePrice = await fetchLicensePrice();
   
   console.log('CSV Export - Raw Data:', {
     licensePrice,
     users: data.users,
     standardUsers: standardUserCount,
-    inactiveUserSavings: data.inactiveUserSavings || 0,
-    integrationUserSavings: data.integrationUserSavings || 0,
-    platformLicenseSavings: data.platformLicenseSavings || 0
+    inactiveUserSavings: data.inactiveUserSavings,
+    integrationUserSavings: data.integrationUserSavings,
+    platformLicenseSavings: data.platformLicenseSavings
   });
 
   // Calculate savings with fallbacks

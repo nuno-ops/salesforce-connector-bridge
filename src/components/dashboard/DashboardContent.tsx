@@ -38,10 +38,15 @@ export const DashboardContent = ({
         limits,
         users,
         oauthTokens,
-        licensePrice: 100, // Default license price if not available
         storageUsage: limits?.StorageUsed || 0
       });
+      
       downloadCSV(csvContent, 'salesforce-optimization-report.csv');
+      
+      toast({
+        title: "Success",
+        description: "Report downloaded successfully"
+      });
     } catch (error) {
       console.error('Error generating CSV:', error);
       toast({
