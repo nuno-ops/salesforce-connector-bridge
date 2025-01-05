@@ -82,3 +82,14 @@ export interface LicenseInfo {
   status?: string;
   featureArea?: string;
 }
+
+export interface OrgHealthData {
+  userLicenses: UserLicense[];
+  packageLicenses: PackageLicense[];
+  permissionSetLicenses: PermissionSetLicense[];
+  sandboxes: SandboxInfo[];
+  limits: OrgLimits;
+  users: any[];
+  oauthTokens: any[];
+  metrics: MonthlyMetrics | null;
+}

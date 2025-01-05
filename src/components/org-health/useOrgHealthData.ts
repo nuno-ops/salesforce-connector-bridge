@@ -28,7 +28,16 @@ export const useOrgHealthData = () => {
         isPermissionSetLicensesArray: Array.isArray(data.permissionSetLicenses)
       });
 
-      return data;
+      return {
+        userLicenses: data.userLicenses || [],
+        packageLicenses: data.packageLicenses || [],
+        permissionSetLicenses: data.permissionSetLicenses || [],
+        sandboxes: data.sandboxes || [],
+        limits: data.limits || {},
+        users: data.users || [],
+        oauthTokens: data.oauthTokens || [],
+        metrics: data.metrics || null
+      };
     }
   });
 
@@ -36,6 +45,11 @@ export const useOrgHealthData = () => {
     userLicenses: data?.userLicenses || [],
     packageLicenses: data?.packageLicenses || [],
     permissionSetLicenses: data?.permissionSetLicenses || [],
+    sandboxes: data?.sandboxes || [],
+    limits: data?.limits || {},
+    users: data?.users || [],
+    oauthTokens: data?.oauthTokens || [],
+    metrics: data?.metrics || null,
     isLoading,
     error: error ? (error as Error).message : null
   };
