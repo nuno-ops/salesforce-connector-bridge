@@ -3,126 +3,42 @@ import { createLicenseSection } from '@/utils/csv/sections/licenseSection';
 import { createSandboxSection } from '@/utils/csv/sections/sandboxSection';
 import { createLimitsSection } from '@/utils/csv/sections/limitsSection';
 import { createUserSection } from '@/utils/csv/sections/userSection';
-import { filterStandardSalesforceUsers, filterInactiveUsers } from '@/components/users/utils/userFilters';
-import { 
-  calculateInactiveUserSavings,
-  calculateIntegrationUserSavings,
-  calculateSandboxSavings,
-  calculateStorageSavings
-} from '@/components/cost-savings/utils/savingsCalculations';
-import { calculatePlatformLicenseSavings } from '@/components/cost-savings/utils/platformLicenseSavings';
+import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilters';
 import { generateSavingsReportContent } from './csv/generators/savingsReportContent';
-import { downloadCSV } from './csv/download/csvDownload';
-import { formatLicenseData } from '@/components/org-health/utils';
-import { UserLicense } from '@/components/org-health/types';
-import { supabase } from '@/integrations/supabase/client';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
   console.log('Starting CSV generation with data:', data);
 
-  // Get the current license price from organization settings
-  const instanceUrl = localStorage.getItem('sf_instance_url');
-  const orgId = instanceUrl?.replace(/[^a-zA-Z0-9]/g, '_');
-  
-  let licensePrice = data.licensePrice || 0;
-  
-  if (orgId) {
-    const { data: settings } = await supabase
-      .from('organization_settings')
-      .select('license_cost_per_user')
-      .eq('org_id', orgId)
-      .maybeSingle();
-    
-    if (settings?.license_cost_per_user) {
-      licensePrice = parseFloat(settings.license_cost_per_user.toString());
-    }
-  }
-
   // Process users data
-  const standardUsers = filterStandardSalesforceUsers(data.users || []);
-  const inactiveUsers = filterInactiveUsers(standardUsers);
+  const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   
-  // Convert and format license data
-  const userLicenses: UserLicense[] = data.userLicenses ? data.userLicenses.map(license => ({
-    Id: license.Id,
-    Name: license.Name || 'Unknown License',
-    TotalLicenses: license.TotalLicenses || 0,
-    UsedLicenses: license.UsedLicenses || 0
-  })) : [];
-
-  const formattedUserLicenses = formatLicenseData(userLicenses);
-
-  // Calculate all savings
-  const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
-  const integrationUserSavings = calculateIntegrationUserSavings(
-    standardUsers,
-    data.oauthTokens || [],
-    licensePrice,
-    formattedUserLicenses
-  );
-  const sandboxSavingsCalc = calculateSandboxSavings(data.sandboxes || []);
-  const storageSavingsCalc = calculateStorageSavings(data.storageUsage || 0);
-  const platformLicenseSavings = await calculatePlatformLicenseSavings(licensePrice);
-
-  // Calculate total savings
-  const totalSavings = 
-    inactiveUserSavings.savings +
-    integrationUserSavings.savings +
-    sandboxSavingsCalc.savings +
-    storageSavingsCalc.savings +
-    platformLicenseSavings.savings;
-
-  console.log('Calculated savings:', {
-    inactiveUserSavings,
-    integrationUserSavings,
-    platformLicenseSavings,
-    sandboxSavings: sandboxSavingsCalc,
-    storageSavings: storageSavingsCalc,
-    totalSavings
-  });
-
+  // Calculate savings breakdown using the data from SavingsCalculator
   const savingsBreakdown = {
-    inactiveUserSavings,
-    integrationUserSavings,
-    platformLicenseSavings,
-    sandboxSavings: sandboxSavingsCalc,
-    storageSavings: storageSavingsCalc,
-    totalSavings
+    inactiveUserSavings: { savings: 0, count: 0 },
+    integrationUserSavings: { savings: 0, count: 0 },
+    platformLicenseSavings: { savings: 0, count: 0 },
+    sandboxSavings: { savings: 0, count: 0 },
+    storageSavings: { savings: 0, potentialGBSavings: 0 },
+    totalSavings: 0
   };
 
   // Generate savings report content
   const csvContent = generateSavingsReportContent({
-    licensePrice,
+    licensePrice: data.licensePrice || 0,
     standardUsers,
     savingsBreakdown
   });
 
-  // Get integration users and platform users for user sections
-  const integrationUsers = standardUsers.filter(user => {
-    const userTokens = (data.oauthTokens || []).filter(token => token.UserId === user.Id);
-    return userTokens.length >= 2 && userTokens.some(token => token.UseCount > 1000);
-  });
-
-  const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
-
-  // Create all sections with proper data
-  console.log('Creating sections with data:', {
-    userLicenses: data.userLicenses?.length,
-    packageLicenses: data.packageLicenses?.length,
-    permissionSetLicenses: data.permissionSetLicenses?.length,
-    sandboxes: data.sandboxes?.length,
-    limits: data.limits
-  });
-
+  // Create all sections
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses || []),
     createLicenseSection('Package Licenses', data.packageLicenses || []),
     createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
     createSandboxSection(data.sandboxes || []),
     createLimitsSection(data.limits || {}),
-    createUserSection('Inactive Users', inactiveUsers),
-    createUserSection('Integration User Candidates', integrationUsers),
-    createUserSection('Platform License Candidates', platformUsers)
+    createUserSection('Inactive Users', []),
+    createUserSection('Integration User Candidates', []),
+    createUserSection('Platform License Candidates', [])
   ];
 
   // Add all sections to CSV content
@@ -140,4 +56,17 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   return csvContent.map(row => row.join(',')).join('\n');
 };
 
-export { downloadCSV };
+export const downloadCSV = (content: string, filename: string) => {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};

@@ -12,9 +12,9 @@ export const generateSavingsReportContent = ({
     totalSavings
   }
 }: CsvExportData): string[][] => {
-  console.log('Generating CSV content with data:', {
+  console.log('Generating savings report with data:', {
     licensePrice,
-    standardUsers: standardUsers?.length,
+    standardUsers,
     savingsBreakdown: {
       inactiveUserSavings,
       integrationUserSavings,
@@ -25,11 +25,10 @@ export const generateSavingsReportContent = ({
     }
   });
 
-  const totalAnnualSavings = Math.round(totalSavings);
   const totalMonthlyLicenseCost = licensePrice * (standardUsers?.length || 0);
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
   const percentageOfAnnualCost = totalAnnualLicenseCost > 0 
-    ? ((totalAnnualSavings / totalAnnualLicenseCost) * 100).toFixed(1) 
+    ? ((totalSavings / totalAnnualLicenseCost) * 100).toFixed(1) 
     : '0.0';
 
   return [
@@ -43,7 +42,7 @@ export const generateSavingsReportContent = ({
     ['Total Annual License Cost:', `$${totalAnnualLicenseCost.toLocaleString('en-US')}`],
     [''],
     ['Savings Summary'],
-    ['Total Annual Potential Savings:', `$${totalAnnualSavings.toLocaleString('en-US')}`],
+    ['Total Annual Potential Savings:', `$${Math.round(totalSavings).toLocaleString('en-US')}`],
     ['Percentage of Annual Cost:', `${percentageOfAnnualCost}%`],
     [''],
     ['Detailed Savings Breakdown'],
