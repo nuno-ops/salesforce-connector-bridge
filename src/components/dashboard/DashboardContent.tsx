@@ -1,13 +1,14 @@
-import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
-import { CostSavingsReport } from "@/components/CostSavingsReport";
-import { SalesforceUsers } from "@/components/SalesforceUsers";
-import { OrgHealth } from "@/components/OrgHealth";
+import { useState, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
 import { useToast } from "@/hooks/use-toast";
 import { useSavingsCalculations } from "@/components/cost-savings/SavingsCalculator";
 import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
+import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
+import { CostSavingsReport } from "@/components/CostSavingsReport";
+import { SalesforceUsers } from "@/components/SalesforceUsers";
+import { OrgHealth } from "@/components/OrgHealth";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -56,19 +57,23 @@ export const DashboardContent = ({
 
   const handleExportReport = async () => {
     try {
-      // Extract savings amounts from savingsBreakdown
-      const inactiveUserSavings = savingsBreakdown.find(s => s.title === "Inactive User Licenses")?.amount || 0;
-      const integrationUserSavings = savingsBreakdown.find(s => s.title === "Integration User Optimization")?.amount || 0;
-      const platformLicenseSavings = savingsBreakdown.find(s => s.title === "Platform License Optimization")?.amount || 0;
-      const sandboxSavings = savingsBreakdown.find(s => s.title === "Sandbox Optimization")?.amount || 0;
-      const storageSavings = savingsBreakdown.find(s => s.title === "Storage Optimization")?.amount || 0;
+      // Get savings data directly from the calculations
+      const inactiveUserSavings = inactiveUsers?.length * licensePrice * 12 || 0;
+      const integrationUserSavings = integrationUsers?.length * licensePrice * 12 || 0;
+      const platformLicenseSavings = platformUsers?.length * (licensePrice - 25) * 12 || 0;
+      const sandboxSavings = (sandboxes?.length > 1 ? (sandboxes.length - 1) * 5000 : 0) || 0;
+      const storageSavings = 0; // This would need to be calculated based on storage metrics
 
-      console.log('Export Report - Extracted savings:', {
+      console.log('Export Report - Calculated savings:', {
         inactiveUserSavings,
         integrationUserSavings,
         platformLicenseSavings,
         sandboxSavings,
-        storageSavings
+        storageSavings,
+        users: users?.length,
+        inactiveUsersCount: inactiveUsers?.length,
+        integrationUsersCount: integrationUsers?.length,
+        platformUsersCount: platformUsers?.length
       });
 
       const csvContent = await generateReportCSV({
