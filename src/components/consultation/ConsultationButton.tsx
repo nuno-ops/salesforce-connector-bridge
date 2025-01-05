@@ -10,6 +10,7 @@ interface ConsultationButtonProps {
 
 export const ConsultationButton = ({ variant = "default", className = "" }: ConsultationButtonProps) => {
   const { toast } = useToast();
+  const CALENDLY_URL = 'https://calendly.com/salesforcesaver-support/30min';
 
   useEffect(() => {
     // Check URL parameters for successful payment and redirect
@@ -20,10 +21,30 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
     if (success === 'true' && redirect) {
       // Clear URL parameters
       window.history.replaceState({}, '', window.location.pathname);
-      // Open Calendly in new tab
+      
+      // Try to open Calendly in new tab
       window.open(redirect, '_blank');
+      
+      // Show toast with link as backup
+      toast({
+        title: "Schedule Your Consultation",
+        description: (
+          <div className="mt-2">
+            <p>If the scheduling page didn't open automatically, please click below:</p>
+            <a 
+              href={redirect} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-700 underline mt-2 inline-block"
+            >
+              Open Calendly Scheduling
+            </a>
+          </div>
+        ),
+        duration: 10000, // Show for 10 seconds to ensure user sees it
+      });
     }
-  }, []);
+  }, [toast]);
 
   const handleConsultation = async () => {
     try {
@@ -55,7 +76,26 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
 
       if (isSubscriber && !hasUsedFreeConsultation) {
         // Direct to Calendly for free consultation
-        window.open('https://calendly.com/salesforcesaver-support/30min', '_blank');
+        window.open(CALENDLY_URL, '_blank');
+        
+        // Show backup toast in case popup is blocked
+        toast({
+          title: "Schedule Your Free Consultation",
+          description: (
+            <div className="mt-2">
+              <p>If the scheduling page didn't open automatically, please click below:</p>
+              <a 
+                href={CALENDLY_URL} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-700 underline mt-2 inline-block"
+              >
+                Open Calendly Scheduling
+              </a>
+            </div>
+          ),
+          duration: 10000,
+        });
         return;
       }
 
