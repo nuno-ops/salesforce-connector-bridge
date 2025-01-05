@@ -28,16 +28,20 @@ export const useOrgHealthData = () => {
         sandboxes: data.sandboxes,
       });
 
+      const defaultLimits: OrgLimits = {
+        DataStorageMB: { Max: 0, Remaining: 0 },
+        FileStorageMB: { Max: 0, Remaining: 0 },
+        DailyApiRequests: { Max: 0, Remaining: 0 },
+        SingleEmail: { Max: 0, Remaining: 0 },
+        HourlyTimeBasedWorkflow: { Max: 0, Remaining: 0 }
+      };
+
       return {
         userLicenses: data.userLicenses as RawUserLicense[],
         packageLicenses: data.packageLicenses as RawPackageLicense[],
         permissionSetLicenses: data.permissionSetLicenses as RawPermissionSetLicense[],
         sandboxes: data.sandboxes as SandboxInfo[],
-        limits: data.limits as OrgLimits || {
-          DataStorageMB: { Max: 0, Remaining: 0 },
-          FileStorageMB: { Max: 0, Remaining: 0 },
-          DailyApiRequests: { Max: 0, Remaining: 0 }
-        },
+        limits: (data.limits as OrgLimits) || defaultLimits,
         metrics: data.metrics as MonthlyMetrics || {
           leads: [],
           opportunities: []
@@ -56,7 +60,9 @@ export const useOrgHealthData = () => {
     limits: data?.limits || {
       DataStorageMB: { Max: 0, Remaining: 0 },
       FileStorageMB: { Max: 0, Remaining: 0 },
-      DailyApiRequests: { Max: 0, Remaining: 0 }
+      DailyApiRequests: { Max: 0, Remaining: 0 },
+      SingleEmail: { Max: 0, Remaining: 0 },
+      HourlyTimeBasedWorkflow: { Max: 0, Remaining: 0 }
     },
     users: data?.users || [],
     oauthTokens: data?.oauthTokens || [],
