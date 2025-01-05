@@ -18,6 +18,8 @@ import { UserLicense } from '@/components/org-health/types';
 import { supabase } from '@/integrations/supabase/client';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
+  console.log('Starting CSV generation with data:', data);
+
   // Get the current license price from organization settings
   const instanceUrl = localStorage.getItem('sf_instance_url');
   const orgId = instanceUrl?.replace(/[^a-zA-Z0-9]/g, '_');
@@ -36,17 +38,6 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     }
   }
 
-  console.log('CSV Export - Starting with data:', {
-    userLicenses: data.userLicenses?.length,
-    packageLicenses: data.packageLicenses?.length,
-    users: data.users?.length,
-    oauthTokens: data.oauthTokens?.length,
-    licensePrice,
-    sandboxes: data.sandboxes?.length,
-    storageUsage: data.storageUsage,
-    limits: data.limits
-  });
-
   // Process users data
   const standardUsers = filterStandardSalesforceUsers(data.users || []);
   const inactiveUsers = filterInactiveUsers(standardUsers);
@@ -60,7 +51,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   })) : [];
 
   const formattedUserLicenses = formatLicenseData(userLicenses);
-  
+
   // Calculate all savings
   const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
   const integrationUserSavings = calculateIntegrationUserSavings(
@@ -80,6 +71,15 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     sandboxSavingsCalc.savings +
     storageSavingsCalc.savings +
     platformLicenseSavings.savings;
+
+  console.log('Calculated savings:', {
+    inactiveUserSavings,
+    integrationUserSavings,
+    platformLicenseSavings,
+    sandboxSavings: sandboxSavingsCalc,
+    storageSavings: storageSavingsCalc,
+    totalSavings
+  });
 
   const savingsBreakdown = {
     inactiveUserSavings,
@@ -106,6 +106,14 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
   // Create all sections with proper data
+  console.log('Creating sections with data:', {
+    userLicenses: data.userLicenses?.length,
+    packageLicenses: data.packageLicenses?.length,
+    permissionSetLicenses: data.permissionSetLicenses?.length,
+    sandboxes: data.sandboxes?.length,
+    limits: data.limits
+  });
+
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses || []),
     createLicenseSection('Package Licenses', data.packageLicenses || []),

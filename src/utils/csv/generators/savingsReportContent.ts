@@ -28,6 +28,9 @@ export const generateSavingsReportContent = ({
   const totalAnnualSavings = Math.round(totalSavings);
   const totalMonthlyLicenseCost = licensePrice * (standardUsers?.length || 0);
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
+  const percentageOfAnnualCost = totalAnnualLicenseCost > 0 
+    ? ((totalAnnualSavings / totalAnnualLicenseCost) * 100).toFixed(1) 
+    : '0.0';
 
   return [
     ['Salesforce Organization Cost Optimization Report'],
@@ -41,7 +44,7 @@ export const generateSavingsReportContent = ({
     [''],
     ['Savings Summary'],
     ['Total Annual Potential Savings:', `$${totalAnnualSavings.toLocaleString('en-US')}`],
-    ['Percentage of Annual Cost:', `${((totalAnnualSavings / totalAnnualLicenseCost) * 100).toFixed(1)}%`],
+    ['Percentage of Annual Cost:', `${percentageOfAnnualCost}%`],
     [''],
     ['Detailed Savings Breakdown'],
     ['Category', 'Annual Savings', 'Monthly Savings', 'Details', 'Percentage of Total Savings'],
@@ -50,35 +53,35 @@ export const generateSavingsReportContent = ({
       `$${Math.round(inactiveUserSavings.savings).toLocaleString('en-US')}`,
       `$${Math.round(inactiveUserSavings.savings / 12).toLocaleString('en-US')}`,
       `${inactiveUserSavings.count} inactive users @ $${licensePrice}/month each`,
-      `${((inactiveUserSavings.savings / totalSavings) * 100).toFixed(1)}%`
+      `${totalSavings > 0 ? ((inactiveUserSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Integration User Optimization', 
       `$${Math.round(integrationUserSavings.savings).toLocaleString('en-US')}`,
       `$${Math.round(integrationUserSavings.savings / 12).toLocaleString('en-US')}`,
       `${integrationUserSavings.count} users @ $${licensePrice}/month each`,
-      `${((integrationUserSavings.savings / totalSavings) * 100).toFixed(1)}%`
+      `${totalSavings > 0 ? ((integrationUserSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Platform License Optimization', 
       `$${Math.round(platformLicenseSavings.savings).toLocaleString('en-US')}`,
       `$${Math.round(platformLicenseSavings.savings / 12).toLocaleString('en-US')}`,
       `${platformLicenseSavings.count} users @ $${licensePrice - 25}/month savings each`,
-      `${((platformLicenseSavings.savings / totalSavings) * 100).toFixed(1)}%`
+      `${totalSavings > 0 ? ((platformLicenseSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Sandbox Optimization', 
       `$${Math.round(sandboxSavings.savings).toLocaleString('en-US')}`,
       `$${Math.round(sandboxSavings.savings / 12).toLocaleString('en-US')}`,
       `${sandboxSavings.count} excess sandboxes`,
-      `${((sandboxSavings.savings / totalSavings) * 100).toFixed(1)}%`
+      `${totalSavings > 0 ? ((sandboxSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Storage Optimization', 
       `$${Math.round(storageSavings.savings).toLocaleString('en-US')}`,
       `$${Math.round(storageSavings.savings / 12).toLocaleString('en-US')}`,
       `${storageSavings.potentialGBSavings}GB potential reduction`,
-      `${((storageSavings.savings / totalSavings) * 100).toFixed(1)}%`
+      `${totalSavings > 0 ? ((storageSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     ['']
   ];

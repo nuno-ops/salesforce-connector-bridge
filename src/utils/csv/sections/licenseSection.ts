@@ -1,6 +1,8 @@
 import { RawLicense, CSVSection } from '../types';
 
 export const createLicenseSection = (title: string, licenses: RawLicense[]): CSVSection => {
+  console.log(`Creating ${title} section with data:`, licenses);
+  
   return {
     title,
     headers: ['Name', 'Total Licenses', 'Used Licenses', 'Available Licenses', 'Usage %'],
