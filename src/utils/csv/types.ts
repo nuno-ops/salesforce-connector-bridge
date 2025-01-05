@@ -22,6 +22,8 @@ export interface ExportData {
   limits: any;
   licensePrice?: number;
   storageUsage?: number;
+  users?: any[];
+  oauthTokens?: any[];
   // Savings data
   inactiveUserSavings?: number;
   inactiveUserCount?: number;
@@ -33,6 +35,12 @@ export interface ExportData {
   excessSandboxCount?: number;
   storageSavings?: number;
   potentialStorageReduction?: number;
+}
+
+export interface CSVSection {
+  title: string;
+  headers: string[];
+  rows: string[][];
 }
 
 export interface SavingsBreakdown {

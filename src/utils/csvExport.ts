@@ -1,9 +1,9 @@
-import { ExportData } from '@/utils/csv/types';
-import { createLicenseSection } from '@/utils/csv/sections/licenseSection';
-import { createSandboxSection } from '@/utils/csv/sections/sandboxSection';
-import { createLimitsSection } from '@/utils/csv/sections/limitsSection';
+import { ExportData } from './types';
+import { createLicenseSection } from './sections/licenseSection';
+import { createSandboxSection } from './sections/sandboxSection';
+import { createLimitsSection } from './sections/limitsSection';
 import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilters';
-import { generateSavingsReportContent } from './csv/generators/savingsReportContent';
+import { generateSavingsReportContent } from './generators/savingsReportContent';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
   console.log('Starting CSV generation with data:', data);
@@ -43,18 +43,18 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
 
   // Generate savings report content with actual license price
   const csvContent = generateSavingsReportContent({
-    licensePrice: data.licensePrice || 0,
+    licensePrice: data.licensePrice || 140,
     standardUsers: standardUserCount,
     savingsBreakdown
   });
 
   // Create all sections
   const sections = [
-    createLicenseSection('User Licenses', data.userLicenses || []),
-    createLicenseSection('Package Licenses', data.packageLicenses || []),
-    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
-    createSandboxSection(data.sandboxes || []),
-    createLimitsSection(data.limits || {})
+    createLicenseSection('User Licenses', data.userLicenses),
+    createLicenseSection('Package Licenses', data.packageLicenses),
+    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses),
+    createSandboxSection(data.sandboxes),
+    createLimitsSection(data.limits)
   ];
 
   // Add all sections to CSV content
