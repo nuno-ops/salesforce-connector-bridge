@@ -41,14 +41,19 @@ const Dashboard = () => {
   const { hasAccess, isCheckingAccess, handleDisconnect } = useCheckAccess();
 
   // Format the license data before passing it to components
-  const formattedUserLicenses = formatLicenseData(userLicenses);
-  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
-  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
+  const formattedUserLicenses = formatLicenseData(userLicenses || []);
+  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses || []);
+  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses || []);
 
   console.log('Formatted license data:', {
     user: formattedUserLicenses?.[0],
     package: formattedPackageLicenses?.[0],
-    permissionSet: formattedPermissionSetLicenses?.[0]
+    permissionSet: formattedPermissionSetLicenses?.[0],
+    counts: {
+      users: formattedUserLicenses?.length,
+      packages: formattedPackageLicenses?.length,
+      permissionSets: formattedPermissionSetLicenses?.length
+    }
   });
 
   if (isHealthDataLoading || isCheckingAccess) {

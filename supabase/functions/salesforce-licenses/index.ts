@@ -24,6 +24,7 @@ serve(async (req) => {
     )
 
     const userLicenses = await userLicensesResponse.json()
+    console.log('User licenses response:', userLicenses)
 
     // Fetch Package Licenses
     const packageLicensesResponse = await fetch(
@@ -36,6 +37,7 @@ serve(async (req) => {
     )
 
     const packageLicenses = await packageLicensesResponse.json()
+    console.log('Package licenses response:', packageLicenses)
 
     // Fetch Permission Set Licenses
     const permissionSetLicensesResponse = await fetch(
@@ -48,18 +50,20 @@ serve(async (req) => {
     )
 
     const permissionSetLicenses = await permissionSetLicensesResponse.json()
+    console.log('Permission Set licenses response:', permissionSetLicenses)
 
     return new Response(
       JSON.stringify({
-        userLicenses: userLicenses.records,
-        packageLicenses: packageLicenses.records,
-        permissionSetLicenses: permissionSetLicenses.records,
+        userLicenses: userLicenses.records || [],
+        packageLicenses: packageLicenses.records || [],
+        permissionSetLicenses: permissionSetLicenses.records || [],
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   } catch (error) {
+    console.error('Error in salesforce-licenses function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
