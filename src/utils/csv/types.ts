@@ -8,6 +8,11 @@ export interface RawLicense {
   IsProvisioned?: boolean;
   AllowedLicenses?: number;
   DeveloperName?: string;
+  // Additional fields for formatted data
+  name?: string;
+  total?: number;
+  used?: number;
+  type?: 'user' | 'package' | 'permissionSet';
 }
 
 export interface ExportData {
@@ -26,4 +31,17 @@ export interface CSVSection {
   title: string;
   headers: string[];
   rows: string[][];
+}
+
+export interface CsvExportData {
+  licensePrice: number;
+  standardUsers: number;
+  savingsBreakdown: {
+    inactiveUserSavings: { savings: number; count: number };
+    integrationUserSavings: { savings: number; count: number };
+    platformLicenseSavings: { savings: number; count: number };
+    sandboxSavings: { savings: number; count: number };
+    storageSavings: { savings: number; potentialGBSavings: number };
+    totalSavings: number;
+  };
 }

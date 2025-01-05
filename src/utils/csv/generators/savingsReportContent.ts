@@ -1,4 +1,4 @@
-import { CsvExportData } from '../types/exportTypes';
+import { CsvExportData } from '../types';
 
 export const generateSavingsReportContent = ({
   licensePrice,
@@ -20,7 +20,7 @@ export const generateSavingsReportContent = ({
     totalSavings
   } = savingsBreakdown;
 
-  const totalMonthlyLicenseCost = licensePrice * standardUsers;
+  const totalMonthlyLicenseCost = Number(licensePrice) * Number(standardUsers);
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
   
   console.log('Cost calculations:', {
@@ -30,7 +30,7 @@ export const generateSavingsReportContent = ({
   });
 
   const percentageOfAnnualCost = totalAnnualLicenseCost > 0 
-    ? ((totalSavings / totalAnnualLicenseCost) * 100).toFixed(1) 
+    ? ((Number(totalSavings) / totalAnnualLicenseCost) * 100).toFixed(1) 
     : '0.0';
 
   // Format numbers for better readability
