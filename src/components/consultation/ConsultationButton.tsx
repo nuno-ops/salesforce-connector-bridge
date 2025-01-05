@@ -47,7 +47,7 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
       // Otherwise, create Stripe checkout session
       const { data, error } = await supabase.functions.invoke('consultation-checkout', {
         body: { 
-          priceId: 'price_1QcpL9BqwIrd79CS00DpeBgL',
+          priceId: 'price_1QdqvXBqwIrd79CSGsiAiC9F',
           orgId,
           returnUrl: window.location.origin
         }
