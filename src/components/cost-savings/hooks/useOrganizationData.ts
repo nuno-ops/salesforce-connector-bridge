@@ -63,20 +63,35 @@ export const useOrganizationData = () => {
           throw error;
         }
 
-        console.log('Received response from salesforce-users:', {
-          hasUsers: Array.isArray(data?.users),
-          userCount: data?.users?.length,
-          hasOAuthTokens: Array.isArray(data?.oauthTokens),
-          oauthTokenCount: data?.oauthTokens?.length,
+        console.log('Raw response from salesforce-users:', data);
+
+        if (!data?.users || !Array.isArray(data.users)) {
+          console.error('Invalid users data structure:', data?.users);
+          throw new Error('Invalid users data received');
+        }
+
+        if (!data?.oauthTokens || !Array.isArray(data.oauthTokens)) {
+          console.error('Invalid oauthTokens data structure:', data?.oauthTokens);
+          throw new Error('Invalid oauthTokens data received');
+        }
+
+        console.log('Setting users state:', {
+          count: data.users.length,
+          firstUser: data.users[0],
           timestamp: new Date().toISOString()
         });
+        setUsers(data.users);
 
-        setUsers(data.users || []);
-        setOauthTokens(data.oauthTokens || []);
+        console.log('Setting oauthTokens state:', {
+          count: data.oauthTokens.length,
+          firstToken: data.oauthTokens[0],
+          timestamp: new Date().toISOString()
+        });
+        setOauthTokens(data.oauthTokens);
 
-        console.log('State updated with:', {
-          usersLength: data.users?.length || 0,
-          oauthTokensLength: data.oauthTokens?.length || 0,
+        console.log('State updates completed:', {
+          usersLength: data.users.length,
+          oauthTokensLength: data.oauthTokens.length,
           timestamp: new Date().toISOString()
         });
 
