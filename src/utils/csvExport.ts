@@ -6,16 +6,19 @@ import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilt
 import { generateSavingsReportContent } from '@/utils/csv/generators/savingsReportContent';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
-  console.log('CSV Export - Initial Data:', {
-    licensePrice: data.licensePrice,
-    users: data.users?.length,
-    standardUsers: data.users ? filterStandardSalesforceUsers(data.users).length : 0
-  });
-
   // Process users data
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   const standardUserCount = standardUsers.length;
   
+  console.log('CSV Export - Raw Data:', {
+    licensePrice: data.licensePrice,
+    users: data.users,
+    standardUsers: standardUserCount,
+    inactiveUserSavings: data.inactiveUserSavings,
+    integrationUserSavings: data.integrationUserSavings,
+    platformLicenseSavings: data.platformLicenseSavings
+  });
+
   // Calculate savings
   const savingsBreakdown = {
     inactiveUserSavings: { 
@@ -45,7 +48,11 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
                  (data.storageSavings || 0)
   };
 
-  console.log('CSV Export - Savings Breakdown:', JSON.stringify(savingsBreakdown, null, 2));
+  console.log('CSV Export - Processed Data:', {
+    standardUserCount,
+    licensePrice: data.licensePrice,
+    savingsBreakdown
+  });
 
   // Generate savings report content with actual license price
   const csvContent = generateSavingsReportContent({
@@ -76,19 +83,4 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   });
 
   return csvContent.map(row => row.join(',')).join('\n');
-};
-
-export const downloadCSV = (content: string, filename: string) => {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
 };
