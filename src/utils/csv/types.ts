@@ -8,6 +8,10 @@ export interface RawLicense {
   AllowedLicenses?: number;
   Status?: string;
   type?: 'user' | 'package' | 'permissionSet';
+  // Formatted data
+  name?: string;
+  total?: number;
+  used?: number;
 }
 
 export interface ExportData {

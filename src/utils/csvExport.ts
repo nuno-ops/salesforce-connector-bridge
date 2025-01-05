@@ -2,7 +2,6 @@ import { ExportData } from '@/utils/csv/types';
 import { createLicenseSection } from '@/utils/csv/sections/licenseSection';
 import { createSandboxSection } from '@/utils/csv/sections/sandboxSection';
 import { createLimitsSection } from '@/utils/csv/sections/limitsSection';
-import { createUserSection } from '@/utils/csv/sections/userSection';
 import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilters';
 import { generateSavingsReportContent } from './csv/generators/savingsReportContent';
 
@@ -13,9 +12,9 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   const standardUserCount = standardUsers.length;
   
-  // Generate savings report content
+  // Generate savings report content with actual license price
   const csvContent = generateSavingsReportContent({
-    licensePrice: data.licensePrice || 0,
+    licensePrice: data.licensePrice || 140, // Default to 140 if not provided
     standardUsers: standardUserCount,
     savingsBreakdown: {
       inactiveUserSavings: { savings: 0, count: 0 },
@@ -42,9 +41,6 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
     createSandboxSection(data.sandboxes || []),
     createLimitsSection(data.limits || {}),
-    createUserSection('Inactive Users', []),
-    createUserSection('Integration User Candidates', []),
-    createUserSection('Platform License Candidates', [])
   ];
 
   // Add all sections to CSV content
