@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
 import { useToast } from "@/hooks/use-toast";
+import { useSavingsCalculations } from "@/components/cost-savings/SavingsCalculator";
+import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -27,6 +29,21 @@ export const DashboardContent = ({
   oauthTokens = []
 }: DashboardContentProps) => {
   const { toast } = useToast();
+  const { licensePrice } = useOrganizationData();
+  
+  const { 
+    totalSavings,
+    savingsBreakdown,
+    inactiveUsers,
+    integrationUsers
+  } = useSavingsCalculations({
+    users,
+    oauthTokens,
+    licensePrice,
+    sandboxes,
+    storageUsage: limits?.StorageUsed || 0,
+    userLicenses
+  });
 
   const handleExportReport = async () => {
     try {
@@ -38,7 +55,15 @@ export const DashboardContent = ({
         limits,
         users,
         oauthTokens,
-        storageUsage: limits?.StorageUsed || 0
+        storageUsage: limits?.StorageUsed || 0,
+        inactiveUserSavings: savingsBreakdown.find(s => s.title === "Inactive User Licenses")?.amount || 0,
+        integrationUserSavings: savingsBreakdown.find(s => s.title === "Integration User Optimization")?.amount || 0,
+        platformLicenseSavings: savingsBreakdown.find(s => s.title === "Platform License Optimization")?.amount || 0,
+        sandboxSavings: savingsBreakdown.find(s => s.title === "Sandbox Optimization")?.amount || 0,
+        storageSavings: savingsBreakdown.find(s => s.title === "Storage Optimization")?.amount || 0,
+        inactiveUserCount: inactiveUsers?.length || 0,
+        integrationUserCount: integrationUsers?.length || 0,
+        licensePrice
       });
       
       downloadCSV(csvContent, 'salesforce-optimization-report.csv');

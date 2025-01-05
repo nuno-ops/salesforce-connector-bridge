@@ -1,47 +1,14 @@
-import { ExportData, SavingsBreakdown } from './csv/types';
+import { ExportData } from './csv/types';
 import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilters';
 import { createLicenseSection } from './csv/sections/licenseSection';
 import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
-import { supabase } from "@/integrations/supabase/client";
-import { normalizeOrgId } from '@/utils/orgIdUtils';
-
-const fetchLicensePrice = async (): Promise<number> => {
-  const instanceUrl = localStorage.getItem('sf_instance_url');
-  if (!instanceUrl) {
-    console.error('No organization ID found');
-    return 100; // Default fallback
-  }
-
-  const orgId = normalizeOrgId(instanceUrl);
-  console.log('Fetching license price for org:', orgId);
-  
-  const { data: settings, error } = await supabase
-    .from('organization_settings')
-    .select('license_cost_per_user')
-    .eq('org_id', orgId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error fetching license price:', error);
-    return 100; // Default fallback
-  }
-
-  if (settings?.license_cost_per_user) {
-    const cost = parseFloat(settings.license_cost_per_user.toString());
-    console.log('Found license price in settings:', cost);
-    return cost;
-  }
-
-  console.log('No license price found in settings, using default');
-  return 100; // Default fallback
-};
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
   // Process users data
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   const standardUserCount = standardUsers.length;
-  const licensePrice = await fetchLicensePrice();
+  const licensePrice = data.licensePrice;
   
   console.log('CSV Export - Raw Data:', {
     licensePrice,
@@ -53,7 +20,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   });
 
   // Calculate savings with fallbacks
-  const savingsBreakdown: SavingsBreakdown = {
+  const savingsBreakdown = {
     inactiveUserSavings: { 
       savings: data.inactiveUserSavings || 0, 
       count: data.inactiveUserCount || 0 
