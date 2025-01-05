@@ -5,10 +5,10 @@ export const generateSavingsReportContent = ({
   standardUsers,
   savingsBreakdown
 }: CsvExportData): string[][] => {
-  console.log('Generating savings report with detailed data:', {
+  console.log('Savings Report Generation - Input Data:', {
     licensePrice,
     standardUsers,
-    savingsBreakdown
+    savingsBreakdown: JSON.stringify(savingsBreakdown, null, 2)
   });
 
   const {
@@ -23,7 +23,9 @@ export const generateSavingsReportContent = ({
   const totalMonthlyLicenseCost = licensePrice * standardUsers;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
   
-  console.log('Cost calculations:', {
+  console.log('Savings Report - Cost Calculations:', {
+    licensePrice,
+    standardUsers,
     totalMonthlyLicenseCost,
     totalAnnualLicenseCost,
     totalSavings
@@ -32,6 +34,14 @@ export const generateSavingsReportContent = ({
   const percentageOfAnnualCost = totalAnnualLicenseCost > 0 
     ? ((totalSavings / totalAnnualLicenseCost) * 100).toFixed(1) 
     : '0.0';
+
+  console.log('Savings Report - Detailed Breakdown:', {
+    inactiveUsers: inactiveUserSavings,
+    integrationUsers: integrationUserSavings,
+    platformLicenses: platformLicenseSavings,
+    sandbox: sandboxSavings,
+    storage: storageSavings
+  });
 
   return [
     ['Salesforce Organization Cost Optimization Report'],

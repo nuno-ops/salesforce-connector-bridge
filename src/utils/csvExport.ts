@@ -6,7 +6,11 @@ import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilt
 import { generateSavingsReportContent } from '@/utils/csv/generators/savingsReportContent';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
-  console.log('Starting CSV generation with data:', data);
+  console.log('CSV Export - Initial Data:', {
+    licensePrice: data.licensePrice,
+    users: data.users?.length,
+    standardUsers: data.users ? filterStandardSalesforceUsers(data.users).length : 0
+  });
 
   // Process users data
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
@@ -41,6 +45,8 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
                  (data.storageSavings || 0)
   };
 
+  console.log('CSV Export - Savings Breakdown:', JSON.stringify(savingsBreakdown, null, 2));
+
   // Generate savings report content with actual license price
   const csvContent = generateSavingsReportContent({
     licensePrice: data.licensePrice || 140,
@@ -48,7 +54,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     savingsBreakdown
   });
 
-  // Create all sections
+  // Create sections without unnecessary logging
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses),
     createLicenseSection('Package Licenses', data.packageLicenses),
