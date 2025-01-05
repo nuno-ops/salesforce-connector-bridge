@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
@@ -32,6 +32,7 @@ export const DashboardContent = ({
   const { toast } = useToast();
   const { licensePrice } = useOrganizationData();
   const [isExporting, setIsExporting] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   
   const { 
     totalSavings,
@@ -48,12 +49,31 @@ export const DashboardContent = ({
     userLicenses
   });
 
+  // Add effect to track data loading
+  useEffect(() => {
+    console.log('Data loading status check:', {
+      hasUsers: users?.length > 0,
+      hasOAuthTokens: oauthTokens?.length > 0,
+      hasLicensePrice: !!licensePrice,
+      timestamp: new Date().toISOString()
+    });
+
+    const isLoaded = users?.length > 0 && oauthTokens?.length > 0 && !!licensePrice;
+    setIsDataLoading(prev => {
+      if (prev && isLoaded) {
+        console.log('Data finished loading at:', new Date().toISOString());
+      }
+      return !isLoaded;
+    });
+  }, [users, oauthTokens, licensePrice]);
+
   console.log('DashboardContent - Savings data:', {
     totalSavings,
     savingsBreakdown,
     inactiveUsersCount: inactiveUsers?.length,
     integrationUsersCount: integrationUsers?.length,
-    licensePrice
+    licensePrice,
+    isDataLoading
   });
 
   const handleExportReport = async () => {
@@ -72,7 +92,8 @@ export const DashboardContent = ({
         integrationUserSavings,
         platformLicenseSavings,
         sandboxSavings,
-        storageSavings
+        storageSavings,
+        totalSavings
       });
 
       const csvContent = await generateReportCSV({
@@ -117,19 +138,31 @@ export const DashboardContent = ({
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Organization Health Dashboard</h1>
-        <Button
-          onClick={handleExportReport}
-          variant="outline"
-          className="flex items-center gap-2"
-          disabled={isExporting || !users.length}
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          {isExporting ? "Generating Report..." : "Export Report"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleExportReport}
+            variant="outline"
+            className="flex items-center gap-2 min-w-[160px] justify-center"
+            disabled={isExporting || isDataLoading}
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Generating Report...</span>
+              </>
+            ) : isDataLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading Data...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                <span>Export Report</span>
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       
       <OptimizationDashboard
