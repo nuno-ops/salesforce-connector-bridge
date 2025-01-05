@@ -35,7 +35,8 @@ export const DashboardContent = ({
     totalSavings,
     savingsBreakdown,
     inactiveUsers,
-    integrationUsers
+    integrationUsers,
+    platformUsers
   } = useSavingsCalculations({
     users,
     oauthTokens,
@@ -77,6 +78,7 @@ export const DashboardContent = ({
         storageSavings: savingsBreakdown.find(s => s.title === "Storage Optimization")?.amount || 0,
         inactiveUserCount: inactiveUsers?.length || 0,
         integrationUserCount: integrationUsers?.length || 0,
+        platformLicenseCount: platformUsers?.length || 0,
         licensePrice
       });
       
