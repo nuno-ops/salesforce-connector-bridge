@@ -12,14 +12,23 @@ interface LicenseCardProps {
 export const LicenseCard = ({ title, licenses, type }: LicenseCardProps) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  console.log(`LicenseCard [${title}] received:`, {
-    licensesCount: licenses?.length,
+  console.log(`LicenseCard [${title}] raw input:`, {
+    licenses,
+    type,
+    isArray: Array.isArray(licenses),
+    licensesLength: licenses?.length,
     firstLicense: licenses?.[0],
-    type
+    allLicenses: licenses
   });
 
-  const filteredLicenses = licenses.filter(license => {
-    return license.name?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredLicenses = Array.isArray(licenses) 
+    ? licenses.filter(license => license?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    : [];
+
+  console.log(`LicenseCard [${title}] filtered licenses:`, {
+    filteredLicenses,
+    filteredLength: filteredLicenses.length,
+    searchTerm
   });
 
   return (

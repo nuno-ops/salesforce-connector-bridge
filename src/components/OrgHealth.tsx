@@ -22,6 +22,15 @@ export const OrgHealth = () => {
     error
   } = useOrgHealthData();
 
+  console.log('OrgHealth passing to LicensesSection:', {
+    userLicenses,
+    packageLicenses,
+    permissionSetLicenses,
+    isUserLicensesArray: Array.isArray(userLicenses),
+    isPackageLicensesArray: Array.isArray(packageLicenses),
+    isPermissionSetLicensesArray: Array.isArray(permissionSetLicenses)
+  });
+
   useEffect(() => {
     setIsExpanded(searchParams.get('expanded') === 'true');
   }, [searchParams]);
