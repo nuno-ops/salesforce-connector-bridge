@@ -63,9 +63,9 @@ export const OrgHealth = () => {
         permissionSetLicenses={permissionSetLicenses || []}
         defaultExpanded={isExpanded}
       />
-      {limits && <LimitsSection limits={limits} defaultExpanded={isExpanded} />}
-      {metrics && <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />}
-      {sandboxes && <SandboxList sandboxes={sandboxes} defaultExpanded={isExpanded} />}
+      <LimitsSection limits={limits} defaultExpanded={isExpanded} />
+      <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />
+      <SandboxList sandboxes={sandboxes} defaultExpanded={isExpanded} />
     </div>
   );
 };

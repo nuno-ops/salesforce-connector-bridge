@@ -33,8 +33,15 @@ export const useOrgHealthData = () => {
         packageLicenses: data.packageLicenses as RawPackageLicense[],
         permissionSetLicenses: data.permissionSetLicenses as RawPermissionSetLicense[],
         sandboxes: data.sandboxes as SandboxInfo[],
-        limits: data.limits as OrgLimits,
-        metrics: data.metrics as MonthlyMetrics,
+        limits: data.limits as OrgLimits || {
+          DataStorageMB: { Max: 0, Remaining: 0 },
+          FileStorageMB: { Max: 0, Remaining: 0 },
+          DailyApiRequests: { Max: 0, Remaining: 0 }
+        },
+        metrics: data.metrics as MonthlyMetrics || {
+          leads: [],
+          opportunities: []
+        },
         users: data.users || [],
         oauthTokens: data.oauthTokens || [],
       };
@@ -46,10 +53,17 @@ export const useOrgHealthData = () => {
     packageLicenses: data?.packageLicenses || [],
     permissionSetLicenses: data?.permissionSetLicenses || [],
     sandboxes: data?.sandboxes || [],
-    limits: data?.limits,
+    limits: data?.limits || {
+      DataStorageMB: { Max: 0, Remaining: 0 },
+      FileStorageMB: { Max: 0, Remaining: 0 },
+      DailyApiRequests: { Max: 0, Remaining: 0 }
+    },
     users: data?.users || [],
     oauthTokens: data?.oauthTokens || [],
-    metrics: data?.metrics,
+    metrics: data?.metrics || {
+      leads: [],
+      opportunities: []
+    },
     isLoading,
     error: error ? (error as Error).message : null
   };
