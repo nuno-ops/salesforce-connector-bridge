@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { ReactNode } from "react";
-import { DownloadPdfButton } from "@/components/pdf/DownloadPdfButton";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -11,8 +10,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sf-light to-white p-4">
       <div className="w-full max-w-4xl space-y-8">
-        <div className="flex justify-end gap-2">
-          <DownloadPdfButton />
+        <div className="flex justify-end">
           <Button 
             variant="outline" 
             onClick={onDisconnect}
