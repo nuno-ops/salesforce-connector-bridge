@@ -56,10 +56,19 @@ export const DashboardContent = ({
 
   const handleExportReport = async () => {
     try {
-      console.log('Export Report - Starting with data:', {
-        savingsBreakdown,
-        inactiveUsers: inactiveUsers?.length,
-        integrationUsers: integrationUsers?.length
+      // Extract savings amounts from savingsBreakdown
+      const inactiveUserSavings = savingsBreakdown.find(s => s.title === "Inactive User Licenses")?.amount || 0;
+      const integrationUserSavings = savingsBreakdown.find(s => s.title === "Integration User Optimization")?.amount || 0;
+      const platformLicenseSavings = savingsBreakdown.find(s => s.title === "Platform License Optimization")?.amount || 0;
+      const sandboxSavings = savingsBreakdown.find(s => s.title === "Sandbox Optimization")?.amount || 0;
+      const storageSavings = savingsBreakdown.find(s => s.title === "Storage Optimization")?.amount || 0;
+
+      console.log('Export Report - Extracted savings:', {
+        inactiveUserSavings,
+        integrationUserSavings,
+        platformLicenseSavings,
+        sandboxSavings,
+        storageSavings
       });
 
       const csvContent = await generateReportCSV({
@@ -71,11 +80,11 @@ export const DashboardContent = ({
         users,
         oauthTokens,
         storageUsage: limits?.StorageUsed || 0,
-        inactiveUserSavings: savingsBreakdown.find(s => s.title === "Inactive User Licenses")?.amount || 0,
-        integrationUserSavings: savingsBreakdown.find(s => s.title === "Integration User Optimization")?.amount || 0,
-        platformLicenseSavings: savingsBreakdown.find(s => s.title === "Platform License Optimization")?.amount || 0,
-        sandboxSavings: savingsBreakdown.find(s => s.title === "Sandbox Optimization")?.amount || 0,
-        storageSavings: savingsBreakdown.find(s => s.title === "Storage Optimization")?.amount || 0,
+        inactiveUserSavings,
+        integrationUserSavings,
+        platformLicenseSavings,
+        sandboxSavings,
+        storageSavings,
         inactiveUserCount: inactiveUsers?.length || 0,
         integrationUserCount: integrationUsers?.length || 0,
         platformLicenseCount: platformUsers?.length || 0,
