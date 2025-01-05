@@ -3,17 +3,31 @@ import { formatLastLoginDate } from '@/components/users/utils/userFilters';
 import { CSVSection } from '../types';
 
 export const createUserSection = (title: string, users: SalesforceUser[]): CSVSection => {
-  console.log(`Creating ${title} section with ${users.length} users`);
+  console.log(`Creating ${title} section with ${users.length} users:`, users);
   
-  return {
-    title,
-    headers: ['Username', 'Last Login', 'User Type', 'Profile', 'Connected Apps'],
-    rows: users.map(user => [
+  const rows = users.map(user => {
+    const row = [
       user.Username || 'Unknown',
       formatLastLoginDate(user.LastLoginDate),
       user.UserType || 'Unknown',
       user.Profile?.Name || 'N/A',
       user.connectedApps?.join(', ') || 'N/A'
-    ])
+    ];
+
+    console.log('Processing user row:', {
+      username: user.Username,
+      lastLogin: user.LastLoginDate,
+      userType: user.UserType,
+      profile: user.Profile?.Name,
+      connectedApps: user.connectedApps
+    });
+
+    return row;
+  });
+
+  return {
+    title,
+    headers: ['Username', 'Last Login', 'User Type', 'Profile', 'Connected Apps'],
+    rows
   };
 };
