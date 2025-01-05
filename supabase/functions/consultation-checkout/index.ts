@@ -26,16 +26,10 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'payment',
-      success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}&redirect=https://calendly.com/salesforcesaver-support/30min`,
       cancel_url: `${returnUrl}?canceled=true`,
       metadata: {
         orgId: orgId,
-      },
-      after_completion: {
-        type: 'redirect',
-        redirect: {
-          url: 'https://calendly.com/salesforcesaver-support/30min'
-        }
       }
     })
 
