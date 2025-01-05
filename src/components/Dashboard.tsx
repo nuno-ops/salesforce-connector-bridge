@@ -42,24 +42,13 @@ const Dashboard = () => {
 
   // Format the license data before passing it to components
   const formattedUserLicenses = formatLicenseData(userLicenses);
-  console.log('Formatted user licenses:', {
-    raw: userLicenses?.[0],
-    formatted: formattedUserLicenses?.[0],
-    total: formattedUserLicenses?.length
-  });
-
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
-  console.log('Formatted package licenses:', {
-    raw: packageLicenses?.[0],
-    formatted: formattedPackageLicenses?.[0],
-    total: formattedPackageLicenses?.length
-  });
-
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
-  console.log('Formatted permission set licenses:', {
-    raw: permissionSetLicenses?.[0],
-    formatted: formattedPermissionSetLicenses?.[0],
-    total: formattedPermissionSetLicenses?.length
+
+  console.log('Formatted license data:', {
+    user: formattedUserLicenses?.[0],
+    package: formattedPackageLicenses?.[0],
+    permissionSet: formattedPermissionSetLicenses?.[0]
   });
 
   if (isHealthDataLoading || isCheckingAccess) {
