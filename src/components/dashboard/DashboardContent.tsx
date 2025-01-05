@@ -45,8 +45,22 @@ export const DashboardContent = ({
     userLicenses
   });
 
+  console.log('DashboardContent - Savings data:', {
+    totalSavings,
+    savingsBreakdown,
+    inactiveUsersCount: inactiveUsers?.length,
+    integrationUsersCount: integrationUsers?.length,
+    licensePrice
+  });
+
   const handleExportReport = async () => {
     try {
+      console.log('Export Report - Starting with data:', {
+        savingsBreakdown,
+        inactiveUsers: inactiveUsers?.length,
+        integrationUsers: integrationUsers?.length
+      });
+
       const csvContent = await generateReportCSV({
         userLicenses,
         packageLicenses,

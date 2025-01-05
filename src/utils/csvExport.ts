@@ -5,19 +5,22 @@ import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
+  console.log('CSV Generation - Input data:', {
+    users: data.users?.length,
+    licensePrice: data.licensePrice,
+    inactiveUserSavings: data.inactiveUserSavings,
+    integrationUserSavings: data.integrationUserSavings,
+    platformLicenseSavings: data.platformLicenseSavings,
+    sandboxSavings: data.sandboxSavings,
+    storageSavings: data.storageSavings,
+    inactiveUserCount: data.inactiveUserCount,
+    integrationUserCount: data.integrationUserCount
+  });
+
   // Process users data
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   const standardUserCount = standardUsers.length;
   const licensePrice = data.licensePrice;
-  
-  console.log('CSV Export - Raw Data:', {
-    licensePrice,
-    users: data.users,
-    standardUsers: standardUserCount,
-    inactiveUserSavings: data.inactiveUserSavings,
-    integrationUserSavings: data.integrationUserSavings,
-    platformLicenseSavings: data.platformLicenseSavings
-  });
 
   // Calculate savings with fallbacks
   const savingsBreakdown = {
@@ -48,18 +51,14 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
                  (data.storageSavings || 0)
   };
 
-  console.log('CSV Export - Processed Data:', {
-    standardUserCount,
-    licensePrice,
-    savingsBreakdown
-  });
+  console.log('CSV Generation - Processed savings:', savingsBreakdown);
 
   const totalMonthlyLicenseCost = licensePrice * standardUserCount;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
 
-  console.log('Savings Report - Calculations:', {
+  console.log('CSV Generation - Final calculations:', {
     licensePrice,
-    standardUsers: standardUserCount,
+    standardUserCount,
     totalMonthlyLicenseCost,
     totalAnnualLicenseCost,
     totalSavings: savingsBreakdown.totalSavings
