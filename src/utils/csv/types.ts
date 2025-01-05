@@ -20,27 +20,32 @@ export interface ExportData {
   permissionSetLicenses: RawLicense[];
   sandboxes: any[];
   limits: any;
-  users?: any[];
-  oauthTokens?: any[];
   licensePrice?: number;
   storageUsage?: number;
+  // Savings data
+  inactiveUserSavings?: number;
+  inactiveUserCount?: number;
+  integrationUserSavings?: number;
+  integrationUserCount?: number;
+  platformLicenseSavings?: number;
+  platformLicenseCount?: number;
+  sandboxSavings?: number;
+  excessSandboxCount?: number;
+  storageSavings?: number;
+  potentialStorageReduction?: number;
 }
 
-export interface CSVSection {
-  title: string;
-  headers: string[];
-  rows: string[][];
+export interface SavingsBreakdown {
+  inactiveUserSavings: { savings: number; count: number };
+  integrationUserSavings: { savings: number; count: number };
+  platformLicenseSavings: { savings: number; count: number };
+  sandboxSavings: { savings: number; count: number };
+  storageSavings: { savings: number; potentialGBSavings: number };
+  totalSavings: number;
 }
 
 export interface CsvExportData {
   licensePrice: number;
   standardUsers: number;
-  savingsBreakdown: {
-    inactiveUserSavings: { savings: number; count: number };
-    integrationUserSavings: { savings: number; count: number };
-    platformLicenseSavings: { savings: number; count: number };
-    sandboxSavings: { savings: number; count: number };
-    storageSavings: { savings: number; potentialGBSavings: number };
-    totalSavings: number;
-  };
+  savingsBreakdown: SavingsBreakdown;
 }

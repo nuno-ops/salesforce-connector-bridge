@@ -13,31 +13,39 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   const standardUserCount = standardUsers.length;
   
   // Calculate savings
-  const inactiveUserSavings = { savings: data.inactiveUserSavings || 0, count: data.inactiveUserCount || 0 };
-  const integrationUserSavings = { savings: data.integrationUserSavings || 0, count: data.integrationUserCount || 0 };
-  const platformLicenseSavings = { savings: data.platformLicenseSavings || 0, count: data.platformLicenseCount || 0 };
-  const sandboxSavings = { savings: data.sandboxSavings || 0, count: data.excessSandboxCount || 0 };
-  const storageSavings = { savings: data.storageSavings || 0, potentialGBSavings: data.potentialStorageReduction || 0 };
-  
-  const totalSavings = 
-    inactiveUserSavings.savings +
-    integrationUserSavings.savings +
-    platformLicenseSavings.savings +
-    sandboxSavings.savings +
-    storageSavings.savings;
+  const savingsBreakdown = {
+    inactiveUserSavings: { 
+      savings: data.inactiveUserSavings || 0, 
+      count: data.inactiveUserCount || 0 
+    },
+    integrationUserSavings: { 
+      savings: data.integrationUserSavings || 0, 
+      count: data.integrationUserCount || 0 
+    },
+    platformLicenseSavings: { 
+      savings: data.platformLicenseSavings || 0, 
+      count: data.platformLicenseCount || 0 
+    },
+    sandboxSavings: { 
+      savings: data.sandboxSavings || 0, 
+      count: data.excessSandboxCount || 0 
+    },
+    storageSavings: { 
+      savings: data.storageSavings || 0, 
+      potentialGBSavings: data.potentialStorageReduction || 0 
+    },
+    totalSavings: (data.inactiveUserSavings || 0) +
+                 (data.integrationUserSavings || 0) +
+                 (data.platformLicenseSavings || 0) +
+                 (data.sandboxSavings || 0) +
+                 (data.storageSavings || 0)
+  };
 
   // Generate savings report content with actual license price
   const csvContent = generateSavingsReportContent({
-    licensePrice: data.licensePrice || 140, // Default to 140 if not provided
+    licensePrice: data.licensePrice || 0,
     standardUsers: standardUserCount,
-    savingsBreakdown: {
-      inactiveUserSavings,
-      integrationUserSavings,
-      platformLicenseSavings,
-      sandboxSavings,
-      storageSavings,
-      totalSavings
-    }
+    savingsBreakdown
   });
 
   // Create all sections
