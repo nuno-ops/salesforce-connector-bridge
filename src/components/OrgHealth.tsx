@@ -22,13 +22,17 @@ export const OrgHealth = () => {
     error
   } = useOrgHealthData();
 
-  console.log('OrgHealth passing to LicensesSection:', {
-    userLicenses,
-    packageLicenses,
-    permissionSetLicenses,
-    isUserLicensesArray: Array.isArray(userLicenses),
-    isPackageLicensesArray: Array.isArray(packageLicenses),
-    isPermissionSetLicensesArray: Array.isArray(permissionSetLicenses)
+  console.log('OrgHealth component data:', {
+    hasLimits: !!limits,
+    limitsData: limits,
+    hasSandboxes: Array.isArray(sandboxes),
+    sandboxCount: sandboxes?.length,
+    hasMetrics: !!metrics,
+    licenseData: {
+      userLicenses: userLicenses?.length,
+      packageLicenses: packageLicenses?.length,
+      permissionSetLicenses: permissionSetLicenses?.length,
+    }
   });
 
   useEffect(() => {
@@ -59,9 +63,9 @@ export const OrgHealth = () => {
         permissionSetLicenses={permissionSetLicenses || []}
         defaultExpanded={isExpanded}
       />
-      <LimitsSection limits={limits!} defaultExpanded={isExpanded} />
-      <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />
-      <SandboxList sandboxes={sandboxes || []} defaultExpanded={isExpanded} />
+      {limits && <LimitsSection limits={limits} defaultExpanded={isExpanded} />}
+      {metrics && <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />}
+      {sandboxes && <SandboxList sandboxes={sandboxes} defaultExpanded={isExpanded} />}
     </div>
   );
 };

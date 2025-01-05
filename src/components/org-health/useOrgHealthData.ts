@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { OrgLimits, SandboxInfo, UserLicense, PackageLicense, PermissionSetLicense, MonthlyMetrics } from './types';
+import { OrgLimits, SandboxInfo, RawUserLicense, RawPackageLicense, RawPermissionSetLicense, MonthlyMetrics } from './types';
 
 export const useOrgHealthData = () => {
   const { data, isLoading, error } = useQuery({
@@ -23,26 +23,20 @@ export const useOrgHealthData = () => {
         userLicenses: data.userLicenses,
         packageLicenses: data.packageLicenses,
         permissionSetLicenses: data.permissionSetLicenses,
-        isUserLicensesArray: Array.isArray(data.userLicenses),
-        isPackageLicensesArray: Array.isArray(data.packageLicenses),
-        isPermissionSetLicensesArray: Array.isArray(data.permissionSetLicenses),
-        limits: data.limits
+        limits: data.limits,
+        metrics: data.metrics,
+        sandboxes: data.sandboxes,
       });
 
-      // Ensure we return arrays even if the API returns null/undefined
       return {
-        userLicenses: Array.isArray(data.userLicenses) ? data.userLicenses : [],
-        packageLicenses: Array.isArray(data.packageLicenses) ? data.packageLicenses : [],
-        permissionSetLicenses: Array.isArray(data.permissionSetLicenses) ? data.permissionSetLicenses : [],
-        sandboxes: Array.isArray(data.sandboxes) ? data.sandboxes : [],
-        limits: data.limits || {
-          DataStorageMB: { Max: 0, Remaining: 0 },
-          FileStorageMB: { Max: 0, Remaining: 0 },
-          DailyApiRequests: { Max: 0, Remaining: 0 }
-        },
-        users: Array.isArray(data.users) ? data.users : [],
-        oauthTokens: Array.isArray(data.oauthTokens) ? data.oauthTokens : [],
-        metrics: data.metrics || null
+        userLicenses: data.userLicenses as RawUserLicense[],
+        packageLicenses: data.packageLicenses as RawPackageLicense[],
+        permissionSetLicenses: data.permissionSetLicenses as RawPermissionSetLicense[],
+        sandboxes: data.sandboxes as SandboxInfo[],
+        limits: data.limits as OrgLimits,
+        metrics: data.metrics as MonthlyMetrics,
+        users: data.users || [],
+        oauthTokens: data.oauthTokens || [],
       };
     }
   });
@@ -52,14 +46,10 @@ export const useOrgHealthData = () => {
     packageLicenses: data?.packageLicenses || [],
     permissionSetLicenses: data?.permissionSetLicenses || [],
     sandboxes: data?.sandboxes || [],
-    limits: data?.limits || {
-      DataStorageMB: { Max: 0, Remaining: 0 },
-      FileStorageMB: { Max: 0, Remaining: 0 },
-      DailyApiRequests: { Max: 0, Remaining: 0 }
-    },
+    limits: data?.limits,
     users: data?.users || [],
     oauthTokens: data?.oauthTokens || [],
-    metrics: data?.metrics || null,
+    metrics: data?.metrics,
     isLoading,
     error: error ? (error as Error).message : null
   };
