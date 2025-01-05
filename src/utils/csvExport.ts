@@ -1,9 +1,9 @@
-import { ExportData } from './types';
-import { createLicenseSection } from './sections/licenseSection';
-import { createSandboxSection } from './sections/sandboxSection';
-import { createLimitsSection } from './sections/limitsSection';
+import { ExportData } from '@/utils/csv/types';
+import { createLicenseSection } from '@/utils/csv/sections/licenseSection';
+import { createSandboxSection } from '@/utils/csv/sections/sandboxSection';
+import { createLimitsSection } from '@/utils/csv/sections/limitsSection';
 import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilters';
-import { generateSavingsReportContent } from './generators/savingsReportContent';
+import { generateSavingsReportContent } from '@/utils/csv/generators/savingsReportContent';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
   console.log('Starting CSV generation with data:', data);
