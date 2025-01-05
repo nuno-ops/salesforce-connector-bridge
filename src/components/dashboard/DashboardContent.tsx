@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
 import { useToast } from "@/hooks/use-toast";
 import { useSavingsCalculations } from "@/components/cost-savings/SavingsCalculator";
@@ -31,6 +31,7 @@ export const DashboardContent = ({
 }: DashboardContentProps) => {
   const { toast } = useToast();
   const { licensePrice } = useOrganizationData();
+  const [isExporting, setIsExporting] = useState(false);
   
   const { 
     totalSavings,
@@ -57,23 +58,21 @@ export const DashboardContent = ({
 
   const handleExportReport = async () => {
     try {
-      // Get savings data directly from the calculations
-      const inactiveUserSavings = inactiveUsers?.length * licensePrice * 12 || 0;
-      const integrationUserSavings = integrationUsers?.length * licensePrice * 12 || 0;
-      const platformLicenseSavings = platformUsers?.length * (licensePrice - 25) * 12 || 0;
-      const sandboxSavings = (sandboxes?.length > 1 ? (sandboxes.length - 1) * 5000 : 0) || 0;
-      const storageSavings = 0; // This would need to be calculated based on storage metrics
+      setIsExporting(true);
 
-      console.log('Export Report - Calculated savings:', {
+      // Extract savings from savingsBreakdown
+      const inactiveUserSavings = savingsBreakdown.find(s => s.title === "Inactive User Licenses")?.amount || 0;
+      const integrationUserSavings = savingsBreakdown.find(s => s.title === "Integration User Optimization")?.amount || 0;
+      const platformLicenseSavings = savingsBreakdown.find(s => s.title === "Platform License Optimization")?.amount || 0;
+      const sandboxSavings = savingsBreakdown.find(s => s.title === "Sandbox Optimization")?.amount || 0;
+      const storageSavings = savingsBreakdown.find(s => s.title === "Storage Optimization")?.amount || 0;
+
+      console.log('Export Report - Extracted savings:', {
         inactiveUserSavings,
         integrationUserSavings,
         platformLicenseSavings,
         sandboxSavings,
-        storageSavings,
-        users: users?.length,
-        inactiveUsersCount: inactiveUsers?.length,
-        integrationUsersCount: integrationUsers?.length,
-        platformUsersCount: platformUsers?.length
+        storageSavings
       });
 
       const csvContent = await generateReportCSV({
@@ -109,6 +108,8 @@ export const DashboardContent = ({
         title: "Error",
         description: "Failed to generate the report. Please try again."
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -120,9 +121,14 @@ export const DashboardContent = ({
           onClick={handleExportReport}
           variant="outline"
           className="flex items-center gap-2"
+          disabled={isExporting || !users.length}
         >
-          <Download className="h-4 w-4" />
-          Export Report
+          {isExporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          {isExporting ? "Generating Report..." : "Export Report"}
         </Button>
       </div>
       
