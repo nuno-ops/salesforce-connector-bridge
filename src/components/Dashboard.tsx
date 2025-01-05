@@ -27,17 +27,40 @@ const Dashboard = () => {
     isLoading: isHealthDataLoading,
   } = useOrgHealthData();
 
+  console.log('Raw license data from useOrgHealthData:', {
+    userLicenses: userLicenses?.[0],
+    packageLicenses: packageLicenses?.[0],
+    permissionSetLicenses: permissionSetLicenses?.[0],
+    totalCounts: {
+      users: userLicenses?.length,
+      packages: packageLicenses?.length,
+      permissionSets: permissionSetLicenses?.length
+    }
+  });
+
   const { hasAccess, isCheckingAccess, handleDisconnect } = useCheckAccess();
 
   // Format the license data before passing it to components
   const formattedUserLicenses = formatLicenseData(userLicenses);
-  console.log('Formatted user licenses:', formattedUserLicenses);
+  console.log('Formatted user licenses:', {
+    raw: userLicenses?.[0],
+    formatted: formattedUserLicenses?.[0],
+    total: formattedUserLicenses?.length
+  });
 
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
-  console.log('Formatted package licenses:', formattedPackageLicenses);
+  console.log('Formatted package licenses:', {
+    raw: packageLicenses?.[0],
+    formatted: formattedPackageLicenses?.[0],
+    total: formattedPackageLicenses?.length
+  });
 
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
-  console.log('Formatted permission set licenses:', formattedPermissionSetLicenses);
+  console.log('Formatted permission set licenses:', {
+    raw: permissionSetLicenses?.[0],
+    formatted: formattedPermissionSetLicenses?.[0],
+    total: formattedPermissionSetLicenses?.length
+  });
 
   if (isHealthDataLoading || isCheckingAccess) {
     return <LoadingSpinner />;
