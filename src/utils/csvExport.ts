@@ -2,6 +2,7 @@ import { ExportData } from '@/utils/csv/types';
 import { createLicenseSection } from '@/utils/csv/sections/licenseSection';
 import { createSandboxSection } from '@/utils/csv/sections/sandboxSection';
 import { createLimitsSection } from '@/utils/csv/sections/limitsSection';
+import { createUserSection } from '@/utils/csv/sections/userSection';
 import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilters';
 import { generateSavingsReportContent } from './csv/generators/savingsReportContent';
 

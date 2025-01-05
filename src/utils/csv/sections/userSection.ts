@@ -1,5 +1,4 @@
 import { SalesforceUser } from '@/components/users/utils/userFilters';
-import { formatLastLoginDate } from '@/components/users/utils/userFilters';
 import { CSVSection } from '../types';
 
 export const createUserSection = (title: string, users: SalesforceUser[]): CSVSection => {
@@ -8,10 +7,10 @@ export const createUserSection = (title: string, users: SalesforceUser[]): CSVSe
   const rows = users.map(user => {
     const row = [
       user.Username || 'Unknown',
-      formatLastLoginDate(user.LastLoginDate),
+      user.LastLoginDate || 'Never',
       user.UserType || 'Unknown',
       user.Profile?.Name || 'N/A',
-      user.connectedApps?.join(', ') || 'N/A'
+      Array.isArray(user.connectedApps) ? user.connectedApps.join(', ') : 'N/A'
     ];
 
     console.log('Processing user row:', {
