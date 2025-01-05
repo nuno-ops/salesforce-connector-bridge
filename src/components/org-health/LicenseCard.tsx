@@ -21,9 +21,22 @@ export const LicenseCard = ({ title, licenses, type }: LicenseCardProps) => {
     allLicenses: licenses
   });
 
-  const filteredLicenses = Array.isArray(licenses) 
-    ? licenses.filter(license => license?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    : [];
+  // Transform the raw license data into the expected format
+  const transformedLicenses = licenses.map(license => ({
+    name: type === 'permissionSet' ? license.DeveloperName : 
+          type === 'package' ? license.NamespacePrefix : 
+          license.Name,
+    total: type === 'package' ? license.AllowedLicenses : license.TotalLicenses,
+    used: license.UsedLicenses,
+    id: license.Id,
+    status: type === 'package' ? license.Status : undefined,
+    type
+  }));
+
+  const filteredLicenses = transformedLicenses.filter(license => {
+    const searchString = license.name?.toLowerCase() || '';
+    return searchString.includes(searchTerm.toLowerCase());
+  });
 
   console.log(`LicenseCard [${title}] filtered licenses:`, {
     filteredLicenses,
