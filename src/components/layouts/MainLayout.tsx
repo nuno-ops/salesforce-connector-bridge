@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ReactNode } from "react";
 import { ConsultationButton } from "@/components/consultation/ConsultationButton";
 import { ConsultationBanner } from "@/components/consultation/ConsultationBanner";
+import { Toaster } from "@/components/ui/toaster";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -26,6 +27,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
         </div>
       </div>
       <ConsultationBanner />
+      <Toaster />
     </div>
   );
 };
