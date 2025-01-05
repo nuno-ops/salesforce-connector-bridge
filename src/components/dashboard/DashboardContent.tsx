@@ -51,29 +51,44 @@ export const DashboardContent = ({
 
   // Add effect to track data loading
   useEffect(() => {
-    console.log('Data loading status check:', {
-      hasUsers: users?.length > 0,
-      hasOAuthTokens: oauthTokens?.length > 0,
-      hasLicensePrice: !!licensePrice,
+    console.log('DashboardContent - Props received:', {
+      usersCount: users?.length,
+      oauthTokensCount: oauthTokens?.length,
+      licensePrice,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log('DashboardContent - Savings data:', {
+      totalSavings,
+      savingsBreakdownLength: savingsBreakdown?.length,
+      inactiveUsersCount: inactiveUsers?.length,
+      integrationUsersCount: integrationUsers?.length,
+      platformUsersCount: platformUsers?.length,
       timestamp: new Date().toISOString()
     });
 
     const isLoaded = users?.length > 0 && oauthTokens?.length > 0 && !!licensePrice;
+    console.log('DashboardContent - Data loading status:', {
+      isLoaded,
+      previousLoadingState: isDataLoading,
+      timestamp: new Date().toISOString()
+    });
+
     setIsDataLoading(prev => {
       if (prev && isLoaded) {
-        console.log('Data finished loading at:', new Date().toISOString());
+        console.log('DashboardContent - Data finished loading at:', new Date().toISOString());
       }
       return !isLoaded;
     });
-  }, [users, oauthTokens, licensePrice]);
+  }, [users, oauthTokens, licensePrice, totalSavings, savingsBreakdown, inactiveUsers, integrationUsers, platformUsers, isDataLoading]);
 
-  console.log('DashboardContent - Savings data:', {
-    totalSavings,
-    savingsBreakdown,
-    inactiveUsersCount: inactiveUsers?.length,
-    integrationUsersCount: integrationUsers?.length,
-    licensePrice,
-    isDataLoading
+  console.log('DashboardContent - Render state:', {
+    isExporting,
+    isDataLoading,
+    hasUsers: users?.length > 0,
+    hasOAuthTokens: oauthTokens?.length > 0,
+    hasLicensePrice: !!licensePrice,
+    timestamp: new Date().toISOString()
   });
 
   const handleExportReport = async () => {
