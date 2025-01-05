@@ -13,19 +13,26 @@ export const SuccessRedirect = () => {
     const sessionId = searchParams.get('session_id');
     
     const createConsultationBooking = async (orgId: string, sessionId: string) => {
-      const { error } = await supabase
-        .from('consultation_bookings')
-        .insert({
-          org_id: orgId,
-          is_free: false,
-          stripe_session_id: sessionId,
-          status: 'confirmed'
-        });
+      // Delay the creation of the consultation booking by 1 minute
+      setTimeout(async () => {
+        const { error } = await supabase
+          .from('consultation_bookings')
+          .insert({
+            org_id: orgId,
+            is_free: false,
+            stripe_session_id: sessionId,
+            status: 'confirmed'
+          });
 
-      if (error) {
-        console.error('Error creating consultation booking:', error);
-        throw error;
-      }
+        if (error) {
+          console.error('Error creating consultation booking:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to process your consultation booking. Please contact support."
+          });
+        }
+      }, 60000); // 60000ms = 1 minute
     };
 
     const handleSuccessRedirect = async () => {
@@ -34,10 +41,7 @@ export const SuccessRedirect = () => {
           const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
           if (!orgId) throw new Error('No organization ID found');
 
-          // Create the consultation booking after successful payment
-          await createConsultationBooking(orgId, sessionId);
-
-          // Show the Calendly toast
+          // Show the Calendly toast immediately
           setTimeout(() => {
             toast({
               title: "🎉 Schedule Your Consultation",
@@ -57,6 +61,9 @@ export const SuccessRedirect = () => {
               ),
             });
           }, 3000);
+
+          // Create the consultation booking after 1 minute
+          await createConsultationBooking(orgId, sessionId);
 
           // Clear URL parameters
           window.history.replaceState({}, '', window.location.pathname);

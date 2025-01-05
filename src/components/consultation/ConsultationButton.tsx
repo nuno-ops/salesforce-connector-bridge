@@ -37,19 +37,26 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
   };
 
   const createConsultationBooking = async (orgId: string, isFree: boolean = false, stripeSessionId?: string) => {
-    const { error } = await supabase
-      .from('consultation_bookings')
-      .insert({
-        org_id: orgId,
-        is_free: isFree,
-        stripe_session_id: stripeSessionId,
-        status: 'confirmed'
-      });
+    // Delay the creation of the consultation booking by 1 minute
+    setTimeout(async () => {
+      const { error } = await supabase
+        .from('consultation_bookings')
+        .insert({
+          org_id: orgId,
+          is_free: isFree,
+          stripe_session_id: stripeSessionId,
+          status: 'confirmed'
+        });
 
-    if (error) {
-      console.error('Error creating consultation booking:', error);
-      throw error;
-    }
+      if (error) {
+        console.error('Error creating consultation booking:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to record your consultation booking. Please contact support."
+        });
+      }
+    }, 60000); // 60000ms = 1 minute
   };
 
   const handleConsultation = async () => {
@@ -81,14 +88,14 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
       const isSubscriber = subscription !== null;
 
       if (isSubscriber && !hasUsedFreeConsultation) {
-        // Create free consultation booking immediately
-        await createConsultationBooking(orgId, true);
-        // Show toast for free consultation
+        // Show toast for free consultation immediately
         showCalendlyToast(CALENDLY_URL, true);
+        // Create free consultation booking after 1 minute
+        await createConsultationBooking(orgId, true);
         return;
       }
 
-      // For paid consultations, just create Stripe checkout session
+      // For paid consultations, create Stripe checkout session
       const { data, error } = await supabase.functions.invoke('consultation-checkout', {
         body: { 
           priceId: 'price_1QdqvXBqwIrd79CSGsiAiC9F',
