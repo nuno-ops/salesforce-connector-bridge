@@ -18,11 +18,11 @@ import { UserLicense } from '@/components/org-health/types';
 import { supabase } from '@/integrations/supabase/client';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
-  // First, get the current license price from organization settings
+  // Get the current license price from organization settings
   const instanceUrl = localStorage.getItem('sf_instance_url');
   const orgId = instanceUrl?.replace(/[^a-zA-Z0-9]/g, '_');
   
-  let licensePrice = data.licensePrice;
+  let licensePrice = data.licensePrice || 0;
   
   if (orgId) {
     const { data: settings } = await supabase
@@ -36,23 +36,22 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     }
   }
 
-  console.log('CSV Export - Starting with initial data:', {
+  console.log('CSV Export - Starting with data:', {
     userLicenses: data.userLicenses?.length,
     packageLicenses: data.packageLicenses?.length,
     users: data.users?.length,
     oauthTokens: data.oauthTokens?.length,
     licensePrice,
     sandboxes: data.sandboxes?.length,
-    storageUsage: data.storageUsage
+    storageUsage: data.storageUsage,
+    limits: data.limits
   });
 
   // Process users data
   const standardUsers = filterStandardSalesforceUsers(data.users || []);
-  console.log('CSV Export - Filtered standard users:', standardUsers.length);
   const inactiveUsers = filterInactiveUsers(standardUsers);
-  console.log('CSV Export - Filtered inactive users:', inactiveUsers.length);
   
-  // Convert RawLicense[] to UserLicense[] first
+  // Convert and format license data
   const userLicenses: UserLicense[] = data.userLicenses ? data.userLicenses.map(license => ({
     Id: license.Id,
     Name: license.Name || 'Unknown License',
@@ -60,47 +59,19 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     UsedLicenses: license.UsedLicenses || 0
   })) : [];
 
-  console.log('CSV Export - Converted user licenses:', userLicenses.length);
-
-  // Then format them to match the License type expected by calculation functions
   const formattedUserLicenses = formatLicenseData(userLicenses);
-  console.log('CSV Export - Formatted user licenses:', formattedUserLicenses.length);
   
-  // Calculate savings using the same functions as the dashboard
+  // Calculate all savings
   const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
-  console.log('CSV Export - Inactive user savings calculation:', {
-    count: inactiveUserSavings.count,
-    savings: inactiveUserSavings.savings,
-    licensePrice
-  });
-
   const integrationUserSavings = calculateIntegrationUserSavings(
     standardUsers,
     data.oauthTokens || [],
     licensePrice,
     formattedUserLicenses
   );
-  console.log('CSV Export - Integration user savings calculation:', {
-    count: integrationUserSavings.count,
-    savings: integrationUserSavings.savings
-  });
-
   const sandboxSavingsCalc = calculateSandboxSavings(data.sandboxes || []);
-  console.log('CSV Export - Sandbox savings calculation:', {
-    count: sandboxSavingsCalc.count,
-    savings: sandboxSavingsCalc.savings
-  });
-
   const storageSavingsCalc = calculateStorageSavings(data.storageUsage || 0);
-  console.log('CSV Export - Storage savings calculation:', {
-    potentialGBSavings: storageSavingsCalc.potentialGBSavings,
-    savings: storageSavingsCalc.savings
-  });
-  
-  // Calculate platform license savings
-  console.log('CSV Export - Calculating platform license savings with price:', licensePrice);
   const platformLicenseSavings = await calculatePlatformLicenseSavings(licensePrice);
-  console.log('CSV Export - Platform license savings result:', platformLicenseSavings);
 
   // Calculate total savings
   const totalSavings = 
@@ -119,16 +90,14 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     totalSavings
   };
 
-  console.log('CSV Export - Final savings breakdown:', savingsBreakdown);
-
-  // Generate CSV content using the new generator
+  // Generate savings report content
   const csvContent = generateSavingsReportContent({
     licensePrice,
     standardUsers,
     savingsBreakdown
   });
 
-  // Get integration users and platform users
+  // Get integration users and platform users for user sections
   const integrationUsers = standardUsers.filter(user => {
     const userTokens = (data.oauthTokens || []).filter(token => token.UserId === user.Id);
     return userTokens.length >= 2 && userTokens.some(token => token.UseCount > 1000);
@@ -136,23 +105,19 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
 
   const platformUsers = standardUsers.filter(user => user.isPlatformEligible);
 
-  console.log('Creating user sections with:', {
-    inactiveUsers: inactiveUsers.length,
-    integrationUsers: integrationUsers.length,
-    platformUsers: platformUsers.length
-  });
-
+  // Create all sections
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses || []),
     createLicenseSection('Package Licenses', data.packageLicenses || []),
     createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
     createSandboxSection(data.sandboxes || []),
-    createLimitsSection(data.limits),
+    createLimitsSection(data.limits || {}),
     createUserSection('Inactive Users', inactiveUsers),
     createUserSection('Integration User Candidates', integrationUsers),
-    createUserSection('Platform License Candidates', platformUsers),
+    createUserSection('Platform License Candidates', platformUsers)
   ];
 
+  // Add all sections to CSV content
   sections.forEach(section => {
     if (section) {
       csvContent.push(
