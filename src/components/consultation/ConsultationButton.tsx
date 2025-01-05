@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 interface ConsultationButtonProps {
   variant?: "default" | "outline";
@@ -9,6 +10,20 @@ interface ConsultationButtonProps {
 
 export const ConsultationButton = ({ variant = "default", className = "" }: ConsultationButtonProps) => {
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check URL parameters for successful payment and redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const redirect = urlParams.get('redirect');
+    
+    if (success === 'true' && redirect) {
+      // Clear URL parameters
+      window.history.replaceState({}, '', window.location.pathname);
+      // Open Calendly in new tab
+      window.open(redirect, '_blank');
+    }
+  }, []);
 
   const handleConsultation = async () => {
     try {
