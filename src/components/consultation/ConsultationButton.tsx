@@ -13,26 +13,43 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
   const CALENDLY_URL = 'https://calendly.com/salesforcesaver-support/30min';
 
   const showCalendlyToast = (url: string, isFree: boolean = false) => {
-    toast({
-      title: "🎉 Schedule Your Consultation",
-      description: (
-        <div className="space-y-4">
-          <p className="text-lg font-medium">
-            {isFree ? "You're eligible for a free consultation!" : "Thank you for your payment!"}
-          </p>
-          <p>Click below to schedule your consultation:</p>
-          <a 
-            href={url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-block px-4 py-2 bg-sf-blue text-white rounded-md hover:bg-sf-hover transition-colors"
-          >
-            Open Calendly Scheduling
-          </a>
-        </div>
-      ),
-      duration: 10000,
-    });
+    setTimeout(() => {
+      toast({
+        title: "🎉 Schedule Your Consultation",
+        description: (
+          <div className="space-y-4">
+            <p className="text-lg font-medium">
+              {isFree ? "You're eligible for a free consultation!" : "Thank you for your payment!"}
+            </p>
+            <p>Click below to schedule your consultation:</p>
+            <a 
+              href={url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-sf-blue text-white rounded-md hover:bg-sf-hover transition-colors"
+            >
+              Open Calendly Scheduling
+            </a>
+          </div>
+        ),
+      });
+    }, 3000); // Delay to show after other toasts
+  };
+
+  const createConsultationBooking = async (orgId: string, isFree: boolean = false, stripeSessionId?: string) => {
+    const { error } = await supabase
+      .from('consultation_bookings')
+      .insert({
+        org_id: orgId,
+        is_free: isFree,
+        stripe_session_id: stripeSessionId,
+        status: 'pending'
+      });
+
+    if (error) {
+      console.error('Error creating consultation booking:', error);
+      throw error;
+    }
   };
 
   const handleConsultation = async () => {
@@ -64,6 +81,8 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
       const isSubscriber = subscription !== null;
 
       if (isSubscriber && !hasUsedFreeConsultation) {
+        // Create free consultation booking
+        await createConsultationBooking(orgId, true);
         // Show toast for free consultation
         showCalendlyToast(CALENDLY_URL, true);
         return;
@@ -80,6 +99,8 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
 
       if (error) throw error;
       if (data?.url) {
+        // Create paid consultation booking
+        await createConsultationBooking(orgId, false, data.stripe_session_id);
         // Show toast before redirect
         showCalendlyToast(CALENDLY_URL);
         window.location.href = data.url;
