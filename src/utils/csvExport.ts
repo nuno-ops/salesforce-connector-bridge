@@ -13,21 +13,26 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   const standardUserCount = standardUsers.length;
   
-  // Calculate savings breakdown using the data from SavingsCalculator
-  const savingsBreakdown = {
-    inactiveUserSavings: { savings: 0, count: 0 },
-    integrationUserSavings: { savings: 0, count: 0 },
-    platformLicenseSavings: { savings: 0, count: 0 },
-    sandboxSavings: { savings: 0, count: 0 },
-    storageSavings: { savings: 0, potentialGBSavings: 0 },
-    totalSavings: 0
-  };
-
   // Generate savings report content
   const csvContent = generateSavingsReportContent({
     licensePrice: data.licensePrice || 0,
     standardUsers: standardUserCount,
-    savingsBreakdown
+    savingsBreakdown: {
+      inactiveUserSavings: { savings: 0, count: 0 },
+      integrationUserSavings: { savings: 0, count: 0 },
+      platformLicenseSavings: { savings: 0, count: 0 },
+      sandboxSavings: { savings: 0, count: 0 },
+      storageSavings: { savings: 0, potentialGBSavings: 0 },
+      totalSavings: 0
+    }
+  });
+
+  console.log('Creating sections with data:', {
+    userLicenses: data.userLicenses?.length,
+    packageLicenses: data.packageLicenses?.length,
+    permissionSetLicenses: data.permissionSetLicenses?.length,
+    sandboxes: data.sandboxes?.length,
+    limits: data.limits
   });
 
   // Create all sections

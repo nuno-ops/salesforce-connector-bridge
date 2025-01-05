@@ -4,14 +4,9 @@ export interface RawLicense {
   TotalLicenses?: number;
   UsedLicenses?: number;
   NamespacePrefix?: string;
-  Status?: string;
-  IsProvisioned?: boolean;
-  AllowedLicenses?: number;
   DeveloperName?: string;
-  // Additional fields for formatted data
-  name?: string;
-  total?: number;
-  used?: number;
+  AllowedLicenses?: number;
+  Status?: string;
   type?: 'user' | 'package' | 'permissionSet';
 }
 
