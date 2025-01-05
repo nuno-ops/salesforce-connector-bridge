@@ -33,7 +33,7 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
           </div>
         ),
       });
-    }, 3000); // Delay to show after other toasts
+    }, 3000);
   };
 
   const createConsultationBooking = async (orgId: string, isFree: boolean = false, stripeSessionId?: string) => {
@@ -43,7 +43,7 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
         org_id: orgId,
         is_free: isFree,
         stripe_session_id: stripeSessionId,
-        status: 'pending'
+        status: 'confirmed'
       });
 
     if (error) {
@@ -81,14 +81,14 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
       const isSubscriber = subscription !== null;
 
       if (isSubscriber && !hasUsedFreeConsultation) {
-        // Create free consultation booking
+        // Create free consultation booking immediately
         await createConsultationBooking(orgId, true);
         // Show toast for free consultation
         showCalendlyToast(CALENDLY_URL, true);
         return;
       }
 
-      // Otherwise, create Stripe checkout session
+      // For paid consultations, just create Stripe checkout session
       const { data, error } = await supabase.functions.invoke('consultation-checkout', {
         body: { 
           priceId: 'price_1QdqvXBqwIrd79CSGsiAiC9F',
@@ -99,10 +99,6 @@ export const ConsultationButton = ({ variant = "default", className = "" }: Cons
 
       if (error) throw error;
       if (data?.url) {
-        // Create paid consultation booking
-        await createConsultationBooking(orgId, false, data.stripe_session_id);
-        // Show toast before redirect
-        showCalendlyToast(CALENDLY_URL);
         window.location.href = data.url;
       }
     } catch (error) {
