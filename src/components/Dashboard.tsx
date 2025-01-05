@@ -56,7 +56,7 @@ const Dashboard = () => {
           ),
           // Remove duration to make toast persistent until manually closed
         });
-      }, 1000); // Delay by 1 second to appear after other toasts
+      }, 3000); // Increased delay to 3 seconds to ensure it appears after other toasts
 
       // Clear URL parameters
       window.history.replaceState({}, '', window.location.pathname);
