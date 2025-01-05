@@ -2,7 +2,6 @@ import { ExportData } from '@/utils/csv/types';
 import { createLicenseSection } from '@/utils/csv/sections/licenseSection';
 import { createSandboxSection } from '@/utils/csv/sections/sandboxSection';
 import { createLimitsSection } from '@/utils/csv/sections/limitsSection';
-import { createUserSection } from '@/utils/csv/sections/userSection';
 import { filterStandardSalesforceUsers } from '@/components/users/utils/userFilters';
 import { generateSavingsReportContent } from './csv/generators/savingsReportContent';
 
@@ -11,6 +10,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
 
   // Process users data
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
+  const standardUserCount = standardUsers.length;
   
   // Calculate savings breakdown using the data from SavingsCalculator
   const savingsBreakdown = {
@@ -25,7 +25,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   // Generate savings report content
   const csvContent = generateSavingsReportContent({
     licensePrice: data.licensePrice || 0,
-    standardUsers,
+    standardUsers: standardUserCount,
     savingsBreakdown
   });
 
