@@ -34,9 +34,18 @@ export const useOrganizationData = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('Starting data fetch in useOrganizationData...');
+        
         const access_token = localStorage.getItem('sf_access_token');
         const instance_url = localStorage.getItem('sf_instance_url');
         const timestamp = localStorage.getItem('sf_token_timestamp');
+
+        console.log('Credentials check:', {
+          hasAccessToken: !!access_token,
+          hasInstanceUrl: !!instance_url,
+          hasTimestamp: !!timestamp,
+          timestamp: new Date().toISOString()
+        });
 
         if (!access_token || !instance_url || !timestamp) {
           console.log('Missing Salesforce credentials');
@@ -44,21 +53,45 @@ export const useOrganizationData = () => {
         }
 
         // Fetch users and OAuth tokens
+        console.log('Invoking salesforce-users function...');
         const { data, error } = await supabase.functions.invoke('salesforce-users', {
           body: { access_token, instance_url }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error from salesforce-users function:', error);
+          throw error;
+        }
 
-        setUsers(data.users);
-        setOauthTokens(data.oauthTokens);
+        console.log('Received response from salesforce-users:', {
+          hasUsers: Array.isArray(data?.users),
+          userCount: data?.users?.length,
+          hasOAuthTokens: Array.isArray(data?.oauthTokens),
+          oauthTokenCount: data?.oauthTokens?.length,
+          timestamp: new Date().toISOString()
+        });
+
+        setUsers(data.users || []);
+        setOauthTokens(data.oauthTokens || []);
+
+        console.log('State updated with:', {
+          usersLength: data.users?.length || 0,
+          oauthTokensLength: data.oauthTokens?.length || 0,
+          timestamp: new Date().toISOString()
+        });
 
         // Fetch license price
         const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
         await fetchLicensePrice(orgId);
 
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error in fetchData:', error);
+        console.log('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
         toast({
           variant: "destructive",
           title: "Error",
@@ -73,6 +106,7 @@ export const useOrganizationData = () => {
     const instance_url = localStorage.getItem('sf_instance_url');
     if (instance_url) {
       const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
+      console.log('Setting up realtime subscription for org:', orgId);
       
       const subscription = supabase
         .channel('organization_settings_changes')
@@ -92,6 +126,7 @@ export const useOrganizationData = () => {
         .subscribe();
 
       return () => {
+        console.log('Cleaning up realtime subscription');
         subscription.unsubscribe();
       };
     }
