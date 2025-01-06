@@ -20,12 +20,12 @@ export const generateSavingsReportContent = ({
     totalSavings
   } = savingsBreakdown;
 
-  const totalMonthlyLicenseCost = licensePrice * standardUsers;
+  const totalMonthlyLicenseCost = licensePrice * standardUsers.length;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
 
   console.log('Savings Report - Calculations:', {
     licensePrice,
-    standardUsers,
+    standardUsers: standardUsers.length,
     totalMonthlyLicenseCost,
     totalAnnualLicenseCost,
     totalSavings
@@ -41,7 +41,7 @@ export const generateSavingsReportContent = ({
     [''],
     ['Cost Overview'],
     ['Current License Cost per User (Monthly):', `$${licensePrice}`],
-    ['Total Users:', standardUsers.toString()],
+    ['Total Users:', standardUsers.length.toString()],
     ['Total Monthly License Cost:', `$${totalMonthlyLicenseCost.toLocaleString()}`],
     ['Total Annual License Cost:', `$${totalAnnualLicenseCost.toLocaleString()}`],
     [''],
