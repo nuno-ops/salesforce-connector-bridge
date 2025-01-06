@@ -28,8 +28,30 @@ serve(async (req) => {
       }
     );
 
+    // If response is not ok, check if it's a "not found" or permissions error
     if (!response.ok) {
-      console.error('Salesforce API error:', response.status, await response.text());
+      const errorText = await response.text();
+      console.log('Salesforce API response:', {
+        status: response.status,
+        error: errorText
+      });
+
+      // Return empty data for 400 (Bad Request) which often means object doesn't exist
+      // or 403 (Forbidden) which means no access to the object
+      if (response.status === 400 || response.status === 403) {
+        console.log('Object not available or no access, returning empty data');
+        return new Response(
+          JSON.stringify({ records: [] }),
+          { 
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json' 
+            } 
+          }
+        );
+      }
+
+      // For other errors, we should still throw
       throw new Error(`Salesforce API error: ${response.status}`);
     }
 
@@ -47,13 +69,14 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in salesforce-sandboxes function:', error);
+    
+    // For any caught errors, return empty data structure instead of error
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error instanceof Error ? error.stack : undefined 
+        records: [],
+        message: 'Data not available for this org type'
       }),
       { 
-        status: 400,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json' 

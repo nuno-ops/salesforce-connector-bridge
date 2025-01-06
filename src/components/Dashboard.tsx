@@ -21,7 +21,7 @@ const Dashboard = () => {
     packageLicenses = [],
     permissionSetLicenses = [],
     sandboxes = [],
-    limits,
+    limits = null,
     users = [],
     oauthTokens = [],
     isLoading: isHealthDataLoading,
