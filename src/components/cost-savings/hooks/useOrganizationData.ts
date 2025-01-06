@@ -6,6 +6,7 @@ export const useOrganizationData = () => {
   const [licensePrice, setLicensePrice] = useState<number>(0);
   const [users, setUsers] = useState<any[]>([]);
   const [oauthTokens, setOauthTokens] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchLicensePrice = async (orgId: string) => {
@@ -34,9 +35,19 @@ export const useOrganizationData = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
+        console.log('Starting data fetch in useOrganizationData...');
+        
         const access_token = localStorage.getItem('sf_access_token');
         const instance_url = localStorage.getItem('sf_instance_url');
         const timestamp = localStorage.getItem('sf_token_timestamp');
+
+        console.log('Credentials check:', {
+          hasAccessToken: !!access_token,
+          hasInstanceUrl: !!instance_url,
+          hasTimestamp: !!timestamp,
+          timestamp: new Date().toISOString()
+        });
 
         if (!access_token || !instance_url || !timestamp) {
           console.log('Missing Salesforce credentials');
@@ -44,26 +55,61 @@ export const useOrganizationData = () => {
         }
 
         // Fetch users and OAuth tokens
+        console.log('Invoking salesforce-users function...');
         const { data, error } = await supabase.functions.invoke('salesforce-users', {
           body: { access_token, instance_url }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error from salesforce-users function:', error);
+          throw error;
+        }
 
+        console.log('Raw response from salesforce-users:', data);
+
+        if (!data?.users || !Array.isArray(data.users)) {
+          console.error('Invalid users data structure:', data?.users);
+          throw new Error('Invalid users data received');
+        }
+
+        if (!data?.oauthTokens || !Array.isArray(data.oauthTokens)) {
+          console.error('Invalid oauthTokens data structure:', data?.oauthTokens);
+          throw new Error('Invalid oauthTokens data received');
+        }
+
+        console.log('Setting users state:', {
+          count: data.users.length,
+          firstUser: data.users[0],
+          timestamp: new Date().toISOString()
+        });
         setUsers(data.users);
+
+        console.log('Setting oauthTokens state:', {
+          count: data.oauthTokens.length,
+          firstToken: data.oauthTokens[0],
+          timestamp: new Date().toISOString()
+        });
         setOauthTokens(data.oauthTokens);
+
+        console.log('State updates completed:', {
+          usersLength: data.users.length,
+          oauthTokensLength: data.oauthTokens.length,
+          timestamp: new Date().toISOString()
+        });
 
         // Fetch license price
         const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
         await fetchLicensePrice(orgId);
 
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error in fetchData:', error);
         toast({
           variant: "destructive",
           title: "Error",
           description: "Failed to fetch organization data"
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -73,6 +119,7 @@ export const useOrganizationData = () => {
     const instance_url = localStorage.getItem('sf_instance_url');
     if (instance_url) {
       const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
+      console.log('Setting up realtime subscription for org:', orgId);
       
       const subscription = supabase
         .channel('organization_settings_changes')
@@ -92,6 +139,7 @@ export const useOrganizationData = () => {
         .subscribe();
 
       return () => {
+        console.log('Cleaning up realtime subscription');
         subscription.unsubscribe();
       };
     }
@@ -141,6 +189,7 @@ export const useOrganizationData = () => {
     licensePrice,
     setLicensePrice: updateLicensePrice,
     users,
-    oauthTokens
+    oauthTokens,
+    isLoading
   };
 };

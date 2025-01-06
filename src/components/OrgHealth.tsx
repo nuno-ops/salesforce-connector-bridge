@@ -22,6 +22,19 @@ export const OrgHealth = () => {
     error
   } = useOrgHealthData();
 
+  console.log('OrgHealth component data:', {
+    hasLimits: !!limits,
+    limitsData: limits,
+    hasSandboxes: Array.isArray(sandboxes),
+    sandboxCount: sandboxes?.length,
+    hasMetrics: !!metrics,
+    licenseData: {
+      userLicenses: userLicenses?.length,
+      packageLicenses: packageLicenses?.length,
+      permissionSetLicenses: permissionSetLicenses?.length,
+    }
+  });
+
   useEffect(() => {
     setIsExpanded(searchParams.get('expanded') === 'true');
   }, [searchParams]);
@@ -50,9 +63,9 @@ export const OrgHealth = () => {
         permissionSetLicenses={permissionSetLicenses || []}
         defaultExpanded={isExpanded}
       />
-      <LimitsSection limits={limits!} defaultExpanded={isExpanded} />
+      <LimitsSection limits={limits} defaultExpanded={isExpanded} />
       <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />
-      <SandboxList sandboxes={sandboxes || []} defaultExpanded={isExpanded} />
+      <SandboxList sandboxes={sandboxes} defaultExpanded={isExpanded} />
     </div>
   );
 };

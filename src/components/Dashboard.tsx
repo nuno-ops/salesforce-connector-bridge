@@ -21,23 +21,40 @@ const Dashboard = () => {
     packageLicenses = [],
     permissionSetLicenses = [],
     sandboxes = [],
-    limits,
+    limits = null,
     users = [],
     oauthTokens = [],
     isLoading: isHealthDataLoading,
   } = useOrgHealthData();
 
+  console.log('Raw license data from useOrgHealthData:', {
+    userLicenses: userLicenses?.[0],
+    packageLicenses: packageLicenses?.[0],
+    permissionSetLicenses: permissionSetLicenses?.[0],
+    totalCounts: {
+      users: userLicenses?.length,
+      packages: packageLicenses?.length,
+      permissionSets: permissionSetLicenses?.length
+    }
+  });
+
   const { hasAccess, isCheckingAccess, handleDisconnect } = useCheckAccess();
 
   // Format the license data before passing it to components
-  const formattedUserLicenses = formatLicenseData(userLicenses);
-  console.log('Formatted user licenses:', formattedUserLicenses);
+  const formattedUserLicenses = formatLicenseData(userLicenses || []);
+  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses || []);
+  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses || []);
 
-  const formattedPackageLicenses = formatPackageLicenseData(packageLicenses);
-  console.log('Formatted package licenses:', formattedPackageLicenses);
-
-  const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses);
-  console.log('Formatted permission set licenses:', formattedPermissionSetLicenses);
+  console.log('Formatted license data:', {
+    user: formattedUserLicenses?.[0],
+    package: formattedPackageLicenses?.[0],
+    permissionSet: formattedPermissionSetLicenses?.[0],
+    counts: {
+      users: formattedUserLicenses?.length,
+      packages: formattedPackageLicenses?.length,
+      permissionSets: formattedPermissionSetLicenses?.length
+    }
+  });
 
   if (isHealthDataLoading || isCheckingAccess) {
     return <LoadingSpinner />;

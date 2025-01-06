@@ -1,49 +1,68 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { LicenseCardContent } from './license-card/LicenseCardContent';
-import { LicenseInfo } from './types';
+import { LicenseInfo, RawUserLicense, RawPackageLicense, RawPermissionSetLicense } from './types';
 
 interface LicenseCardProps {
   title: string;
-  licenses: LicenseInfo[];
+  licenses: (RawUserLicense | RawPackageLicense | RawPermissionSetLicense)[];
   type: 'user' | 'package' | 'permissionSet';
 }
 
 export const LicenseCard = ({ title, licenses, type }: LicenseCardProps) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  console.log(`LicenseCard [${title}] received:`, {
-    licensesLength: licenses.length,
-    firstLicense: licenses[0],
-    allLicenseProperties: licenses[0] ? Object.keys(licenses[0]) : [],
-    type,
-    searchTerm
-  });
-
-  console.log('Before filtering:', {
+  console.log(`LicenseCard [${title}] raw input:`, {
     licenses,
-    firstLicenseComplete: licenses[0],
-    nameProperty: licenses[0]?.name,
     type,
+    isArray: Array.isArray(licenses),
+    licensesLength: licenses?.length,
+    firstLicense: licenses?.[0],
+    allLicenses: licenses
+  });
+
+  // Transform the raw license data into the expected format
+  const transformedLicenses: LicenseInfo[] = licenses.map(license => {
+    if (type === 'permissionSet') {
+      const psl = license as RawPermissionSetLicense;
+      return {
+        name: psl.DeveloperName,
+        total: psl.TotalLicenses,
+        used: psl.UsedLicenses,
+        id: psl.Id,
+        type: 'permissionSet'
+      };
+    } else if (type === 'package') {
+      const pl = license as RawPackageLicense;
+      return {
+        name: pl.NamespacePrefix,
+        total: pl.AllowedLicenses,
+        used: pl.UsedLicenses,
+        id: pl.Id,
+        status: pl.Status,
+        type: 'package'
+      };
+    } else {
+      const ul = license as RawUserLicense;
+      return {
+        name: ul.Name,
+        total: ul.TotalLicenses,
+        used: ul.UsedLicenses,
+        id: ul.Id,
+        type: 'user'
+      };
+    }
+  });
+
+  const filteredLicenses = transformedLicenses.filter(license => {
+    const searchString = license.name?.toLowerCase() || '';
+    return searchString.includes(searchTerm.toLowerCase());
+  });
+
+  console.log(`LicenseCard [${title}] filtered licenses:`, {
+    filteredLicenses,
+    filteredLength: filteredLicenses.length,
     searchTerm
-  });
-
-  const filteredLicenses = licenses.filter(license => {
-    console.log('Filtering license:', {
-      licenseName: license.name,
-      completeObject: license,
-      wouldPass: license.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    });
-
-    return license.name?.toLowerCase().includes(searchTerm.toLowerCase());
-  });
-
-  console.log(`LicenseCard [${title}] filtered results:`, {
-    original: licenses.length,
-    filtered: filteredLicenses.length,
-    searchTerm,
-    firstFiltered: filteredLicenses[0],
-    sampleFiltered: filteredLicenses.slice(0, 2)
   });
 
   return (

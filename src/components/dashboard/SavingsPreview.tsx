@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { DollarSign, Lock } from "lucide-react";
 import { useSavingsCalculations } from "../cost-savings/SavingsCalculator";
 import { useOrganizationData } from "../cost-savings/hooks/useOrganizationData";
+import { LoadingSpinner } from "../ui/loading-spinner";
 
 interface SavingsPreviewProps {
   userLicenses: any[];
@@ -20,7 +21,8 @@ export const SavingsPreview = ({
   const {
     licensePrice,
     users,
-    oauthTokens
+    oauthTokens,
+    isLoading: isOrgDataLoading
   } = useOrganizationData();
 
   const { totalSavings } = useSavingsCalculations({
@@ -40,9 +42,13 @@ export const SavingsPreview = ({
           <h2 className="text-3xl font-bold">
             Potential Annual Savings Identified
           </h2>
-          <p className="text-5xl font-bold">
-            ${totalSavings.toLocaleString()}
-          </p>
+          <div className="text-5xl font-bold min-h-[3.5rem] flex items-center justify-center">
+            {isOrgDataLoading ? (
+              <LoadingSpinner className="w-12 h-12" />
+            ) : (
+              `$${totalSavings.toLocaleString()}`
+            )}
+          </div>
           <p className="text-lg opacity-90">
             We've analyzed your Salesforce organization and identified significant cost-saving opportunities
           </p>

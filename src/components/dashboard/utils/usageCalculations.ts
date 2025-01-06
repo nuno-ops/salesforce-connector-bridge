@@ -2,25 +2,36 @@ import { OrgLimits } from "@/components/org-health/types";
 import { RawLicense } from "@/utils/csv/types";
 
 export const calculateStorageUsage = (limits: OrgLimits | null): number => {
-  if (!limits) return 0;
-  const totalStorage = limits.DataStorageMB.Max + limits.FileStorageMB.Max;
-  const usedStorage = totalStorage - (limits.DataStorageMB.Remaining + limits.FileStorageMB.Remaining);
+  if (!limits || !limits.DataStorageMB || !limits.FileStorageMB) return 0;
+  
+  const dataMax = limits.DataStorageMB.Max || 0;
+  const dataRemaining = limits.DataStorageMB.Remaining || 0;
+  const fileMax = limits.FileStorageMB.Max || 0;
+  const fileRemaining = limits.FileStorageMB.Remaining || 0;
+  
+  const totalStorage = dataMax + fileMax;
+  if (totalStorage === 0) return 0;
+  
+  const usedStorage = totalStorage - (dataRemaining + fileRemaining);
   return (usedStorage / totalStorage) * 100;
 };
 
 export const calculateApiUsage = (limits: OrgLimits | null): number => {
-  if (!limits) return 0;
-  return limits.DailyApiRequests ? 
-    ((limits.DailyApiRequests.Max - limits.DailyApiRequests.Remaining) / limits.DailyApiRequests.Max) * 100 
-    : 0;
+  if (!limits || !limits.DailyApiRequests) return 0;
+  
+  const max = limits.DailyApiRequests.Max || 0;
+  if (max === 0) return 0;
+  
+  const remaining = limits.DailyApiRequests.Remaining || 0;
+  return ((max - remaining) / max) * 100;
 };
 
 const getLicenseTotal = (license: RawLicense): number => {
-  return license.TotalLicenses || license.AllowedLicenses || 0;
+  return license?.TotalLicenses || license?.AllowedLicenses || 0;
 };
 
 const getLicenseUsed = (license: RawLicense): number => {
-  return license.UsedLicenses || 0;
+  return license?.UsedLicenses || 0;
 };
 
 export const calculateTotalSavings = (

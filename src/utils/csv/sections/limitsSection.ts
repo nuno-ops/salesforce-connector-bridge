@@ -1,27 +1,59 @@
-export const createLimitsSection = (limits: any) => {
-  console.log('Creating limits section with data:', limits);
+import { CSVSection } from '../types';
+
+export const createLimitsSection = (limits: any): CSVSection => {
+  const limitRows = [];
   
-  const calculateUsage = (used: number, max: number) => {
-    if (!max) return '0.0';
-    return ((used / max) * 100).toFixed(1);
-  };
+  // Handle Data Storage
+  if (limits.DataStorageMB) {
+    const used = limits.DataStorageMB.Max - (limits.DataStorageMB.Remaining || 0);
+    const max = limits.DataStorageMB.Max || 0;
+    const remaining = limits.DataStorageMB.Remaining || 0;
+    const usagePercentage = max > 0 ? ((used / max) * 100).toFixed(2) + '%' : '0%';
+    
+    limitRows.push([
+      'Data Storage (MB)',
+      used.toString(),
+      max.toString(),
+      remaining.toString(),
+      usagePercentage
+    ]);
+  }
 
-  const formatRow = (name: string, metrics: any) => {
-    const used = metrics?.Used || 0;
-    const max = metrics?.Max || 0;
-    const remaining = metrics?.Remaining || 0;
-    const usage = calculateUsage(used, max);
+  // Handle File Storage
+  if (limits.FileStorageMB) {
+    const used = limits.FileStorageMB.Max - (limits.FileStorageMB.Remaining || 0);
+    const max = limits.FileStorageMB.Max || 0;
+    const remaining = limits.FileStorageMB.Remaining || 0;
+    const usagePercentage = max > 0 ? ((used / max) * 100).toFixed(2) + '%' : '0%';
+    
+    limitRows.push([
+      'File Storage (MB)',
+      used.toString(),
+      max.toString(),
+      remaining.toString(),
+      usagePercentage
+    ]);
+  }
 
-    return [name, used.toString(), max.toString(), remaining.toString(), `${usage}%`];
-  };
+  // Handle API Requests
+  if (limits.DailyApiRequests) {
+    const used = limits.DailyApiRequests.Max - (limits.DailyApiRequests.Remaining || 0);
+    const max = limits.DailyApiRequests.Max || 0;
+    const remaining = limits.DailyApiRequests.Remaining || 0;
+    const usagePercentage = max > 0 ? ((used / max) * 100).toFixed(2) + '%' : '0%';
+    
+    limitRows.push([
+      'Daily API Requests',
+      used.toString(),
+      max.toString(),
+      remaining.toString(),
+      usagePercentage
+    ]);
+  }
 
   return {
     title: 'Organization Limits',
     headers: ['Limit Type', 'Used', 'Total', 'Remaining', 'Usage %'],
-    rows: [
-      formatRow('Data Storage (MB)', limits?.DataStorageMB),
-      formatRow('File Storage (MB)', limits?.FileStorageMB),
-      formatRow('Daily API Requests', limits?.DailyApiRequests)
-    ]
+    rows: limitRows
   };
 };

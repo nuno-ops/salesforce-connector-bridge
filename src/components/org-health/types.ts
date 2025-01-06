@@ -82,3 +82,40 @@ export interface LicenseInfo {
   status?: string;
   featureArea?: string;
 }
+
+export interface OrgHealthData {
+  userLicenses: UserLicense[];
+  packageLicenses: PackageLicense[];
+  permissionSetLicenses: PermissionSetLicense[];
+  sandboxes: SandboxInfo[];
+  limits: OrgLimits;
+  users: any[];
+  oauthTokens: any[];
+  metrics: MonthlyMetrics | null;
+}
+
+export interface RawUserLicense {
+  Id: string;
+  Name: string;
+  TotalLicenses: number;
+  UsedLicenses: number;
+  attributes?: any;
+}
+
+export interface RawPackageLicense {
+  Id: string;
+  NamespacePrefix: string;
+  Status: string;
+  IsProvisioned: boolean;
+  AllowedLicenses: number;
+  UsedLicenses: number;
+  attributes?: any;
+}
+
+export interface RawPermissionSetLicense {
+  Id: string;
+  DeveloperName: string;
+  TotalLicenses: number;
+  UsedLicenses: number;
+  attributes?: any;
+}

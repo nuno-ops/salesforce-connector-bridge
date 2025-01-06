@@ -27,7 +27,6 @@ serve(async (req) => {
     
     console.log('Received webhook with signature:', signature)
     
-    // Use constructEventAsync instead of constructEvent
     const event = await stripe.webhooks.constructEventAsync(
       body,
       signature!,
@@ -37,41 +36,99 @@ serve(async (req) => {
     console.log('Processing webhook event:', event.type)
 
     switch (event.type) {
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription
-        console.log('Processing subscription data:', {
-          orgId: subscription.metadata.orgId,
-          subscriptionId: subscription.id,
-          customerId: subscription.customer,
-          status: subscription.status
-        })
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log('Processing new subscription:', {
+          id: subscription.id,
+          status: subscription.status,
+          customerId: subscription.customer
+        });
 
+        // For a new subscription, set it as pending until payment is confirmed
         const { error } = await supabase
           .from('organization_subscriptions')
-          .upsert({
-            org_id: subscription.metadata.orgId,
-            stripe_subscription_id: subscription.id,
+          .update({
             stripe_customer_id: subscription.customer as string,
-            status: subscription.status,
+            stripe_subscription_id: subscription.id,
+            status: 'pending',
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'org_id'
           })
+          .eq('org_id', subscription.metadata.orgId);
 
         if (error) {
-          console.error('Database error:', error)
-          throw error
+          console.error('Error updating subscription:', error);
+          throw error;
         }
-        console.log('Successfully updated subscription in database')
-        break
+        console.log('Successfully created subscription with pending status');
+        break;
+      }
+
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log('Processing completed checkout session:', session.id);
+        
+        if (session.mode === 'subscription' && session.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+          console.log('Retrieved subscription details:', {
+            id: subscription.id,
+            status: subscription.status,
+            customerId: subscription.customer
+          });
+
+          // Now that payment is confirmed, update status to active
+          const { error } = await supabase
+            .from('organization_subscriptions')
+            .update({
+              status: 'active',
+              updated_at: new Date().toISOString()
+            })
+            .eq('stripe_subscription_id', subscription.id);
+
+          if (error) {
+            console.error('Error updating subscription:', error);
+            throw error;
+          }
+          console.log('Successfully updated subscription status to active');
+        }
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log('Processing subscription update:', {
+          id: subscription.id,
+          status: subscription.status
+        });
+
+        // Map Stripe statuses to our internal statuses
+        let internalStatus = subscription.status;
+        if (['past_due', 'unpaid'].includes(subscription.status)) {
+          internalStatus = 'inactive';
+        }
+
+        const { error } = await supabase
+          .from('organization_subscriptions')
+          .update({
+            status: internalStatus,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('stripe_subscription_id', subscription.id);
+
+        if (error) {
+          console.error('Error updating subscription:', error);
+          throw error;
+        }
+        console.log('Successfully updated subscription status to:', internalStatus);
+        break;
       }
 
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription
-        console.log('Processing subscription deletion:', subscription.id)
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log('Processing subscription deletion:', subscription.id);
 
         const { error } = await supabase
           .from('organization_subscriptions')
@@ -79,29 +136,51 @@ serve(async (req) => {
             status: 'canceled',
             updated_at: new Date().toISOString()
           })
-          .eq('stripe_subscription_id', subscription.id)
+          .eq('stripe_subscription_id', subscription.id);
 
         if (error) {
-          console.error('Database error:', error)
-          throw error
+          console.error('Error updating subscription:', error);
+          throw error;
         }
-        console.log('Successfully marked subscription as canceled in database')
-        break
+        console.log('Successfully marked subscription as canceled');
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.subscription) {
+          console.log('Processing failed payment for subscription:', invoice.subscription);
+
+          const { error } = await supabase
+            .from('organization_subscriptions')
+            .update({
+              status: 'payment_failed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('stripe_subscription_id', invoice.subscription);
+
+          if (error) {
+            console.error('Error updating subscription status for failed payment:', error);
+            throw error;
+          }
+          console.log('Successfully updated subscription status to payment_failed');
+        }
+        break;
       }
     }
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
-    })
+    });
   } catch (error) {
-    console.error('Error processing webhook:', error)
+    console.error('Error processing webhook:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
       }
-    )
+    );
   }
-})
+});

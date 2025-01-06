@@ -1,11 +1,11 @@
+import { useSavingsCalculations } from "@/components/cost-savings/SavingsCalculator";
+import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
 import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
 import { CostSavingsReport } from "@/components/CostSavingsReport";
 import { SalesforceUsers } from "@/components/SalesforceUsers";
 import { OrgHealth } from "@/components/OrgHealth";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
-import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
-import { useToast } from "@/hooks/use-toast";
+import { DashboardHeader } from "./DashboardHeader";
+import { useExportReport } from "./useExportReport";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -26,45 +26,47 @@ export const DashboardContent = ({
   users = [],
   oauthTokens = []
 }: DashboardContentProps) => {
-  const { toast } = useToast();
+  const { licensePrice } = useOrganizationData();
+  const { isExporting, handleExport } = useExportReport();
+  
+  const { 
+    totalSavings,
+    savingsBreakdown,
+    inactiveUsers,
+    integrationUsers,
+    platformUsers
+  } = useSavingsCalculations({
+    users,
+    oauthTokens,
+    licensePrice,
+    sandboxes,
+    storageUsage: limits?.StorageUsed || 0,
+    userLicenses
+  });
 
-  const handleExportReport = async () => {
-    try {
-      const csvContent = await generateReportCSV({
-        userLicenses,
-        packageLicenses,
-        permissionSetLicenses,
-        sandboxes,
-        limits,
-        users,
-        oauthTokens,
-        licensePrice: 100, // Default license price if not available
-        storageUsage: limits?.StorageUsed || 0
-      });
-      downloadCSV(csvContent, 'salesforce-optimization-report.csv');
-    } catch (error) {
-      console.error('Error generating CSV:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate the report. Please try again."
-      });
-    }
+  const handleExportReport = () => {
+    handleExport({
+      userLicenses,
+      packageLicenses,
+      permissionSetLicenses,
+      sandboxes,
+      limits,
+      users,
+      oauthTokens,
+      inactiveUsers,
+      integrationUsers,
+      platformUsers,
+      savingsBreakdown,
+      licensePrice
+    });
   };
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Organization Health Dashboard</h1>
-        <Button
-          onClick={handleExportReport}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Export Report
-        </Button>
-      </div>
+      <DashboardHeader 
+        isExporting={isExporting}
+        onExport={handleExportReport}
+      />
       
       <OptimizationDashboard
         userLicenses={userLicenses}
@@ -72,6 +74,7 @@ export const DashboardContent = ({
         sandboxes={sandboxes}
         storageUsage={limits?.StorageUsed || 0}
       />
+      
       <CostSavingsReport
         userLicenses={userLicenses}
         packageLicenses={packageLicenses}
@@ -82,6 +85,7 @@ export const DashboardContent = ({
         contracts={[]}
         invoices={[]}
       />
+      
       <SalesforceUsers />
       <OrgHealth />
     </div>

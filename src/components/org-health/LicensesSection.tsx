@@ -19,6 +19,18 @@ export const LicensesSection = ({
 }: LicensesSectionProps) => {
   const [isOpen, setIsOpen] = useState(defaultExpanded);
 
+  console.log('LicensesSection received:', {
+    userLicenses,
+    packageLicenses,
+    permissionSetLicenses,
+    isUserLicensesArray: Array.isArray(userLicenses),
+    userLicensesLength: userLicenses?.length,
+    isPackageLicensesArray: Array.isArray(packageLicenses),
+    packageLicensesLength: packageLicenses?.length,
+    isPermissionSetLicensesArray: Array.isArray(permissionSetLicenses),
+    permissionSetLicensesLength: permissionSetLicenses?.length
+  });
+
   useEffect(() => {
     setIsOpen(defaultExpanded);
   }, [defaultExpanded]);
@@ -27,6 +39,15 @@ export const LicensesSection = ({
   const parsedUserLicenses = Array.isArray(userLicenses) ? userLicenses : [];
   const parsedPackageLicenses = Array.isArray(packageLicenses) ? packageLicenses : [];
   const parsedPermissionSetLicenses = Array.isArray(permissionSetLicenses) ? permissionSetLicenses : [];
+
+  console.log('LicensesSection after parsing:', {
+    parsedUserLicenses,
+    parsedPackageLicenses,
+    parsedPermissionSetLicenses,
+    parsedUserLicensesLength: parsedUserLicenses.length,
+    parsedPackageLicensesLength: parsedPackageLicenses.length,
+    parsedPermissionSetLicensesLength: parsedPermissionSetLicenses.length
+  });
 
   return (
     <div className="space-y-2">
