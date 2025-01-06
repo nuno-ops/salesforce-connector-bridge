@@ -6,6 +6,7 @@ export const useOrganizationData = () => {
   const [licensePrice, setLicensePrice] = useState<number>(0);
   const [users, setUsers] = useState<any[]>([]);
   const [oauthTokens, setOauthTokens] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchLicensePrice = async (orgId: string) => {
@@ -34,6 +35,7 @@ export const useOrganizationData = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         console.log('Starting data fetch in useOrganizationData...');
         
         const access_token = localStorage.getItem('sf_access_token');
@@ -101,17 +103,13 @@ export const useOrganizationData = () => {
 
       } catch (error) {
         console.error('Error in fetchData:', error);
-        console.log('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-          timestamp: new Date().toISOString()
-        });
         toast({
           variant: "destructive",
           title: "Error",
           description: "Failed to fetch organization data"
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -191,6 +189,7 @@ export const useOrganizationData = () => {
     licensePrice,
     setLicensePrice: updateLicensePrice,
     users,
-    oauthTokens
+    oauthTokens,
+    isLoading
   };
 };
