@@ -12,6 +12,8 @@ interface PlanCardProps {
   title: string;
   description: string;
   icon: LucideIcon;
+  price: string;
+  period: string;
   benefits: PlanBenefit[];
   buttonText: string;
   onSubscribe: () => void;
@@ -21,6 +23,8 @@ export const PlanCard = ({
   title,
   description,
   icon: Icon,
+  price,
+  period,
   benefits,
   buttonText,
   onSubscribe,
@@ -33,6 +37,10 @@ export const PlanCard = ({
           <h3 className="text-2xl font-semibold">{title}</h3>
         </div>
         <p className="text-gray-600">{description}</p>
+        <div className="flex items-baseline">
+          <span className="text-4xl font-bold text-sf-blue">{price}</span>
+          <span className="ml-2 text-gray-600">{period}</span>
+        </div>
       </div>
 
       <div className="space-y-4">

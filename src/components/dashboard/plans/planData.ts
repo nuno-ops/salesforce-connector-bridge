@@ -4,6 +4,8 @@ export const savingsMonitorData = {
   title: "Savings Monitor",
   description: "Perfect for businesses seeking ongoing insights and continuous savings opportunities. Monitor your Salesforce organization and uncover new ways to save every month.",
   icon: CreditCard,
+  price: "$39",
+  period: "/month",
   benefits: [
     {
       highlight: "Unlimited Access",
@@ -34,6 +36,8 @@ export const savingsSnapshotData = {
   title: "Savings Snapshot",
   description: "Best for businesses that want immediate results without a long-term commitment. Get a full, detailed analysis of your savings potential with no strings attached.",
   icon: FileText,
+  price: "$99",
+  period: "one-time",
   benefits: [
     {
       highlight: "One-Time Investment",
