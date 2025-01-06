@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Copy, Check, Mail } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, Mail, Info, AlertCircle } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -91,14 +91,48 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
           </li>
           <li className="flex items-start">
             <span className="mr-2">6.</span>
-            <span>Click "Save" and wait for confirmation</span>
+            <div className="flex-1">
+              <p>Configure OAuth Scopes:</p>
+              <div className="bg-yellow-50 p-4 rounded-lg space-y-2 mt-2">
+                <div className="flex items-center gap-2 text-yellow-800">
+                  <Info className="h-5 w-5" />
+                  <span className="font-medium">Required OAuth Scopes:</span>
+                </div>
+                <ul className="list-none space-y-2">
+                  {[
+                    "Manage user data via APIs (api)",
+                    "Manage user data via Web browsers (web)",
+                    "Full access (full)",
+                    "Perform requests at any time (refresh_token, offline_access)"
+                  ].map((scope, index) => (
+                    <li key={index} className="flex items-center text-yellow-700">
+                      <Check className="h-4 w-4 mr-2 text-yellow-600" />
+                      {scope}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg space-y-2 mt-4">
+                <div className="flex items-center gap-2 text-red-800">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <span className="font-medium">Important Setting to Disable:</span>
+                </div>
+                <p className="text-red-800">
+                  Make sure to uncheck "Require Proof Key for Code Exchange (PKCE) Extension for Supported Authorization Flows" in the Connected App settings.
+                </p>
+              </div>
+            </div>
           </li>
           <li className="flex items-start">
             <span className="mr-2">7.</span>
-            <span>Copy the Consumer Key (Client ID) and Consumer Secret (Client Secret)</span>
+            <span>Click "Save" and wait for confirmation</span>
           </li>
           <li className="flex items-start">
             <span className="mr-2">8.</span>
+            <span>Copy the Consumer Key (Client ID) and Consumer Secret (Client Secret)</span>
+          </li>
+          <li className="flex items-start">
+            <span className="mr-2">9.</span>
             <span>Paste these credentials in the form above</span>
           </li>
         </ol>
