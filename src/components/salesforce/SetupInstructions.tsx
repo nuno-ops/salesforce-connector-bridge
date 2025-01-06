@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Copy, Check, Mail, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, Mail } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -86,22 +86,6 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
                     </Button>
                   </div>
                 </li>
-                <li className="bg-yellow-50 p-4 rounded-lg space-y-2 mt-4">
-                  <p className="font-medium text-yellow-800">Required OAuth Scopes:</p>
-                  <ul className="list-none space-y-2 ml-0">
-                    {[
-                      "Manage user data via APIs (api)",
-                      "Manage user data via Web browsers (web)",
-                      "Full access (full)",
-                      "Perform requests at any time (refresh_token, offline_access)"
-                    ].map((scope, index) => (
-                      <li key={index} className="flex items-center text-yellow-700">
-                        <Check className="h-4 w-4 mr-2 text-yellow-600" />
-                        {scope}
-                      </li>
-                    ))}
-                  </ul>
-                </li>
               </ul>
             </div>
           </li>
@@ -118,14 +102,6 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
             <span>Paste these credentials in the form above</span>
           </li>
         </ol>
-
-        <div className="bg-red-50 p-4 rounded-lg space-y-2 text-red-800">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-            <p className="font-medium">Important Setting to Disable:</p>
-          </div>
-          <p>Make sure to uncheck "Require Proof Key for Code Exchange (PKCE) Extension for Supported Authorization Flows" in the Connected App settings.</p>
-        </div>
 
         <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sf-blue">
           <p className="font-medium">Note:</p>
