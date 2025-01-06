@@ -68,21 +68,23 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
               <p>Enable OAuth Settings:</p>
               <ul className="list-disc ml-4 mt-2 space-y-2">
                 <li>Check "Enable OAuth Settings"</li>
-                <li className="flex items-center space-x-2 break-all">
-                  <span>Callback URL:</span>
-                  <code className="px-2 py-1 bg-white rounded">{callbackUrl}</code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyCallbackUrl}
-                    className="shrink-0"
-                  >
-                    {copiedUrl ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+                <li className="flex flex-col space-y-2 w-full">
+                  <span className="font-medium">Callback URL:</span>
+                  <div className="flex items-center space-x-2 bg-white p-2 rounded-md w-full">
+                    <code className="flex-1 break-all px-2 py-1">{callbackUrl}</code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyCallbackUrl}
+                      className="shrink-0"
+                    >
+                      {copiedUrl ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </li>
                 <li>Selected OAuth Scopes: Add "Full access (full)"</li>
               </ul>
