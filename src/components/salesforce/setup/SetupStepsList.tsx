@@ -59,11 +59,29 @@ export const SetupStepsList = ({ callbackUrl }: SetupStepsListProps) => {
       </li>
       <li className="flex items-start">
         <span className="mr-2">8.</span>
-        <span>Copy the Consumer Key (Client ID) and Consumer Secret (Client Secret)</span>
+        <div className="flex-1">
+          <p>Click the "Manage Consumer Details" button to reveal your credentials</p>
+          <p className="text-sm text-gray-600 mt-1">Note: You might need to wait a few minutes before this button becomes active</p>
+        </div>
       </li>
       <li className="flex items-start">
         <span className="mr-2">9.</span>
+        <span>Copy the Consumer Key (Client ID) and Consumer Secret (Client Secret)</span>
+      </li>
+      <li className="flex items-start">
+        <span className="mr-2">10.</span>
         <span>Paste these credentials in the form above</span>
+      </li>
+      <li className="flex items-start">
+        <span className="mr-2">11.</span>
+        <div className="flex-1">
+          <p>Click "Connect to Salesforce" and complete the authentication:</p>
+          <ul className="list-disc ml-4 mt-2 text-sm">
+            <li>A Salesforce login form will appear</li>
+            <li>Log in with your Salesforce credentials</li>
+            <li>Review and accept the requested permissions</li>
+          </ul>
+        </div>
       </li>
     </ol>
   );
