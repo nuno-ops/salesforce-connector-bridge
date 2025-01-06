@@ -66,36 +66,31 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
     console.log('Created Supabase client')
 
-    // Delete any existing settings for this org
-    console.log('Removing any existing settings...')
-    const { error: deleteError } = await supabase
-      .from('organization_settings')
-      .delete()
-      .eq('org_id', org.Id)
+    // Normalize org ID for storage
+    const normalizedOrgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_')
+    console.log('Normalized org ID:', normalizedOrgId)
 
-    if (deleteError) {
-      console.error('Error deleting existing settings:', deleteError)
-      throw deleteError
-    }
-
-    // Create new settings
-    console.log('Creating new organization settings...')
-    const { data: settings, error: insertError } = await supabase
+    // Upsert organization settings
+    console.log('Upserting organization settings...')
+    const { data: settings, error: settingsError } = await supabase
       .from('organization_settings')
-      .insert([{
-        org_id: org.Id,
+      .upsert({
+        org_id: normalizedOrgId,
         org_type: org.OrganizationType,
-        license_cost_per_user: licenseCost
-      }])
+        license_cost_per_user: licenseCost,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'org_id'
+      })
       .select()
       .single()
 
-    if (insertError) {
-      console.error('Error inserting settings:', insertError)
-      throw insertError
+    if (settingsError) {
+      console.error('Error upserting settings:', settingsError)
+      throw settingsError
     }
 
-    console.log('Successfully created settings:', settings)
+    console.log('Successfully created/updated settings:', settings)
     return new Response(JSON.stringify({
       organization: org,
       settings: settings
