@@ -25,12 +25,31 @@ export const useExportReport = () => {
     try {
       setIsExporting(true);
       
+      console.log('Export Report - Initial data:', {
+        userLicenses: data.userLicenses?.length,
+        packageLicenses: data.packageLicenses?.length,
+        users: data.users?.length,
+        inactiveUsers: data.inactiveUsers?.length,
+        integrationUsers: data.integrationUsers?.length,
+        platformUsers: data.platformUsers?.length,
+        licensePrice: data.licensePrice,
+        savingsBreakdown: data.savingsBreakdown
+      });
+      
       // Extract savings from savingsBreakdown
       const inactiveUserSavings = data.savingsBreakdown.find(s => s.title === "Inactive User Licenses")?.amount || 0;
       const integrationUserSavings = data.savingsBreakdown.find(s => s.title === "Integration User Optimization")?.amount || 0;
       const platformLicenseSavings = data.savingsBreakdown.find(s => s.title === "Platform License Optimization")?.amount || 0;
       const sandboxSavings = data.savingsBreakdown.find(s => s.title === "Sandbox Optimization")?.amount || 0;
       const storageSavings = data.savingsBreakdown.find(s => s.title === "Storage Optimization")?.amount || 0;
+
+      console.log('Export Report - Extracted savings:', {
+        inactiveUserSavings,
+        integrationUserSavings,
+        platformLicenseSavings,
+        sandboxSavings,
+        storageSavings
+      });
 
       const csvContent = await generateReportCSV({
         userLicenses: data.userLicenses,

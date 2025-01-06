@@ -5,8 +5,10 @@ import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
-  console.log('CSV Generation - Input data:', {
-    users: data.users?.length,
+  console.log('CSV Generation - Raw input data:', {
+    userLicenses: data.userLicenses,
+    packageLicenses: data.packageLicenses,
+    users: data.users,
     licensePrice: data.licensePrice,
     inactiveUserSavings: data.inactiveUserSavings,
     integrationUserSavings: data.integrationUserSavings,
@@ -14,13 +16,20 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     sandboxSavings: data.sandboxSavings,
     storageSavings: data.storageSavings,
     inactiveUserCount: data.inactiveUserCount,
-    integrationUserCount: data.integrationUserCount
+    integrationUserCount: data.integrationUserCount,
+    platformLicenseCount: data.platformLicenseCount
   });
 
   // Process users data
   const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
   const standardUserCount = standardUsers.length;
-  const licensePrice = data.licensePrice;
+  const licensePrice = data.licensePrice || 0;
+
+  console.log('CSV Generation - Processed user data:', {
+    standardUserCount,
+    licensePrice,
+    firstStandardUser: standardUsers[0]
+  });
 
   // Calculate savings with fallbacks
   const savingsBreakdown = {
@@ -51,12 +60,12 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
                  (data.storageSavings || 0)
   };
 
-  console.log('CSV Generation - Processed savings:', savingsBreakdown);
+  console.log('CSV Generation - Savings breakdown:', savingsBreakdown);
 
   const totalMonthlyLicenseCost = licensePrice * standardUserCount;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
 
-  console.log('CSV Generation - Final calculations:', {
+  console.log('CSV Generation - Cost calculations:', {
     licensePrice,
     standardUserCount,
     totalMonthlyLicenseCost,
