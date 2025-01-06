@@ -35,7 +35,7 @@ export const useExportReport = () => {
         licensePrice: data.licensePrice,
         savingsBreakdown: data.savingsBreakdown
       });
-      
+
       // Extract savings from savingsBreakdown
       const inactiveUserSavings = data.savingsBreakdown.find(s => s.title === "Inactive User Licenses")?.amount || 0;
       const integrationUserSavings = data.savingsBreakdown.find(s => s.title === "Integration User Optimization")?.amount || 0;
@@ -57,7 +57,7 @@ export const useExportReport = () => {
         permissionSetLicenses: data.permissionSetLicenses,
         sandboxes: data.sandboxes,
         limits: data.limits,
-        users: data.users,
+        users: data.users, // Now passing the full users array
         oauthTokens: data.oauthTokens,
         storageUsage: data.limits?.StorageUsed || 0,
         inactiveUserSavings,
