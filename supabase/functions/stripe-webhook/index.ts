@@ -44,13 +44,13 @@ serve(async (req) => {
           customerId: subscription.customer
         });
 
-        // For a new subscription, we'll set it as pending until payment is confirmed
+        // For a new subscription, set it as pending until payment is confirmed
         const { error } = await supabase
           .from('organization_subscriptions')
           .update({
             stripe_customer_id: subscription.customer as string,
             stripe_subscription_id: subscription.id,
-            status: 'pending', // Set as pending until payment confirmation
+            status: 'pending',
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString()
@@ -69,7 +69,7 @@ serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log('Processing completed checkout session:', session.id);
         
-        if (session.mode === 'subscription') {
+        if (session.mode === 'subscription' && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
           console.log('Retrieved subscription details:', {
             id: subscription.id,
@@ -81,7 +81,7 @@ serve(async (req) => {
           const { error } = await supabase
             .from('organization_subscriptions')
             .update({
-              status: 'active', // Set to active after successful payment
+              status: 'active',
               updated_at: new Date().toISOString()
             })
             .eq('stripe_subscription_id', subscription.id);
@@ -102,10 +102,16 @@ serve(async (req) => {
           status: subscription.status
         });
 
+        // Map Stripe statuses to our internal statuses
+        let internalStatus = subscription.status;
+        if (['past_due', 'unpaid'].includes(subscription.status)) {
+          internalStatus = 'inactive';
+        }
+
         const { error } = await supabase
           .from('organization_subscriptions')
           .update({
-            status: subscription.status,
+            status: internalStatus,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString()
@@ -116,7 +122,7 @@ serve(async (req) => {
           console.error('Error updating subscription:', error);
           throw error;
         }
-        console.log('Successfully updated subscription status to:', subscription.status);
+        console.log('Successfully updated subscription status to:', internalStatus);
         break;
       }
 
@@ -137,6 +143,28 @@ serve(async (req) => {
           throw error;
         }
         console.log('Successfully marked subscription as canceled');
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.subscription) {
+          console.log('Processing failed payment for subscription:', invoice.subscription);
+
+          const { error } = await supabase
+            .from('organization_subscriptions')
+            .update({
+              status: 'payment_failed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('stripe_subscription_id', invoice.subscription);
+
+          if (error) {
+            console.error('Error updating subscription status for failed payment:', error);
+            throw error;
+          }
+          console.log('Successfully updated subscription status to payment_failed');
+        }
         break;
       }
     }
