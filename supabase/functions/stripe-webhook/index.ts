@@ -36,6 +36,33 @@ serve(async (req) => {
     console.log('Processing webhook event:', event.type)
 
     switch (event.type) {
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log('Processing new subscription:', {
+          id: subscription.id,
+          status: subscription.status,
+          customerId: subscription.customer
+        });
+
+        const { error } = await supabase
+          .from('organization_subscriptions')
+          .update({
+            status: subscription.status,
+            stripe_customer_id: subscription.customer as string,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('stripe_subscription_id', subscription.id);
+
+        if (error) {
+          console.error('Error updating subscription:', error);
+          throw error;
+        }
+        console.log('Successfully updated subscription status to:', subscription.status);
+        break;
+      }
+
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log('Processing completed checkout session:', session.id);
