@@ -37,11 +37,8 @@ serve(async (req) => {
       const session = await stripe.checkout.sessions.retrieve(sessionId)
       if (session.payment_status === 'paid' && session.metadata?.orgId === orgId) {
         console.log('Valid payment found in session')
-        
-        // If this was a subscription payment, the webhook will handle the update
-        if (session.mode === 'payment') {
-          hasValidPayment = true
-        }
+        // Grant access immediately for both subscription and one-time payments
+        hasValidPayment = true
       }
     }
 
