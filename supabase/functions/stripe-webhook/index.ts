@@ -44,22 +44,24 @@ serve(async (req) => {
           customerId: subscription.customer
         });
 
+        // For a new subscription, we'll set it as pending until payment is confirmed
         const { error } = await supabase
           .from('organization_subscriptions')
           .update({
-            status: subscription.status,
             stripe_customer_id: subscription.customer as string,
+            stripe_subscription_id: subscription.id,
+            status: 'pending', // Set as pending until payment confirmation
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString()
           })
-          .eq('stripe_subscription_id', subscription.id);
+          .eq('org_id', subscription.metadata.orgId);
 
         if (error) {
           console.error('Error updating subscription:', error);
           throw error;
         }
-        console.log('Successfully updated subscription status to:', subscription.status);
+        console.log('Successfully created subscription with pending status');
         break;
       }
 
@@ -75,13 +77,11 @@ serve(async (req) => {
             customerId: subscription.customer
           });
 
+          // Now that payment is confirmed, update status to active
           const { error } = await supabase
             .from('organization_subscriptions')
             .update({
-              status: subscription.status,
-              stripe_customer_id: subscription.customer as string,
-              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              status: 'active', // Set to active after successful payment
               updated_at: new Date().toISOString()
             })
             .eq('stripe_subscription_id', subscription.id);
@@ -90,7 +90,7 @@ serve(async (req) => {
             console.error('Error updating subscription:', error);
             throw error;
           }
-          console.log('Successfully updated subscription status to:', subscription.status);
+          console.log('Successfully updated subscription status to active');
         }
         break;
       }
