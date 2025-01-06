@@ -4,6 +4,8 @@ import { Card } from '@/components/ui/card';
 import { LoginForm } from './salesforce/LoginForm';
 import { SetupInstructions } from './salesforce/SetupInstructions';
 import { initiateOAuthFlow } from './salesforce/useSalesforceAuth';
+import { Info } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface SalesforceLoginProps {
   onSuccess?: () => void;
@@ -11,6 +13,7 @@ interface SalesforceLoginProps {
 
 export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const { toast } = useToast();
 
   // Update the callback URL to use https without a trailing colon
@@ -44,6 +47,12 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
     localStorage.removeItem('sf_instance_url');
     localStorage.removeItem('sf_token_timestamp');
     setIsLoading(false);
+  };
+
+  const copyCallbackUrl = () => {
+    navigator.clipboard.writeText(CALLBACK_URL);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
   };
 
   const handleSubmit = async (credentials: {
@@ -84,6 +93,28 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
         </div>
 
         <LoginForm onSubmit={handleSubmit} isLoading={isLoading} />
+
+        <div className="bg-blue-50 p-4 rounded-lg space-y-2">
+          <div className="flex items-center gap-2 text-sf-blue">
+            <Info className="h-5 w-5" />
+            <span className="font-medium">Important: Callback URL</span>
+          </div>
+          <div className="flex items-center space-x-2 bg-white p-2 rounded-md w-full">
+            <code className="flex-1 break-all px-2 py-1 text-sm">{CALLBACK_URL}</code>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyCallbackUrl}
+              className="shrink-0"
+            >
+              {copiedUrl ? "Copied!" : "Copy"}
+            </Button>
+          </div>
+          <p className="text-sm text-sf-gray">
+            You'll need this URL when setting up your Connected App in Salesforce.
+          </p>
+        </div>
+
         <SetupInstructions callbackUrl={CALLBACK_URL} />
       </Card>
     </div>
