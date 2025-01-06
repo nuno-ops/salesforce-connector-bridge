@@ -6,9 +6,10 @@ import { createLimitsSection } from './csv/sections/limitsSection';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
   console.log('CSV Generation - Raw input data:', {
-    userLicenses: data.userLicenses,
-    packageLicenses: data.packageLicenses,
-    users: data.users,
+    userLicenses: data.userLicenses?.length,
+    packageLicenses: data.packageLicenses?.length,
+    users: data.users?.length,
+    standardUsers: data.standardUsers?.length,
     licensePrice: data.licensePrice,
     inactiveUserSavings: data.inactiveUserSavings,
     integrationUserSavings: data.integrationUserSavings,
@@ -21,14 +22,13 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   });
 
   // Process users data
-  const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
-  const standardUserCount = standardUsers.length;
+  const standardUserCount = data.standardUsers?.length || 0;
   const licensePrice = data.licensePrice || 0;
 
   console.log('CSV Generation - Processed user data:', {
     standardUserCount,
     licensePrice,
-    firstStandardUser: standardUsers[0]
+    firstStandardUser: data.standardUsers?.[0]
   });
 
   // Calculate savings with fallbacks

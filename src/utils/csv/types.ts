@@ -20,10 +20,11 @@ export interface ExportData {
   permissionSetLicenses: RawLicense[];
   sandboxes: any[];
   limits: any;
+  users: any[];
+  standardUsers: any[];
+  oauthTokens: any[];
   licensePrice?: number;
   storageUsage?: number;
-  users?: any[];
-  oauthTokens?: any[];
   // Savings data
   inactiveUserSavings?: number;
   inactiveUserCount?: number;
@@ -54,6 +55,6 @@ export interface SavingsBreakdown {
 
 export interface CsvExportData {
   licensePrice: number;
-  standardUsers: number;
+  standardUsers: any[];
   savingsBreakdown: SavingsBreakdown;
 }
