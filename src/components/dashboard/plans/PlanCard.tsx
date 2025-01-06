@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, LucideIcon } from "lucide-react";
+import { Check, Info, LucideIcon } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface PlanBenefit {
@@ -39,20 +39,25 @@ export const PlanCard = ({
         {benefits.map((benefit, index) => (
           <div key={index} className="flex items-start space-x-2 text-gray-700">
             <Check className="h-5 w-5 text-sf-blue mt-1 shrink-0" />
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <p className="cursor-help">
-                  {benefit.highlight ? (
-                    <span className="font-semibold text-sf-blue hover:text-sf-hover transition-colors">
-                      {benefit.highlight}
-                    </span>
-                  ) : null}
-                </p>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-80">
-                <p className="text-sm">{benefit.text}</p>
-              </HoverCardContent>
-            </HoverCard>
+            <div className="flex items-center space-x-2">
+              <p>
+                {benefit.highlight ? (
+                  <span className="font-semibold text-sf-blue">
+                    {benefit.highlight}
+                  </span>
+                ) : null}
+              </p>
+              <HoverCard>
+                <HoverCardTrigger asChild>
+                  <button className="inline-flex items-center">
+                    <Info className="h-4 w-4 text-sf-blue hover:text-sf-hover transition-colors cursor-help" />
+                  </button>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-80">
+                  <p className="text-sm">{benefit.text}</p>
+                </HoverCardContent>
+              </HoverCard>
+            </div>
           </div>
         ))}
       </div>
