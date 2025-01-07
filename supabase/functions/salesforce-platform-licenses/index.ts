@@ -15,9 +15,23 @@ serve(async (req) => {
     console.log('Platform license calculation started');
     const { access_token, instance_url } = await req.json();
 
+    // Check for required credentials
     if (!access_token || !instance_url) {
       console.error('Missing credentials:', { access_token: !!access_token, instance_url: !!instance_url });
       throw new Error('Missing access_token or instance_url');
+    }
+
+    // Verify authorization header is present
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header present');
+      return new Response(
+        JSON.stringify({ error: 'No authorization header present' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Fetching object permissions...');
@@ -162,7 +176,7 @@ serve(async (req) => {
         eligibleUsers: []
       }),
       { 
-        status: 500,
+        status: error.status || 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
