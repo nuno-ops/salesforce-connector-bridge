@@ -121,8 +121,8 @@ export const useOrganizationData = () => {
       const orgId = instance_url.replace(/[^a-zA-Z0-9]/g, '_');
       console.log('Setting up realtime subscription for org:', orgId);
       
-      const subscription = supabase
-        .channel('organization_settings_changes')
+      const channel = supabase
+        .channel(`organization_settings_${orgId}`)
         .on(
           'postgres_changes',
           {
@@ -136,11 +136,13 @@ export const useOrganizationData = () => {
             await fetchLicensePrice(orgId);
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+        });
 
       return () => {
         console.log('Cleaning up realtime subscription');
-        subscription.unsubscribe();
+        supabase.removeChannel(channel);
       };
     }
   }, [toast]);
