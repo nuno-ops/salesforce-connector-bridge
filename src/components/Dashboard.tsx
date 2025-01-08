@@ -32,58 +32,64 @@ const Dashboard = () => {
     error: healthDataError
   } = useOrgHealthData();
 
+  // Check for session expiration before doing anything else
+  useEffect(() => {
+    const checkSession = () => {
+      const token = localStorage.getItem('sf_access_token');
+      const timestamp = localStorage.getItem('sf_token_timestamp');
+      
+      if (!token || !timestamp) {
+        handleSessionExpired();
+        return;
+      }
+
+      const tokenAge = Date.now() - parseInt(timestamp);
+      if (tokenAge > 7200000) { // 2 hours
+        handleSessionExpired();
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  // Handle session expiration from API errors
   useEffect(() => {
     if (healthDataError?.message?.includes('INVALID_SESSION_ID') || 
-        healthDataError?.message?.includes('Session expired')) {
-      console.log('Salesforce session expired, clearing credentials');
-      localStorage.removeItem('sf_access_token');
-      localStorage.removeItem('sf_instance_url');
-      localStorage.removeItem('sf_token_timestamp');
-      localStorage.removeItem('sf_subscription_status');
-      setNeedsReconnect(true);
-      toast({
-        title: "Session Expired",
-        description: "Your Salesforce session has expired. Please reconnect.",
-      });
+        healthDataError?.message?.includes('Session expired') ||
+        healthDataError?.message?.includes('401')) {
+      handleSessionExpired();
     }
   }, [healthDataError, toast]);
 
-  console.log('Raw license data from useOrgHealthData:', {
-    userLicenses: userLicenses?.[0],
-    packageLicenses: packageLicenses?.[0],
-    permissionSetLicenses: permissionSetLicenses?.[0],
-    totalCounts: {
-      users: userLicenses?.length,
-      packages: packageLicenses?.length,
-      permissionSets: permissionSetLicenses?.length
-    }
-  });
+  const handleSessionExpired = () => {
+    console.log('Salesforce session expired, clearing credentials');
+    localStorage.removeItem('sf_access_token');
+    localStorage.removeItem('sf_instance_url');
+    localStorage.removeItem('sf_token_timestamp');
+    localStorage.removeItem('sf_subscription_status');
+    setNeedsReconnect(true);
+    toast({
+      title: "Session Expired",
+      description: "Your Salesforce session has expired. Please reconnect.",
+    });
+  };
 
   const { hasAccess, isCheckingAccess, handleDisconnect } = useCheckAccess();
+
+  // If session is expired, show login immediately
+  if (needsReconnect) {
+    return <SalesforceLogin onSuccess={() => window.location.reload()} />;
+  }
+
+  // Only show loading if we're checking access and session is valid
+  if (isHealthDataLoading || isCheckingAccess) {
+    return <LoadingSpinner />;
+  }
 
   // Format the license data before passing it to components
   const formattedUserLicenses = formatLicenseData(userLicenses || []);
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses || []);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses || []);
-
-  console.log('Formatted license data:', {
-    user: formattedUserLicenses?.[0],
-    package: formattedPackageLicenses?.[0],
-    permissionSet: formattedPermissionSetLicenses?.[0],
-    counts: {
-      users: formattedUserLicenses?.length,
-      packages: formattedPackageLicenses?.length,
-      permissionSets: formattedPermissionSetLicenses?.length
-    }
-  });
-
-  if (needsReconnect) {
-    return <SalesforceLogin onSuccess={() => window.location.reload()} />;
-  }
-
-  if (isHealthDataLoading || isCheckingAccess) {
-    return <LoadingSpinner />;
-  }
 
   if (!hasAccess) {
     if (!showPaymentPlans) {
