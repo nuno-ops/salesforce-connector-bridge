@@ -56,7 +56,22 @@ serve(async (req) => {
       if (!response.ok) {
         const error = await response.text();
         console.error('API call failed:', error);
-        throw new Error(`Salesforce API call failed: ${response.status} ${error}`);
+        
+        // Check specifically for session expiration
+        if (error.includes('INVALID_SESSION_ID') || error.includes('Session expired')) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Session expired or invalid',
+              errorCode: 'INVALID_SESSION_ID'
+            }),
+            {
+              status: 401,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+        
+        throw new Error(`Salesforce API call failed: ${error}`);
       }
 
       return response.json();
@@ -128,6 +143,21 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in salesforce-users function:', error);
+    
+    // Check if the error is related to session expiration
+    if (error.message?.includes('INVALID_SESSION_ID') || error.message?.includes('Session expired')) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Session expired or invalid',
+          errorCode: 'INVALID_SESSION_ID'
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       {
