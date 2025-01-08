@@ -54,52 +54,68 @@ serve(async (req) => {
       );
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error('API call failed:', error);
+        const errorText = await response.text();
+        console.error('API call failed:', errorText);
         
-        // Check specifically for session expiration
-        if (error.includes('INVALID_SESSION_ID') || error.includes('Session expired')) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Session expired or invalid',
-              errorCode: 'INVALID_SESSION_ID'
-            }),
-            {
-              status: 401,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          );
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (Array.isArray(errorJson) && errorJson[0]?.errorCode === 'INVALID_SESSION_ID') {
+            return { sessionExpired: true };
+          }
+        } catch (e) {
+          // If JSON parsing fails, check the raw text
+          if (errorText.includes('INVALID_SESSION_ID') || errorText.includes('Session expired')) {
+            return { sessionExpired: true };
+          }
         }
         
-        throw new Error(`Salesforce API call failed: ${error}`);
+        throw new Error(`Salesforce API call failed: ${errorText}`);
       }
 
       return response.json();
     };
 
     // Fetch all data in parallel
-    const [objectPermsData, userData, permSetData, oauthData] = await Promise.all([
+    const [objectPermsResponse, userDataResponse, permSetResponse, oauthResponse] = await Promise.all([
       fetchSalesforceData(objectPermissionsQuery),
       fetchSalesforceData(usersQuery),
       fetchSalesforceData(permSetAssignmentsQuery),
       fetchSalesforceData('SELECT Id, AppName, LastUsedDate, UseCount, UserId FROM OauthToken')
     ]);
 
+    // Check if any response indicates session expiration
+    if (objectPermsResponse?.sessionExpired || 
+        userDataResponse?.sessionExpired || 
+        permSetResponse?.sessionExpired || 
+        oauthResponse?.sessionExpired) {
+      console.log('Session expired, returning appropriate response');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Session expired or invalid',
+          errorCode: 'INVALID_SESSION_ID'
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Create sets of ProfileIds and ParentIds that have access
     const profilesWithAccess = new Set(
-      objectPermsData.records
+      objectPermsResponse.records
         .filter(perm => perm.Parent?.ProfileId)
         .map(perm => perm.Parent.ProfileId)
     );
 
     const permSetsWithAccess = new Set(
-      objectPermsData.records
+      objectPermsResponse.records
         .filter(perm => perm.ParentId && !perm.Parent?.ProfileId)
         .map(perm => perm.ParentId)
     );
 
     // Process users with platform eligibility using the same logic as platform-licenses
-    const usersWithEligibility = userData.records.map(user => {
+    const usersWithEligibility = userDataResponse.records.map(user => {
       let isPlatformEligible = false;
 
       // Only check eligibility if user has a ProfileId
@@ -107,7 +123,7 @@ serve(async (req) => {
         // Check if user's profile doesn't have access
         if (!profilesWithAccess.has(user.ProfileId)) {
           // Get user's permission sets
-          const userPermSets = permSetData.records
+          const userPermSets = permSetResponse.records
             .filter(psa => psa.AssigneeId === user.Id)
             .map(psa => psa.PermissionSetId);
 
@@ -122,22 +138,13 @@ serve(async (req) => {
       };
     });
 
-    console.log('Total users:', usersWithEligibility.length);
-    console.log('Standard Salesforce users:', usersWithEligibility.filter(u => 
-      u.UserType === 'Standard' && 
-      u.Profile?.UserLicense?.Name === 'Salesforce'
-    ).length);
-
     return new Response(
       JSON.stringify({
         users: usersWithEligibility,
-        oauthTokens: oauthData.records
+        oauthTokens: oauthResponse.records
       }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
 
@@ -162,10 +169,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
