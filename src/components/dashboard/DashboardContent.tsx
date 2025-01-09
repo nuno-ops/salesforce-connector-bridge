@@ -7,6 +7,7 @@ import { Download } from "lucide-react";
 import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
 import { useOrganizationData } from "../cost-savings/hooks/useOrganizationData";
 import { useSavingsCalculations } from "../cost-savings/SavingsCalculator";
+import { filterStandardSalesforceUsers } from "@/components/users/utils/userFilters";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -60,6 +61,8 @@ export const DashboardContent = ({
       savingsBreakdown
     });
 
+    const standardUsers = filterStandardSalesforceUsers(users);
+
     const csvContent = await generateReportCSV({
       userLicenses,
       packageLicenses,
@@ -69,7 +72,8 @@ export const DashboardContent = ({
       users,
       oauthTokens,
       licensePrice,
-      savingsBreakdown
+      savingsBreakdown,
+      standardUsers
     });
 
     downloadCSV(csvContent, 'salesforce-optimization-report.csv');
@@ -105,9 +109,10 @@ export const DashboardContent = ({
               packageLicenses={packageLicenses}
               permissionSetLicenses={permissionSetLicenses}
               sandboxes={sandboxes}
-              limits={limits}
-              users={users}
-              oauthTokens={oauthTokens}
+              apiUsage={limits?.DailyApiRequests?.Used || 0}
+              storageUsage={limits?.DataStorageMB?.Used || 0}
+              contracts={[]}
+              invoices={[]}
             />
           </TabsContent>
         </Tabs>
