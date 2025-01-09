@@ -24,27 +24,55 @@ export const useExportReport = () => {
 
   const handleExport = async (data: ExportReportProps) => {
     try {
-      setIsExporting(true);
-      
-      // Filter standard users first
-      const standardUsers = filterStandardSalesforceUsers(data.users);
-      
-      console.log('Export Report - Initial data:', {
-        standardUsers: standardUsers.length,
-        userLicenses: data.userLicenses?.length,
-        packageLicenses: data.packageLicenses?.length,
-        users: data.users?.length,
-        inactiveUsers: data.inactiveUsers?.length,
-        integrationUsers: data.integrationUsers?.length,
-        platformUsers: data.platformUsers?.length,
+      console.log('Export Report - Initial data received:', {
+        userLicensesCount: data.userLicenses?.length,
+        packageLicensesCount: data.packageLicenses?.length,
+        rawUsersCount: data.users?.length,
+        oauthTokensCount: data.oauthTokens?.length,
+        inactiveUsersCount: data.inactiveUsers?.length,
+        integrationUsersCount: data.integrationUsers?.length,
+        platformUsersCount: data.platformUsers?.length,
         licensePrice: data.licensePrice,
         savingsBreakdown: data.savingsBreakdown
+      });
+
+      setIsExporting(true);
+      
+      // Filter standard users
+      const standardUsers = filterStandardSalesforceUsers(data.users);
+      console.log('Export Report - After filtering standard users:', {
+        originalUsersCount: data.users?.length,
+        filteredStandardUsersCount: standardUsers.length,
+        firstStandardUser: standardUsers[0],
+        filterFunction: 'filterStandardSalesforceUsers'
+      });
+      
+      console.log('Export Report - Savings data:', {
+        inactiveUsers: {
+          count: data.inactiveUsers?.length,
+          sample: data.inactiveUsers?.[0]
+        },
+        integrationUsers: {
+          count: data.integrationUsers?.length,
+          sample: data.integrationUsers?.[0]
+        },
+        platformUsers: {
+          count: data.platformUsers?.length,
+          sample: data.platformUsers?.[0]
+        }
       });
 
       const csvContent = await generateReportCSV({
         ...data,
         standardUsers,
         storageUsage: data.limits?.StorageUsed || 0,
+      });
+
+      console.log('Export Report - Final data sent to CSV generation:', {
+        standardUsersCount: standardUsers.length,
+        licensePrice: data.licensePrice,
+        savingsBreakdownLength: data.savingsBreakdown?.length,
+        hasStorageUsage: !!data.limits?.StorageUsed
       });
       
       downloadCSV(csvContent, 'salesforce-optimization-report.csv');
