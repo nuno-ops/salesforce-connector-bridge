@@ -36,12 +36,6 @@ export interface ExportData {
   excessSandboxCount?: number;
   storageSavings?: number;
   potentialStorageReduction?: number;
-  savingsBreakdown?: Array<{
-    title: string;
-    amount: number;
-    details: string;
-    viewAction?: () => void;
-  }>;
 }
 
 export interface CSVSection {

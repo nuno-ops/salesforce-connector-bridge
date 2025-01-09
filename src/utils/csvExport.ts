@@ -5,52 +5,64 @@ import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
-  console.log('CSV Generation - Input data:', {
-    userLicenses: data.userLicenses,
-    packageLicenses: data.packageLicenses,
-    users: data.users,
-    oauthTokens: data.oauthTokens,
+  console.log('CSV Generation - Starting with raw data:', {
+    userLicenses: data.userLicenses?.length,
+    packageLicenses: data.packageLicenses?.length,
+    users: data.users?.length,
+    standardUsers: data.standardUsers?.length,
     licensePrice: data.licensePrice,
     savingsBreakdown: data.savingsBreakdown
   });
 
   // Process users data
-  const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
-  console.log('CSV Generation - Standard users:', {
-    totalUsers: data.users?.length,
-    standardUsers: standardUsers.length,
-    userDetails: standardUsers.map(u => ({
-      id: u.Id,
-      type: u.UserType,
-      profile: u.Profile?.Name
-    }))
-  });
-
+  const standardUsers = data.standardUsers || [];
   const licensePrice = data.licensePrice || 0;
+
+  console.log('CSV Generation - Processed user data:', {
+    standardUserCount: standardUsers.length,
+    licensePrice
+  });
 
   // Calculate costs
   const totalMonthlyLicenseCost = licensePrice * standardUsers.length;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
 
   console.log('CSV Generation - Cost calculations:', {
-    licensePrice,
-    standardUsersCount: standardUsers.length,
     totalMonthlyLicenseCost,
     totalAnnualLicenseCost
   });
 
-  // Calculate savings with detailed logging
-  const savingsBreakdown = data.savingsBreakdown || [];
-  const totalSavings = savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0);
+  // Calculate savings with fallbacks
+  const savingsBreakdown = {
+    inactiveUserSavings: { 
+      savings: data.inactiveUserSavings || 0, 
+      count: data.inactiveUserCount || 0 
+    },
+    integrationUserSavings: { 
+      savings: data.integrationUserSavings || 0, 
+      count: data.integrationUserCount || 0 
+    },
+    platformLicenseSavings: { 
+      savings: data.platformLicenseSavings || 0, 
+      count: data.platformLicenseCount || 0 
+    },
+    sandboxSavings: { 
+      savings: data.sandboxSavings || 0, 
+      count: data.excessSandboxCount || 0 
+    },
+    storageSavings: { 
+      savings: data.storageSavings || 0, 
+      potentialGBSavings: data.potentialStorageReduction || 0 
+    }
+  };
+
+  const totalSavings = Object.values(savingsBreakdown).reduce((acc, curr) => 
+    acc + (curr.savings || 0), 0
+  );
 
   console.log('CSV Generation - Savings breakdown:', {
     savingsBreakdown,
-    totalSavings,
-    breakdownItems: savingsBreakdown.map(item => ({
-      title: item.title,
-      amount: item.amount,
-      details: item.details
-    }))
+    totalSavings
   });
 
   // Generate CSV content
@@ -70,28 +82,53 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     [''],
     ['Detailed Savings Breakdown'],
     ['Category', 'Annual Savings', 'Monthly Savings', 'Details', 'Percentage of Total Savings'],
-    ...savingsBreakdown.map(item => [
-      item.title,
-      `$${item.amount.toLocaleString()}`,
-      `$${(item.amount / 12).toLocaleString()}`,
-      item.details,
-      `${totalSavings > 0 ? ((item.amount / totalSavings) * 100).toFixed(1) : '0.0'}%`
-    ])
+    [
+      'Inactive User Licenses', 
+      `$${savingsBreakdown.inactiveUserSavings.savings.toLocaleString()}`,
+      `$${(savingsBreakdown.inactiveUserSavings.savings / 12).toLocaleString()}`,
+      `${savingsBreakdown.inactiveUserSavings.count} inactive users @ $${licensePrice}/month each`,
+      `${totalSavings > 0 ? ((savingsBreakdown.inactiveUserSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+    ],
+    [
+      'Integration User Optimization', 
+      `$${savingsBreakdown.integrationUserSavings.savings.toLocaleString()}`,
+      `$${(savingsBreakdown.integrationUserSavings.savings / 12).toLocaleString()}`,
+      `${savingsBreakdown.integrationUserSavings.count} users @ $${licensePrice}/month each`,
+      `${totalSavings > 0 ? ((savingsBreakdown.integrationUserSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+    ],
+    [
+      'Platform License Optimization', 
+      `$${savingsBreakdown.platformLicenseSavings.savings.toLocaleString()}`,
+      `$${(savingsBreakdown.platformLicenseSavings.savings / 12).toLocaleString()}`,
+      `${savingsBreakdown.platformLicenseSavings.count} users @ $${licensePrice - 25}/month savings each`,
+      `${totalSavings > 0 ? ((savingsBreakdown.platformLicenseSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+    ],
+    [
+      'Sandbox Optimization', 
+      `$${savingsBreakdown.sandboxSavings.savings.toLocaleString()}`,
+      `$${(savingsBreakdown.sandboxSavings.savings / 12).toLocaleString()}`,
+      `${savingsBreakdown.sandboxSavings.count} excess sandboxes`,
+      `${totalSavings > 0 ? ((savingsBreakdown.sandboxSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+    ],
+    [
+      'Storage Optimization', 
+      `$${savingsBreakdown.storageSavings.savings.toLocaleString()}`,
+      `$${(savingsBreakdown.storageSavings.savings / 12).toLocaleString()}`,
+      `${savingsBreakdown.storageSavings.potentialGBSavings}GB potential reduction`,
+      `${totalSavings > 0 ? ((savingsBreakdown.storageSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+    ]
   ];
 
   // Add sections
   const sections = [
-    createLicenseSection('User Licenses', data.userLicenses || []),
-    createLicenseSection('Package Licenses', data.packageLicenses || []),
-    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses || []),
-    createSandboxSection(data.sandboxes || []),
-    createLimitsSection(data.limits || null)
+    createLicenseSection('User Licenses', data.userLicenses),
+    createLicenseSection('Package Licenses', data.packageLicenses),
+    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses),
+    createSandboxSection(data.sandboxes),
+    createLimitsSection(data.limits)
   ];
 
-  console.log('CSV Generation - Sections created:', {
-    sectionCount: sections.length,
-    sectionTypes: sections.map(s => s.title)
-  });
+  console.log('CSV Generation - Created sections:', sections.map(s => s.title));
 
   sections.forEach(section => {
     if (section) {
@@ -105,11 +142,8 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
   });
 
   console.log('CSV Generation - Final content structure:', {
-    totalRows: csvContent.length,
-    sections: sections.map(s => ({
-      title: s.title,
-      rowCount: s.rows.length
-    }))
+    totalSections: sections.length,
+    contentLength: csvContent.length
   });
 
   return csvContent.map(row => row.join(',')).join('\n');
