@@ -36,6 +36,7 @@ export interface ExportData {
   excessSandboxCount?: number;
   storageSavings?: number;
   potentialStorageReduction?: number;
+  savingsBreakdown?: any[]; // Added this line to fix the TypeScript error
 }
 
 export interface CSVSection {
