@@ -7,7 +7,6 @@ import { Download } from "lucide-react";
 import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
 import { useOrganizationData } from "../cost-savings/hooks/useOrganizationData";
 import { useSavingsCalculations } from "../cost-savings/SavingsCalculator";
-import { filterStandardSalesforceUsers } from "@/components/users/utils/userFilters";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -31,7 +30,7 @@ export const DashboardContent = ({
   const [activeTab, setActiveTab] = useState("health");
   const { licensePrice } = useOrganizationData();
 
-  console.log('DashboardContent - Initial data:', {
+  console.log('DashboardContent - Initial props:', {
     userLicenses: userLicenses?.length,
     packageLicenses: packageLicenses?.length,
     users: users?.length,
@@ -61,9 +60,6 @@ export const DashboardContent = ({
       savingsBreakdown
     });
 
-    const standardUsers = filterStandardSalesforceUsers(users);
-    console.log('Filtered standard users:', standardUsers.length);
-
     const csvContent = await generateReportCSV({
       userLicenses,
       packageLicenses,
@@ -73,8 +69,7 @@ export const DashboardContent = ({
       users,
       oauthTokens,
       licensePrice,
-      savingsBreakdown,
-      standardUsers
+      savingsBreakdown
     });
 
     downloadCSV(csvContent, 'salesforce-optimization-report.csv');
@@ -86,6 +81,7 @@ export const DashboardContent = ({
         <Tabs defaultValue="health" className="w-full" onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="health">Organization Health</TabsTrigger>
+            <TabsTrigger value="savings">Cost Savings</TabsTrigger>
           </TabsList>
 
           <div className="flex justify-end mt-4">
@@ -101,6 +97,18 @@ export const DashboardContent = ({
 
           <TabsContent value="health" className="mt-6">
             <OrgHealth />
+          </TabsContent>
+
+          <TabsContent value="savings" className="mt-6">
+            <CostSavingsReport
+              userLicenses={userLicenses}
+              packageLicenses={packageLicenses}
+              permissionSetLicenses={permissionSetLicenses}
+              sandboxes={sandboxes}
+              limits={limits}
+              users={users}
+              oauthTokens={oauthTokens}
+            />
           </TabsContent>
         </Tabs>
       </div>

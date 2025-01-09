@@ -6,17 +6,25 @@ import { createLimitsSection } from './csv/sections/limitsSection';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
   console.log('CSV Generation - Input data:', {
-    userLicenses: data.userLicenses?.length,
-    packageLicenses: data.packageLicenses?.length,
-    users: data.users?.length,
-    standardUsers: data.standardUsers?.length,
+    userLicenses: data.userLicenses,
+    packageLicenses: data.packageLicenses,
+    users: data.users,
+    oauthTokens: data.oauthTokens,
     licensePrice: data.licensePrice,
     savingsBreakdown: data.savingsBreakdown
   });
 
-  // Use the pre-filtered standard users passed from DashboardContent
-  const standardUsers = data.standardUsers || [];
-  console.log('CSV Generation - Using standard users:', standardUsers.length);
+  // Process users data
+  const standardUsers = data.users ? filterStandardSalesforceUsers(data.users) : [];
+  console.log('CSV Generation - Standard users:', {
+    totalUsers: data.users?.length,
+    standardUsers: standardUsers.length,
+    userDetails: standardUsers.map(u => ({
+      id: u.Id,
+      type: u.UserType,
+      profile: u.Profile?.Name
+    }))
+  });
 
   const licensePrice = data.licensePrice || 0;
 
@@ -31,7 +39,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     totalAnnualLicenseCost
   });
 
-  // Calculate savings
+  // Calculate savings with detailed logging
   const savingsBreakdown = data.savingsBreakdown || [];
   const totalSavings = savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0);
 
