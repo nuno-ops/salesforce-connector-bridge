@@ -26,12 +26,7 @@ export const useOrgHealthData = () => {
           body: { access_token, instance_url }
         });
 
-        console.log('useOrgHealthData - Licenses response:', {
-          hasError: !!licensesResponse.error,
-          userLicensesCount: licensesResponse.data?.userLicenses?.length,
-          packageLicensesCount: licensesResponse.data?.packageLicenses?.length,
-          permissionSetLicensesCount: licensesResponse.data?.permissionSetLicenses?.length
-        });
+        console.log('useOrgHealthData - Raw licenses response:', licensesResponse.data);
 
         if (licensesResponse.error) {
           if (licensesResponse.error.message?.includes('INVALID_SESSION_ID') ||
@@ -47,10 +42,7 @@ export const useOrgHealthData = () => {
           body: { access_token, instance_url }
         });
 
-        console.log('useOrgHealthData - Limits response:', {
-          hasError: !!limitsResponse.error,
-          hasLimitsData: !!limitsResponse.data
-        });
+        console.log('useOrgHealthData - Raw limits response:', limitsResponse.data);
 
         if (limitsResponse.error) {
           if (limitsResponse.error.message?.includes('INVALID_SESSION_ID') ||
@@ -66,10 +58,7 @@ export const useOrgHealthData = () => {
           body: { access_token, instance_url }
         });
 
-        console.log('useOrgHealthData - Sandboxes response:', {
-          hasError: !!sandboxesResponse.error,
-          sandboxCount: sandboxesResponse.data?.records?.length
-        });
+        console.log('useOrgHealthData - Raw sandboxes response:', sandboxesResponse.data);
 
         if (sandboxesResponse.error) {
           if (sandboxesResponse.error.message?.includes('INVALID_SESSION_ID') ||
@@ -85,10 +74,7 @@ export const useOrgHealthData = () => {
           body: { access_token, instance_url }
         });
 
-        console.log('useOrgHealthData - Metrics response:', {
-          hasError: !!metricsResponse.error,
-          hasMetricsData: !!metricsResponse.data
-        });
+        console.log('useOrgHealthData - Raw metrics response:', metricsResponse.data);
 
         if (metricsResponse.error) {
           if (metricsResponse.error.message?.includes('INVALID_SESSION_ID') ||
@@ -104,12 +90,7 @@ export const useOrgHealthData = () => {
           body: { access_token, instance_url }
         });
 
-        console.log('useOrgHealthData - Users response:', {
-          hasError: !!usersResponse.error,
-          usersCount: usersResponse.data?.users?.length,
-          oauthTokensCount: usersResponse.data?.oauthTokens?.length,
-          rawResponse: usersResponse.data
-        });
+        console.log('useOrgHealthData - Raw users response:', usersResponse.data);
 
         if (usersResponse.error) {
           if (usersResponse.error.message?.includes('INVALID_SESSION_ID') ||
@@ -119,7 +100,7 @@ export const useOrgHealthData = () => {
           throw usersResponse.error;
         }
 
-        // Default limits structure that matches OrgLimits type
+        // Default limits structure
         const defaultLimits: OrgLimits = {
           DataStorageMB: { Max: 0, Remaining: 0 },
           FileStorageMB: { Max: 0, Remaining: 0 },
@@ -139,7 +120,7 @@ export const useOrgHealthData = () => {
           oauthTokens: usersResponse.data?.oauthTokens || [],
         };
 
-        console.log('useOrgHealthData - Final data structure:', {
+        console.log('useOrgHealthData - Final data structure details:', {
           userLicensesCount: finalData.userLicenses.length,
           packageLicensesCount: finalData.packageLicenses.length,
           permissionSetLicensesCount: finalData.permissionSetLicenses.length,
@@ -148,6 +129,8 @@ export const useOrgHealthData = () => {
           hasMetrics: !!finalData.metrics,
           usersCount: finalData.users.length,
           oauthTokensCount: finalData.oauthTokens.length,
+          firstUser: finalData.users[0],
+          firstOAuthToken: finalData.oauthTokens[0],
           timestamp: new Date().toISOString()
         });
 
@@ -157,6 +140,16 @@ export const useOrgHealthData = () => {
         throw error;
       }
     }
+  });
+
+  console.log('useOrgHealthData - Hook return value:', {
+    hasData: !!data,
+    isLoading,
+    hasError: !!error,
+    userCount: data?.users?.length,
+    oauthTokenCount: data?.oauthTokens?.length,
+    firstUser: data?.users?.[0],
+    firstOAuthToken: data?.oauthTokens?.[0]
   });
 
   return {

@@ -32,6 +32,19 @@ const Dashboard = () => {
     error: healthDataError
   } = useOrgHealthData();
 
+  console.log('Dashboard - Data received from useOrgHealthData:', {
+    userLicensesCount: userLicenses?.length,
+    packageLicensesCount: packageLicenses?.length,
+    permissionSetLicensesCount: permissionSetLicenses?.length,
+    sandboxesCount: sandboxes?.length,
+    hasLimits: !!limits,
+    usersCount: users?.length,
+    oauthTokensCount: oauthTokens?.length,
+    firstUser: users?.[0],
+    firstOAuthToken: oauthTokens?.[0],
+    timestamp: new Date().toISOString()
+  });
+
   // Check for session expiration before doing anything else
   useEffect(() => {
     const checkSession = () => {
@@ -90,6 +103,19 @@ const Dashboard = () => {
   const formattedUserLicenses = formatLicenseData(userLicenses || []);
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses || []);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses || []);
+
+  console.log('Dashboard - Formatted data before passing to DashboardContent:', {
+    formattedUserLicensesCount: formattedUserLicenses?.length,
+    formattedPackageLicensesCount: formattedPackageLicenses?.length,
+    formattedPermissionSetLicensesCount: formattedPermissionSetLicenses?.length,
+    sandboxesCount: sandboxes?.length,
+    hasLimits: !!limits,
+    usersCount: users?.length,
+    oauthTokensCount: oauthTokens?.length,
+    firstUser: users?.[0],
+    firstOAuthToken: oauthTokens?.[0],
+    timestamp: new Date().toISOString()
+  });
 
   if (!hasAccess) {
     if (!showPaymentPlans) {

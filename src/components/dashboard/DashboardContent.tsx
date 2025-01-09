@@ -26,6 +26,19 @@ export const DashboardContent = ({
   users = [],
   oauthTokens = []
 }: DashboardContentProps) => {
+  console.log('DashboardContent - Received props:', {
+    userLicensesCount: userLicenses?.length,
+    packageLicensesCount: packageLicenses?.length,
+    permissionSetLicensesCount: permissionSetLicenses?.length,
+    sandboxesCount: sandboxes?.length,
+    hasLimits: !!limits,
+    usersCount: users?.length,
+    oauthTokensCount: oauthTokens?.length,
+    firstUser: users?.[0],
+    firstOAuthToken: oauthTokens?.[0],
+    timestamp: new Date().toISOString()
+  });
+
   const { licensePrice } = useOrganizationData();
   const { isExporting, handleExport } = useExportReport();
   
