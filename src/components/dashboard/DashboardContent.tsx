@@ -31,7 +31,7 @@ export const DashboardContent = ({
   const [activeTab, setActiveTab] = useState("health");
   const { licensePrice } = useOrganizationData();
 
-  console.log('DashboardContent - Initial props:', {
+  console.log('DashboardContent - Initial data:', {
     userLicenses: userLicenses?.length,
     packageLicenses: packageLicenses?.length,
     users: users?.length,
@@ -62,6 +62,7 @@ export const DashboardContent = ({
     });
 
     const standardUsers = filterStandardSalesforceUsers(users);
+    console.log('Filtered standard users:', standardUsers.length);
 
     const csvContent = await generateReportCSV({
       userLicenses,
@@ -85,7 +86,6 @@ export const DashboardContent = ({
         <Tabs defaultValue="health" className="w-full" onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="health">Organization Health</TabsTrigger>
-            <TabsTrigger value="savings">Cost Savings</TabsTrigger>
           </TabsList>
 
           <div className="flex justify-end mt-4">
@@ -101,19 +101,6 @@ export const DashboardContent = ({
 
           <TabsContent value="health" className="mt-6">
             <OrgHealth />
-          </TabsContent>
-
-          <TabsContent value="savings" className="mt-6">
-            <CostSavingsReport
-              userLicenses={userLicenses}
-              packageLicenses={packageLicenses}
-              permissionSetLicenses={permissionSetLicenses}
-              sandboxes={sandboxes}
-              apiUsage={limits?.DailyApiRequests?.Used || 0}
-              storageUsage={limits?.DataStorageMB?.Used || 0}
-              contracts={[]}
-              invoices={[]}
-            />
           </TabsContent>
         </Tabs>
       </div>
