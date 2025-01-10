@@ -1,10 +1,10 @@
-import { CsvExportData } from '../types';
+import { ExportData } from '../types';
 
 export const generateSavingsReportContent = ({
   licensePrice,
   standardUsers,
   savingsBreakdown
-}: CsvExportData): string[][] => {
+}: ExportData): string[][] => {
   console.log('Savings Report - Input:', {
     licensePrice,
     standardUsers,
