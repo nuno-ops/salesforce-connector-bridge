@@ -8,21 +8,10 @@ export interface RawLicense {
   AllowedLicenses?: number;
   Status?: string;
   type?: 'user' | 'package' | 'permissionSet';
-}
-
-export interface SavingsReportData {
-  standardUsers: any[];
-  licensePrice: number;
-  inactiveUserSavings: number;
-  integrationUserSavings: number;
-  platformLicenseSavings: number;
-  sandboxSavings: number;
-  storageSavings: number;
-  inactiveUserCount: number;
-  integrationUserCount: number;
-  platformLicenseCount: number;
-  excessSandboxCount: number;
-  potentialStorageReduction: number;
+  // Formatted data
+  name?: string;
+  total?: number;
+  used?: number;
 }
 
 export interface ExportData {
@@ -34,25 +23,39 @@ export interface ExportData {
   users: any[];
   standardUsers: any[];
   oauthTokens: any[];
-  inactiveUsers: any[];
-  integrationUsers: any[];
-  platformUsers: any[];
-  savingsBreakdown: any[];
-  licensePrice: number;
-  inactiveUserSavings: number;
-  integrationUserSavings: number;
-  platformLicenseSavings: number;
-  sandboxSavings: number;
-  storageSavings: number;
-  inactiveUserCount: number;
-  integrationUserCount: number;
-  platformLicenseCount: number;
-  excessSandboxCount: number;
-  potentialStorageReduction: number;
+  licensePrice?: number;
+  storageUsage?: number;
+  // Savings data
+  inactiveUserSavings?: number;
+  inactiveUserCount?: number;
+  integrationUserSavings?: number;
+  integrationUserCount?: number;
+  platformLicenseSavings?: number;
+  platformLicenseCount?: number;
+  sandboxSavings?: number;
+  excessSandboxCount?: number;
+  storageSavings?: number;
+  potentialStorageReduction?: number;
+  savingsBreakdown?: any[]; // Added this line to fix the TypeScript error
 }
 
 export interface CSVSection {
   title: string;
   headers: string[];
   rows: string[][];
+}
+
+export interface SavingsBreakdown {
+  inactiveUserSavings: { savings: number; count: number };
+  integrationUserSavings: { savings: number; count: number };
+  platformLicenseSavings: { savings: number; count: number };
+  sandboxSavings: { savings: number; count: number };
+  storageSavings: { savings: number; potentialGBSavings: number };
+  totalSavings: number;
+}
+
+export interface CsvExportData {
+  licensePrice: number;
+  standardUsers: any[];
+  savingsBreakdown: SavingsBreakdown;
 }
