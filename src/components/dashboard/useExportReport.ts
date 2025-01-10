@@ -1,4 +1,4 @@
-import { useState } from "@/react";
+import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { generateCSVContent } from "@/utils/csv/csvExport";
 
@@ -21,22 +21,13 @@ export const useExportReport = () => {
       timestamp: new Date().toISOString()
     });
 
-    console.log('Export Report - Savings breakdown details:', {
-      breakdownItems: data.savingsBreakdown?.map(item => ({
-        title: item.title,
-        amount: item.amount,
-        details: item.details
-      })),
-      timestamp: new Date().toISOString()
-    });
-
     try {
       setIsExporting(true);
       const csvContent = await generateCSVContent(data);
       
-      console.log('Export Report - Generated CSV content structure:', {
-        sections: Object.keys(csvContent),
-        savingsSection: csvContent.savings,
+      console.log('Export Report - Generated CSV content:', {
+        contentLength: csvContent?.length,
+        firstRow: csvContent?.split('\n')?.[0],
         timestamp: new Date().toISOString()
       });
 

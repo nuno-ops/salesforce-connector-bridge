@@ -38,7 +38,7 @@ export const generateSavingsReportContent = (data: SavingsReportData) => {
     timestamp: new Date().toISOString()
   });
 
-  const content = {
+  return {
     header: [
       'User Count',
       'Monthly License Cost',
@@ -58,6 +58,4 @@ export const generateSavingsReportContent = (data: SavingsReportData) => {
       ]
     ]
   };
-
-  return content;
 };
