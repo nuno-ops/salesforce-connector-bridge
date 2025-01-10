@@ -43,6 +43,14 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     }
   });
 
+  // Helper function to format currency values consistently
+  const formatCurrency = (value: number): string => {
+    return value.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+  };
+
   const csvContent: string[][] = [
     ['Salesforce Organization Cost Optimization Report'],
     ['Generated on:', new Date().toLocaleString()],
@@ -50,47 +58,47 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     ['Cost Overview'],
     ['Current License Cost per User (Monthly):', `$${licensePrice}`],
     ['Total Users:', standardUsers.length.toString()],
-    ['Total Monthly License Cost:', `$${totalMonthlyLicenseCost.toLocaleString()}`],
-    ['Total Annual License Cost:', `$${totalAnnualLicenseCost.toLocaleString()}`],
+    ['Total Monthly License Cost:', `$${formatCurrency(totalMonthlyLicenseCost)}`],
+    ['Total Annual License Cost:', `$${formatCurrency(totalAnnualLicenseCost)}`],
     [''],
     ['Savings Summary'],
-    ['Total Annual Potential Savings:', `$${totalSavings.toLocaleString()}`],
+    ['Total Annual Potential Savings:', `$${formatCurrency(totalSavings)}`],
     ['Percentage of Annual Cost:', `${totalAnnualLicenseCost > 0 ? ((totalSavings / totalAnnualLicenseCost) * 100).toFixed(1) : '0.0'}%`],
     [''],
     ['Detailed Savings Breakdown'],
     ['Category', 'Annual Savings', 'Monthly Savings', 'Details', 'Percentage of Total Savings'],
     [
       'Inactive User Licenses',
-      `$${(data.inactiveUserSavings || 0).toLocaleString()}`,
-      `$${((data.inactiveUserSavings || 0) / 12).toLocaleString()}`,
+      `$${formatCurrency(data.inactiveUserSavings || 0)}`,
+      `$${formatCurrency((data.inactiveUserSavings || 0) / 12)}`,
       `${data.inactiveUserCount || 0} inactive users @ $${licensePrice}/month each`,
       `${totalSavings > 0 ? (((data.inactiveUserSavings || 0) / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Integration User Optimization',
-      `$${(data.integrationUserSavings || 0).toLocaleString()}`,
-      `$${((data.integrationUserSavings || 0) / 12).toLocaleString()}`,
+      `$${formatCurrency(data.integrationUserSavings || 0)}`,
+      `$${formatCurrency((data.integrationUserSavings || 0) / 12)}`,
       `${data.integrationUserCount || 0} users @ $${licensePrice}/month each`,
       `${totalSavings > 0 ? (((data.integrationUserSavings || 0) / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Platform License Optimization',
-      `$${(data.platformLicenseSavings || 0).toLocaleString()}`,
-      `$${((data.platformLicenseSavings || 0) / 12).toLocaleString()}`,
+      `$${formatCurrency(data.platformLicenseSavings || 0)}`,
+      `$${formatCurrency((data.platformLicenseSavings || 0) / 12)}`,
       `${data.platformLicenseCount || 0} users @ $${licensePrice - 25}/month savings each`,
       `${totalSavings > 0 ? (((data.platformLicenseSavings || 0) / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Sandbox Optimization',
-      `$${(data.sandboxSavings || 0).toLocaleString()}`,
-      `$${((data.sandboxSavings || 0) / 12).toLocaleString()}`,
+      `$${formatCurrency(data.sandboxSavings || 0)}`,
+      `$${formatCurrency((data.sandboxSavings || 0) / 12)}`,
       `${data.excessSandboxCount || 0} excess sandboxes`,
       `${totalSavings > 0 ? (((data.sandboxSavings || 0) / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Storage Optimization',
-      `$${(data.storageSavings || 0).toLocaleString()}`,
-      `$${((data.storageSavings || 0) / 12).toLocaleString()}`,
+      `$${formatCurrency(data.storageSavings || 0)}`,
+      `$${formatCurrency((data.storageSavings || 0) / 12)}`,
       `${data.potentialStorageReduction || 0}GB potential reduction`,
       `${totalSavings > 0 ? (((data.storageSavings || 0) / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ]
