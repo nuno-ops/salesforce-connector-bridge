@@ -3,16 +3,15 @@ import { SavingsReportData } from '../types';
 
 export const generateSavingsReportContent = (data: SavingsReportData) => {
   console.log('Savings Report Generator - Input data:', {
-    userCount: data.users?.length,
+    standardUsers: data.standardUsers?.length,
     licensePrice: data.licensePrice,
-    savingsBreakdown: data.savingsBreakdown,
-    inactiveUsers: data.inactiveUsers?.length,
-    integrationUsers: data.integrationUsers?.length,
-    platformUsers: data.platformUsers?.length,
+    inactiveUserSavings: data.inactiveUserSavings,
+    integrationUserSavings: data.integrationUserSavings,
+    platformLicenseSavings: data.platformLicenseSavings,
     timestamp: new Date().toISOString()
   });
 
-  const totalUsers = data.users?.length || 0;
+  const totalUsers = data.standardUsers?.length || 0;
   const monthlyLicenseCost = data.licensePrice || 0;
   const totalMonthlyCost = totalUsers * monthlyLicenseCost;
   const totalAnnualCost = totalMonthlyCost * 12;
@@ -25,15 +24,19 @@ export const generateSavingsReportContent = (data: SavingsReportData) => {
     timestamp: new Date().toISOString()
   });
 
-  // Calculate total savings from breakdown
-  const totalAnnualSavings = (data.savingsBreakdown || []).reduce((total, item) => total + (item.amount || 0), 0) * 12;
+  // Calculate total savings
+  const totalAnnualSavings = (data.inactiveUserSavings || 0) +
+                            (data.integrationUserSavings || 0) +
+                            (data.platformLicenseSavings || 0) +
+                            (data.sandboxSavings || 0) +
+                            (data.storageSavings || 0);
   
   console.log('Savings Report Generator - Savings calculations:', {
-    savingsBreakdownItems: data.savingsBreakdown?.map(item => ({
-      title: item.title,
-      monthlyAmount: item.amount,
-      annualAmount: item.amount * 12
-    })),
+    inactiveUserSavings: data.inactiveUserSavings,
+    integrationUserSavings: data.integrationUserSavings,
+    platformLicenseSavings: data.platformLicenseSavings,
+    sandboxSavings: data.sandboxSavings,
+    storageSavings: data.storageSavings,
     totalAnnualSavings,
     timestamp: new Date().toISOString()
   });
@@ -44,8 +47,7 @@ export const generateSavingsReportContent = (data: SavingsReportData) => {
       'Monthly License Cost',
       'Total Monthly Cost',
       'Total Annual Cost',
-      'Total Annual Savings',
-      'Savings Breakdown'
+      'Total Annual Savings'
     ],
     rows: [
       [
@@ -53,8 +55,7 @@ export const generateSavingsReportContent = (data: SavingsReportData) => {
         formatCurrency(monthlyLicenseCost),
         formatCurrency(totalMonthlyCost),
         formatCurrency(totalAnnualCost),
-        formatCurrency(totalAnnualSavings),
-        data.savingsBreakdown?.map(item => `${item.title}: ${formatCurrency(item.amount)}`).join(', ')
+        formatCurrency(totalAnnualSavings)
       ]
     ]
   };
