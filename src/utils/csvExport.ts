@@ -4,12 +4,15 @@ import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
-  console.log('CSV Generation - Starting with data:', {
+  console.log('CSV Generation - Step 1: Received data:', {
     standardUsers: data.standardUsers?.length,
     licensePrice: data.licensePrice,
     inactiveUserSavings: data.inactiveUserSavings,
     integrationUserSavings: data.integrationUserSavings,
-    platformLicenseSavings: data.platformLicenseSavings
+    platformLicenseSavings: data.platformLicenseSavings,
+    inactiveUserCount: data.inactiveUserCount,
+    integrationUserCount: data.integrationUserCount,
+    platformLicenseCount: data.platformLicenseCount
   });
 
   // Process users data
@@ -27,13 +30,19 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
                       (data.sandboxSavings || 0) +
                       (data.storageSavings || 0);
 
-  console.log('CSV Generation - Calculated values:', {
+  console.log('CSV Generation - Step 2: Calculated values:', {
     totalMonthlyLicenseCost,
     totalAnnualLicenseCost,
-    totalSavings
+    totalSavings,
+    savingsBreakdown: {
+      inactiveUserSavings: data.inactiveUserSavings,
+      integrationUserSavings: data.integrationUserSavings,
+      platformLicenseSavings: data.platformLicenseSavings,
+      sandboxSavings: data.sandboxSavings,
+      storageSavings: data.storageSavings
+    }
   });
 
-  // Generate CSV content
   const csvContent: string[][] = [
     ['Salesforce Organization Cost Optimization Report'],
     ['Generated on:', new Date().toLocaleString()],

@@ -24,7 +24,7 @@ export const useExportReport = () => {
 
   const handleExport = async (data: ExportReportProps) => {
     try {
-      console.log('Export Report - Initial data received:', {
+      console.log('Export Report - Step 1: Initial data received:', {
         userLicensesCount: data.userLicenses?.length,
         packageLicensesCount: data.packageLicenses?.length,
         rawUsersCount: data.users?.length,
@@ -40,39 +40,43 @@ export const useExportReport = () => {
       
       // Filter standard users
       const standardUsers = filterStandardSalesforceUsers(data.users);
-      console.log('Export Report - After filtering standard users:', {
-        originalUsersCount: data.users?.length,
-        filteredStandardUsersCount: standardUsers.length,
-        firstStandardUser: standardUsers[0],
-        filterFunction: 'filterStandardSalesforceUsers'
-      });
       
-      console.log('Export Report - Savings data:', {
+      console.log('Export Report - Step 2: Calculating savings:', {
         inactiveUsers: {
           count: data.inactiveUsers?.length,
-          sample: data.inactiveUsers?.[0]
+          savings: data.inactiveUsers?.length * data.licensePrice * 12
         },
         integrationUsers: {
           count: data.integrationUsers?.length,
-          sample: data.integrationUsers?.[0]
+          savings: data.integrationUsers?.length * data.licensePrice * 12
         },
         platformUsers: {
           count: data.platformUsers?.length,
-          sample: data.platformUsers?.[0]
+          savings: data.platformUsers?.length * (data.licensePrice - 25) * 12
         }
       });
 
       const csvContent = await generateReportCSV({
         ...data,
         standardUsers,
-        storageUsage: data.limits?.StorageUsed || 0,
+        inactiveUserSavings: data.inactiveUsers?.length * data.licensePrice * 12,
+        integrationUserSavings: data.integrationUsers?.length * data.licensePrice * 12,
+        platformLicenseSavings: data.platformUsers?.length * (data.licensePrice - 25) * 12,
+        inactiveUserCount: data.inactiveUsers?.length || 0,
+        integrationUserCount: data.integrationUsers?.length || 0,
+        platformLicenseCount: data.platformUsers?.length || 0,
+        sandboxSavings: 0, // Will implement later
+        excessSandboxCount: 0,
+        storageSavings: 0,
+        potentialStorageReduction: 0
       });
 
-      console.log('Export Report - Final data sent to CSV generation:', {
+      console.log('Export Report - Step 3: Final data sent to CSV generation:', {
         standardUsersCount: standardUsers.length,
         licensePrice: data.licensePrice,
-        savingsBreakdownLength: data.savingsBreakdown?.length,
-        hasStorageUsage: !!data.limits?.StorageUsed
+        inactiveUserSavings: data.inactiveUsers?.length * data.licensePrice * 12,
+        integrationUserSavings: data.integrationUsers?.length * data.licensePrice * 12,
+        platformLicenseSavings: data.platformUsers?.length * (data.licensePrice - 25) * 12
       });
       
       downloadCSV(csvContent, 'salesforce-optimization-report.csv');
