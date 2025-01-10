@@ -27,7 +27,7 @@ export const useExportReport = () => {
       
       console.log('Export Report - Generated CSV content:', {
         contentLength: csvContent?.length,
-        firstRow: csvContent?.split('\n')?.[0],
+        firstRows: csvContent?.split('\n').slice(0, 3),
         timestamp: new Date().toISOString()
       });
 
