@@ -1,48 +1,46 @@
-import { ExportData } from './types';
-import { createLicenseSection } from './sections/licenseSection';
-import { createSandboxSection } from './sections/sandboxSection';
-import { createLimitsSection } from './sections/limitsSection';
+import { generateSavingsReportContent } from './generators/savingsReportContent';
+import { formatCurrency, formatPercentage } from '../formatters';
+import { SavingsReportData } from '../types';
 
-export const generateReportCSV = (data: ExportData) => {
-  console.log('Generating CSV with raw data:', data);
-
-  const sections = [
-    createLicenseSection('User Licenses', data.userLicenses),
-    createLicenseSection('Package Licenses', data.packageLicenses),
-    createLicenseSection('Permission Set Licenses', data.permissionSetLicenses),
-    createSandboxSection(data.sandboxes),
-    createLimitsSection(data.limits)
-  ];
-
-  const csvContent: string[][] = [
-    ['Salesforce Organization Cost Optimization Report'],
-    ['Generated on:', new Date().toLocaleString()],
-    ['']
-  ];
-
-  sections.forEach(section => {
-    csvContent.push(
-      [section.title],
-      section.headers,
-      ...section.rows,
-      ['']
-    );
+export const generateCSVContent = async (data: any) => {
+  console.log('CSV Export - Starting generation with data:', {
+    hasUsers: !!data.users?.length,
+    hasLicenses: !!data.userLicenses?.length,
+    hasSavingsBreakdown: !!data.savingsBreakdown?.length,
+    licensePrice: data.licensePrice,
+    timestamp: new Date().toISOString()
   });
 
-  return csvContent.map(row => row.join(',')).join('\n');
-};
+  const content = {
+    savings: await generateSavingsReportContent(data),
+    users: data.users?.map(user => ({
+      Id: user.Id,
+      Username: user.Username,
+      LastLoginDate: user.LastLoginDate,
+      UserType: user.UserType,
+      ProfileName: user.Profile?.Name,
+    })) || [],
+    licenses: data.userLicenses?.map(license => ({
+      Id: license.Id,
+      Name: license.Name,
+      LicenseDefinitionKey: license.LicenseDefinitionKey,
+    })) || [],
+    oauthTokens: data.oauthTokens?.map(token => ({
+      Id: token.Id,
+      AppName: token.AppName,
+      LastUsedDate: token.LastUsedDate,
+      UseCount: token.UseCount,
+    })) || [],
+  };
 
-export const downloadCSV = (content: string, filename: string) => {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
+  console.log('CSV Export - Generated content structure:', {
+    sections: Object.keys(content),
+    savingsContentRows: content.savings?.length,
+    usersContentRows: content.users?.length,
+    licensesContentRows: content.licenses?.length,
+    oauthTokensContentRows: content.oauthTokens?.length,
+    timestamp: new Date().toISOString()
+  });
+
+  return content;
 };
