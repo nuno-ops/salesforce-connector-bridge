@@ -1,32 +1,24 @@
-import { ExportData } from '../types';
+import { CsvExportData } from '../types';
 
 export const generateSavingsReportContent = ({
   licensePrice,
   standardUsers,
-  savingsBreakdown = []
-}: ExportData): string[][] => {
+  savingsBreakdown
+}: CsvExportData): string[][] => {
   console.log('Savings Report - Input:', {
     licensePrice,
     standardUsers,
     savingsBreakdown: JSON.stringify(savingsBreakdown, null, 2)
   });
 
-  // Find savings by category from the savingsBreakdown array
-  const findSavings = (title: string) => {
-    const item = savingsBreakdown.find(item => item.title === title);
-    return {
-      savings: item?.amount || 0,
-      details: item?.details || ''
-    };
-  };
-
-  const inactiveUserSavings = findSavings('Inactive User Licenses');
-  const integrationUserSavings = findSavings('Integration User Optimization');
-  const platformLicenseSavings = findSavings('Platform License Optimization');
-  const sandboxSavings = findSavings('Sandbox Optimization');
-  const storageSavings = findSavings('Storage Optimization');
-
-  const totalSavings = savingsBreakdown.reduce((sum, item) => sum + item.amount, 0);
+  const {
+    inactiveUserSavings,
+    integrationUserSavings,
+    platformLicenseSavings,
+    sandboxSavings,
+    storageSavings,
+    totalSavings
+  } = savingsBreakdown;
 
   const totalMonthlyLicenseCost = licensePrice * standardUsers.length;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
@@ -63,35 +55,35 @@ export const generateSavingsReportContent = ({
       'Inactive User Licenses', 
       `$${inactiveUserSavings.savings.toLocaleString()}`,
       `$${(inactiveUserSavings.savings / 12).toLocaleString()}`,
-      inactiveUserSavings.details,
+      `${inactiveUserSavings.count} inactive users @ $${licensePrice}/month each`,
       `${totalSavings > 0 ? ((inactiveUserSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Integration User Optimization', 
       `$${integrationUserSavings.savings.toLocaleString()}`,
       `$${(integrationUserSavings.savings / 12).toLocaleString()}`,
-      integrationUserSavings.details,
+      `${integrationUserSavings.count} users @ $${licensePrice}/month each`,
       `${totalSavings > 0 ? ((integrationUserSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Platform License Optimization', 
       `$${platformLicenseSavings.savings.toLocaleString()}`,
       `$${(platformLicenseSavings.savings / 12).toLocaleString()}`,
-      platformLicenseSavings.details,
+      `${platformLicenseSavings.count} users @ $${licensePrice - 25}/month savings each`,
       `${totalSavings > 0 ? ((platformLicenseSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Sandbox Optimization', 
       `$${sandboxSavings.savings.toLocaleString()}`,
       `$${(sandboxSavings.savings / 12).toLocaleString()}`,
-      sandboxSavings.details,
+      `${sandboxSavings.count} excess sandboxes`,
       `${totalSavings > 0 ? ((sandboxSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     [
       'Storage Optimization', 
       `$${storageSavings.savings.toLocaleString()}`,
       `$${(storageSavings.savings / 12).toLocaleString()}`,
-      storageSavings.details,
+      `${storageSavings.potentialGBSavings}GB potential reduction`,
       `${totalSavings > 0 ? ((storageSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
     ],
     ['']

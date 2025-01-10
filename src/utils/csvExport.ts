@@ -4,12 +4,15 @@ import { createSandboxSection } from './csv/sections/sandboxSection';
 import { createLimitsSection } from './csv/sections/limitsSection';
 
 export const generateReportCSV = async (data: ExportData): Promise<string> => {
-  console.log('CSV Generation - Starting with data:', {
+  console.log('CSV Generation - Step 1: Received data:', {
     standardUsers: data.standardUsers?.length,
     licensePrice: data.licensePrice,
     inactiveUserSavings: data.inactiveUserSavings,
     integrationUserSavings: data.integrationUserSavings,
-    platformLicenseSavings: data.platformLicenseSavings
+    platformLicenseSavings: data.platformLicenseSavings,
+    inactiveUserCount: data.inactiveUserCount,
+    integrationUserCount: data.integrationUserCount,
+    platformLicenseCount: data.platformLicenseCount
   });
 
   // Process users data
@@ -27,10 +30,17 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
                       (data.sandboxSavings || 0) +
                       (data.storageSavings || 0);
 
-  console.log('CSV Generation - Calculated values:', {
+  console.log('CSV Generation - Step 2: Calculated values:', {
     totalMonthlyLicenseCost,
     totalAnnualLicenseCost,
-    totalSavings
+    totalSavings,
+    savingsBreakdown: {
+      inactiveUserSavings: data.inactiveUserSavings,
+      integrationUserSavings: data.integrationUserSavings,
+      platformLicenseSavings: data.platformLicenseSavings,
+      sandboxSavings: data.sandboxSavings,
+      storageSavings: data.storageSavings
+    }
   });
 
   const csvContent: string[][] = [
@@ -41,7 +51,7 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     ['Current License Cost per User (Monthly):', `$${licensePrice}`],
     ['Total Users:', standardUsers.length.toString()],
     ['Total Monthly License Cost:', `$${totalMonthlyLicenseCost.toLocaleString()}`],
-    ['Total Annual License Cost:', `$${totalAnnualLicenseCost.toLocaleString('en-US')}`],
+    ['Total Annual License Cost:', `$${totalAnnualLicenseCost.toLocaleString()}`],
     [''],
     ['Savings Summary'],
     ['Total Annual Potential Savings:', `$${totalSavings.toLocaleString()}`],

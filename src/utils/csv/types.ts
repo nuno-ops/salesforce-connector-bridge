@@ -9,11 +9,6 @@ export interface RawLicense {
   Status?: string;
 }
 
-export interface SavingsBreakdown {
-  savings: number;
-  count: number;
-}
-
 export interface ExportData {
   userLicenses: RawLicense[];
   packageLicenses: RawLicense[];
@@ -36,12 +31,6 @@ export interface ExportData {
   excessSandboxCount?: number;
   storageSavings?: number;
   potentialStorageReduction?: number;
-  // Add the missing savingsBreakdown property
-  savingsBreakdown?: Array<{
-    title: string;
-    amount: number;
-    details: string;
-  }>;
 }
 
 export interface CSVSection {
