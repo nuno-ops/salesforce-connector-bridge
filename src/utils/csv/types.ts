@@ -38,7 +38,6 @@ export interface ExportData {
   excessSandboxCount?: number;
   storageSavings?: number;
   potentialStorageReduction?: number;
-  // Add the missing savingsBreakdown property
   savingsBreakdown: SavingsBreakdownItem[];
 }
 
