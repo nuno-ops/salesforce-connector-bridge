@@ -1,10 +1,10 @@
-import { ExportData } from '../types';
+import { CsvExportData } from '../types';
 
 export const generateSavingsReportContent = ({
   licensePrice,
   standardUsers,
   savingsBreakdown
-}: ExportData): string[][] => {
+}: CsvExportData): string[][] => {
   // Helper function to format currency values consistently without commas
   const formatCurrency = (value: number): string => {
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");

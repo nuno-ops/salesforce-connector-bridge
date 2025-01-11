@@ -9,13 +9,6 @@ export interface RawLicense {
   Status?: string;
 }
 
-export interface SavingsBreakdownItem {
-  title: string;
-  amount: number;
-  count?: number;
-  potentialGBSavings?: number;
-}
-
 export interface ExportData {
   userLicenses: RawLicense[];
   packageLicenses: RawLicense[];
@@ -38,7 +31,6 @@ export interface ExportData {
   excessSandboxCount?: number;
   storageSavings?: number;
   potentialStorageReduction?: number;
-  savingsBreakdown: SavingsBreakdownItem[];
 }
 
 export interface CSVSection {
