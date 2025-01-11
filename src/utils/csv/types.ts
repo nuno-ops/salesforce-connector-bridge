@@ -41,3 +41,9 @@ export interface ExportData {
   // Add the missing savingsBreakdown property
   savingsBreakdown: SavingsBreakdownItem[];
 }
+
+export interface CSVSection {
+  title: string;
+  headers: string[];
+  rows: string[][];
+}
