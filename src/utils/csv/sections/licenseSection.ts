@@ -5,9 +5,9 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
   
   const rows = licenses.map(license => {
     // Handle different property names based on license type
-    const name = license.name || '';
-    const total = license.total || 0;
-    const used = license.used || 0;
+    const name = license.Name || license.NamespacePrefix || license.DeveloperName || '';
+    const total = license.TotalLicenses || license.AllowedLicenses || 0;
+    const used = license.UsedLicenses || 0;
     const available = total === -1 ? 'Unlimited' : (total - used).toString();
     const usagePercentage = total === -1 ? 'N/A' : (total > 0 ? ((used / total) * 100).toFixed(1) + '%' : '0%');
 
