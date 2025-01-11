@@ -43,12 +43,9 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     }
   });
 
-  // Helper function to format currency values consistently
+  // Helper function to format currency values consistently without commas
   const formatCurrency = (value: number): string => {
-    return value.toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    });
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   };
 
   const csvContent: string[][] = [
