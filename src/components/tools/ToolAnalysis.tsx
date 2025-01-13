@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,9 +50,9 @@ export const ToolAnalysis = ({ oauthTokens }: { oauthTokens: any[] }) => {
 
         if (existingAnalysis?.analysis) {
           console.log('Found existing analysis:', existingAnalysis);
-          // Type assertion to ensure the analysis matches our expected structure
-          const parsedAnalysis = existingAnalysis.analysis as ToolAnalysis;
-          if (Array.isArray(parsedAnalysis.categories)) {
+          // Validate the analysis structure before setting it
+          const parsedAnalysis = existingAnalysis.analysis as unknown as ToolAnalysis;
+          if (parsedAnalysis && Array.isArray(parsedAnalysis.categories)) {
             setAnalysis(parsedAnalysis);
             return;
           }

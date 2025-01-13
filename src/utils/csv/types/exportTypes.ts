@@ -1,14 +1,12 @@
 export interface SavingsBreakdown {
-  inactiveUserSavings: { savings: number; count: number };
-  integrationUserSavings: { savings: number; count: number };
-  platformLicenseSavings: { savings: number; count: number };
-  sandboxSavings: { savings: number; count: number };
-  storageSavings: { savings: number; potentialGBSavings: number };
-  totalSavings: number;
+  title: string;
+  amount: number;
+  details: string;
+  viewAction?: () => void;
 }
 
-export interface CsvExportData {
+export interface ExportData {
   licensePrice: number;
   standardUsers: any[];
-  savingsBreakdown: SavingsBreakdown;
+  savingsBreakdown: SavingsBreakdown[];
 }
