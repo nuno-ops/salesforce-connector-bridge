@@ -29,6 +29,7 @@ serve(async (req) => {
     
     console.log('Analyzing tools for org:', orgId);
     console.log('Number of OAuth tokens:', oauthTokens?.length);
+    console.log('OAuth tokens data:', JSON.stringify(oauthTokens, null, 2));
 
     if (!orgId) {
       throw new Error('Organization ID is required');
@@ -47,6 +48,8 @@ serve(async (req) => {
       .select('*')
       .eq('org_id', orgId)
       .single();
+
+    console.log('Fetch existing analysis result:', { existingAnalysis, fetchError });
 
     if (fetchError && fetchError.code !== 'PGRST116') {
       console.error('Error fetching existing analysis:', fetchError);
@@ -68,7 +71,7 @@ serve(async (req) => {
       useCount: token.UseCount
     }));
 
-    console.log('Sending request to OpenAI with tools list:', JSON.stringify(toolsList));
+    console.log('Sending request to OpenAI with tools list:', JSON.stringify(toolsList, null, 2));
 
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -111,6 +114,8 @@ Focus on:
       }),
     });
 
+    console.log('OpenAI response status:', openAIResponse.status);
+    
     if (!openAIResponse.ok) {
       const errorData = await openAIResponse.json();
       console.error('OpenAI API error response:', errorData);
@@ -118,7 +123,7 @@ Focus on:
     }
 
     const aiResponse = await openAIResponse.json();
-    console.log('Received response from OpenAI:', JSON.stringify(aiResponse));
+    console.log('Received response from OpenAI:', JSON.stringify(aiResponse, null, 2));
 
     // Validate OpenAI response structure
     if (!aiResponse?.choices?.[0]?.message?.content) {
@@ -129,6 +134,7 @@ Focus on:
     let analysis;
     try {
       analysis = JSON.parse(aiResponse.choices[0].message.content);
+      console.log('Parsed analysis:', JSON.stringify(analysis, null, 2));
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', parseError);
       console.error('Raw response content:', aiResponse.choices[0].message.content);
@@ -152,6 +158,8 @@ Focus on:
       })
       .select()
       .single();
+
+    console.log('Database upsert result:', { savedAnalysis, insertError });
 
     if (insertError) {
       console.error('Error saving analysis:', insertError);

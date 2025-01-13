@@ -18,29 +18,68 @@ interface ToolAnalysis {
 export const ToolAnalysis = ({ oauthTokens }: { oauthTokens: any[] }) => {
   const [analysis, setAnalysis] = useState<ToolAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+
         const instanceUrl = localStorage.getItem('sf_instance_url');
-        if (!instanceUrl) return;
+        if (!instanceUrl) {
+          setError('No Salesforce instance URL found');
+          return;
+        }
 
         const orgId = instanceUrl.replace(/[^a-zA-Z0-9]/g, '_');
+        console.log('Fetching analysis for org:', orgId);
 
+        // First try to get existing analysis
+        const { data: existingAnalysis, error: fetchError } = await supabase
+          .from('tool_analysis')
+          .select('*')
+          .eq('org_id', orgId)
+          .maybeSingle();
+
+        if (fetchError) {
+          console.error('Error fetching existing analysis:', fetchError);
+          throw fetchError;
+        }
+
+        if (existingAnalysis?.analysis) {
+          console.log('Found existing analysis:', existingAnalysis);
+          setAnalysis(existingAnalysis.analysis as ToolAnalysis);
+          return;
+        }
+
+        // If no existing analysis, generate new one
+        console.log('No existing analysis found, generating new one');
         const { data, error } = await supabase.functions.invoke('analyze-tools', {
           body: { oauthTokens, orgId }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error invoking analyze-tools function:', error);
+          throw error;
+        }
 
-        setAnalysis(data.analysis);
-      } catch (error) {
-        console.error('Error fetching tool analysis:', error);
+        console.log('Received analysis from function:', data);
+        if (!data?.analysis?.categories) {
+          throw new Error('Invalid analysis data received');
+        }
+
+        setAnalysis(data.analysis as ToolAnalysis);
+        
+      } catch (err) {
+        console.error('Error in fetchAnalysis:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch tool analysis';
+        setError(errorMessage);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to fetch tool analysis"
+          description: errorMessage
         });
       } finally {
         setIsLoading(false);
@@ -59,6 +98,16 @@ export const ToolAnalysis = ({ oauthTokens }: { oauthTokens: any[] }) => {
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-destructive/10">
+        <CardContent className="p-6">
+          <p className="text-destructive">Error: {error}</p>
+        </CardContent>
+      </Card>
     );
   }
 
