@@ -135,6 +135,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_analysis: {
+        Row: {
+          analysis: Json
+          created_at: string
+          id: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          analysis: Json
+          created_at?: string
+          id?: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          analysis?: Json
+          created_at?: string
+          id?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
