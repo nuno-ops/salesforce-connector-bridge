@@ -20,22 +20,30 @@ serve(async (req) => {
     const { oauthTokens, orgId } = await req.json();
     
     console.log('Analyzing tools for org:', orgId);
-    console.log('OAuth tokens:', oauthTokens);
+    console.log('Number of OAuth tokens:', oauthTokens?.length);
+
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
     // Create Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
     // Check if analysis already exists
-    const { data: existingAnalysis } = await supabase
+    const { data: existingAnalysis, error: fetchError } = await supabase
       .from('tool_analysis')
       .select('*')
       .eq('org_id', orgId)
       .single();
 
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
+      throw fetchError;
+    }
+
     if (existingAnalysis) {
-      console.log('Existing analysis found:', existingAnalysis);
+      console.log('Returning existing analysis for org:', orgId);
       return new Response(
-        JSON.stringify(existingAnalysis),
+        JSON.stringify({ analysis: existingAnalysis.analysis }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -69,6 +77,7 @@ Focus on:
 3. Opportunities for consolidation
 4. Specific actionable recommendations`;
 
+    console.log('Sending request to OpenAI');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -87,11 +96,29 @@ Focus on:
       }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
     const aiResponse = await response.json();
-    const analysis = JSON.parse(aiResponse.choices[0].message.content);
+    console.log('Received response from OpenAI');
+
+    if (!aiResponse.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+
+    let analysis;
+    try {
+      analysis = JSON.parse(aiResponse.choices[0].message.content);
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      throw new Error('Failed to parse OpenAI response');
+    }
 
     // Store the analysis in the database
-    const { data: savedAnalysis, error } = await supabase
+    const { data: savedAnalysis, error: insertError } = await supabase
       .from('tool_analysis')
       .upsert({
         org_id: orgId,
@@ -102,10 +129,14 @@ Focus on:
       .select()
       .single();
 
-    if (error) throw error;
+    if (insertError) {
+      console.error('Error saving analysis:', insertError);
+      throw insertError;
+    }
 
+    console.log('Successfully saved analysis for org:', orgId);
     return new Response(
-      JSON.stringify(savedAnalysis),
+      JSON.stringify({ analysis: savedAnalysis.analysis }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
