@@ -87,9 +87,15 @@ Native Salesforce tools to exclude from analysis:
 - Salesforce Workbench
 - Salesforce Advanced Search
 - Salesforce Chatter
-- Any tool with 'salesforce' in the name or clearly part of core Salesforce
+- SfdcSIQCloudActivity
+- SfdcSIQActivitySyncEngine
+- SfdcSiqActivityPlatform
+- Any tool with 'salesforce' or 'sfdc' in the name
+- Any tool clearly part of core Salesforce
 
 Focus only on external tools where organizations can achieve real cost savings through consolidation or removal.
+
+For potential savings, provide per-user costs when available (e.g., "$15/user/month for Zoom"). Only show specific dollar amounts when you can find real pricing online, otherwise use general ranges.
 
 Return ONLY the JSON object, no markdown formatting or additional text.` 
           },
@@ -106,7 +112,7 @@ Please provide a structured analysis in the following JSON format:
       "category": "string (e.g., Communication, Automation, etc.)",
       "tools": ["tool names in this category"],
       "action": "string (specific recommendation)",
-      "potentialSavings": "string (estimated savings range)"
+      "potentialSavings": "string (cost per user when available, otherwise estimated range)"
     }
   ]
 }
@@ -115,7 +121,8 @@ Focus on:
 1. External tools with overlapping functionality
 2. Underutilized third-party tools (low use count or not recently used)
 3. Opportunities for consolidation among external tools
-4. Specific actionable recommendations for cost reduction`
+4. Specific actionable recommendations for cost reduction
+5. Per-user pricing when available online`
           }
         ],
       }),
