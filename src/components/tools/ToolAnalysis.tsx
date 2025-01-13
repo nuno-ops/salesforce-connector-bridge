@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from '@/integrations/supabase/types';
 
 interface ToolCategory {
   category: string;
@@ -50,8 +51,12 @@ export const ToolAnalysis = ({ oauthTokens }: { oauthTokens: any[] }) => {
 
         if (existingAnalysis?.analysis) {
           console.log('Found existing analysis:', existingAnalysis);
-          setAnalysis(existingAnalysis.analysis as ToolAnalysis);
-          return;
+          // Type assertion to ensure the analysis matches our expected structure
+          const parsedAnalysis = existingAnalysis.analysis as ToolAnalysis;
+          if (Array.isArray(parsedAnalysis.categories)) {
+            setAnalysis(parsedAnalysis);
+            return;
+          }
         }
 
         // If no existing analysis, generate new one
