@@ -79,11 +79,23 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a software license optimization expert. Analyze tools and provide specific, actionable recommendations for cost savings. Return ONLY the JSON object, no markdown formatting or additional text.' 
+            content: `You are a software license optimization expert. Analyze ONLY third-party/external tools (excluding native Salesforce tools) and provide specific, actionable recommendations for cost savings. 
+
+Native Salesforce tools to exclude from analysis:
+- Salesforce mobile apps (iOS, Android)
+- Salesforce CLI
+- Salesforce Workbench
+- Salesforce Advanced Search
+- Salesforce Chatter
+- Any tool with 'salesforce' in the name or clearly part of core Salesforce
+
+Focus only on external tools where organizations can achieve real cost savings through consolidation or removal.
+
+Return ONLY the JSON object, no markdown formatting or additional text.` 
           },
           { 
             role: 'user', 
-            content: `Analyze these Salesforce connected apps and identify potential redundancies and cost-saving opportunities. Here's the data:
+            content: `Analyze these connected apps and identify potential redundancies and cost-saving opportunities among external tools only. Here's the data:
 
 ${JSON.stringify(toolsList, null, 2)}
 
@@ -100,10 +112,10 @@ Please provide a structured analysis in the following JSON format:
 }
 
 Focus on:
-1. Tools with overlapping functionality
-2. Underutilized tools (low use count or not recently used)
-3. Opportunities for consolidation
-4. Specific actionable recommendations`
+1. External tools with overlapping functionality
+2. Underutilized third-party tools (low use count or not recently used)
+3. Opportunities for consolidation among external tools
+4. Specific actionable recommendations for cost reduction`
           }
         ],
       }),
@@ -127,7 +139,6 @@ Focus on:
 
     let analysis;
     try {
-      // Clean the response content by removing any markdown formatting
       const cleanContent = aiResponse.choices[0].message.content
         .replace(/```json\n?/g, '')  // Remove ```json
         .replace(/```\n?/g, '')      // Remove closing ```
