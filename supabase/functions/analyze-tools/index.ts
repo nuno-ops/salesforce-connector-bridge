@@ -95,7 +95,7 @@ Native Salesforce tools to exclude from analysis:
 
 Focus only on external tools where organizations can achieve real cost savings through consolidation or removal.
 
-For potential savings, provide per-user costs when available (e.g., "$15/user/month for Zoom"). Only show specific dollar amounts when you can find real pricing online, otherwise use general ranges.
+For potential savings, provide per-user costs when available (e.g., "$15/user/month for Zoom"). Only show specific dollar amounts when you can find real pricing online. Do not show any estimated ranges or general cost savings if you cannot find real pricing data online.
 
 Return ONLY the JSON object, no markdown formatting or additional text.` 
           },
@@ -112,7 +112,7 @@ Please provide a structured analysis in the following JSON format:
       "category": "string (e.g., Communication, Automation, etc.)",
       "tools": ["tool names in this category"],
       "action": "string (specific recommendation)",
-      "potentialSavings": "string (cost per user when available, otherwise estimated range)"
+      "potentialSavings": "string (cost per user when available, otherwise do not include savings)"
     }
   ]
 }
@@ -122,7 +122,7 @@ Focus on:
 2. Underutilized third-party tools (low use count or not recently used)
 3. Opportunities for consolidation among external tools
 4. Specific actionable recommendations for cost reduction
-5. Per-user pricing when available online`
+5. Per-user pricing when available online, do not include estimated ranges`
           }
         ],
       }),
