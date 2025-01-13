@@ -6,6 +6,7 @@ import { SalesforceUsers } from "@/components/SalesforceUsers";
 import { OrgHealth } from "@/components/OrgHealth";
 import { DashboardHeader } from "./DashboardHeader";
 import { useExportReport } from "./useExportReport";
+import { ToolAnalysis } from "../tools/ToolAnalysis";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -116,6 +117,8 @@ export const DashboardContent = ({
         sandboxes={sandboxes}
         storageUsage={limits?.StorageUsed || 0}
       />
+      
+      <ToolAnalysis oauthTokens={oauthTokens} />
       
       <CostSavingsReport
         userLicenses={userLicenses}
