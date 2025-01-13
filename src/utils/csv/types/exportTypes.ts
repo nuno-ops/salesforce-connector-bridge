@@ -3,6 +3,8 @@ export interface SavingsBreakdown {
   amount: number;
   details: string;
   viewAction?: () => void;
+  count?: number;
+  potentialGBSavings?: number;
 }
 
 export interface ExportData {
