@@ -80,7 +80,7 @@ serve(async (req) => {
       fetchSalesforceData(objectPermissionsQuery),
       fetchSalesforceData(usersQuery),
       fetchSalesforceData(permSetAssignmentsQuery),
-      fetchSalesforceData('SELECT Id, AppName, LastUsedDate, UseCount, UserId FROM OauthToken')
+      fetchSalesforceData('SELECT Id, AppName, LastUsedDate, UseCount, UserId FROM OauthToken WHERE UseCount > 0')
     ]);
 
     // Check if any response indicates session expiration
