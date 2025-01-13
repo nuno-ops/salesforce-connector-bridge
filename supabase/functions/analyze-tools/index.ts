@@ -17,7 +17,6 @@ serve(async (req) => {
   }
 
   try {
-    // Validate environment variables
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -29,7 +28,6 @@ serve(async (req) => {
     
     console.log('Analyzing tools for org:', orgId);
     console.log('Number of OAuth tokens:', oauthTokens?.length);
-    console.log('OAuth tokens data:', JSON.stringify(oauthTokens, null, 2));
 
     if (!orgId) {
       throw new Error('Organization ID is required');
@@ -39,10 +37,8 @@ serve(async (req) => {
       throw new Error('OAuth tokens must be an array');
     }
 
-    // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if analysis already exists
     const { data: existingAnalysis, error: fetchError } = await supabase
       .from('tool_analysis')
       .select('*')
@@ -64,7 +60,6 @@ serve(async (req) => {
       );
     }
 
-    // Format the tools data for OpenAI
     const toolsList = oauthTokens.map((token: any) => ({
       name: token.AppName,
       lastUsed: token.LastUsedDate,
@@ -84,7 +79,7 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a software license optimization expert. Analyze tools and provide specific, actionable recommendations for cost savings.' 
+            content: 'You are a software license optimization expert. Analyze tools and provide specific, actionable recommendations for cost savings. Return ONLY the JSON object, no markdown formatting or additional text.' 
           },
           { 
             role: 'user', 
@@ -125,7 +120,6 @@ Focus on:
     const aiResponse = await openAIResponse.json();
     console.log('Received response from OpenAI:', JSON.stringify(aiResponse, null, 2));
 
-    // Validate OpenAI response structure
     if (!aiResponse?.choices?.[0]?.message?.content) {
       console.error('Invalid OpenAI response format:', aiResponse);
       throw new Error('Invalid response format from OpenAI');
@@ -133,7 +127,14 @@ Focus on:
 
     let analysis;
     try {
-      analysis = JSON.parse(aiResponse.choices[0].message.content);
+      // Clean the response content by removing any markdown formatting
+      const cleanContent = aiResponse.choices[0].message.content
+        .replace(/```json\n?/g, '')  // Remove ```json
+        .replace(/```\n?/g, '')      // Remove closing ```
+        .trim();                     // Remove any extra whitespace
+      
+      console.log('Cleaned content:', cleanContent);
+      analysis = JSON.parse(cleanContent);
       console.log('Parsed analysis:', JSON.stringify(analysis, null, 2));
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', parseError);
@@ -141,13 +142,11 @@ Focus on:
       throw new Error('Failed to parse OpenAI response as JSON');
     }
 
-    // Validate analysis structure
     if (!analysis?.categories || !Array.isArray(analysis.categories)) {
       console.error('Invalid analysis structure:', analysis);
       throw new Error('OpenAI response does not match expected format');
     }
 
-    // Store the analysis in the database
     const { data: savedAnalysis, error: insertError } = await supabase
       .from('tool_analysis')
       .upsert({
