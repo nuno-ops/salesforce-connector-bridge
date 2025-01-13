@@ -60,6 +60,25 @@ export const useSalesforceUsers = () => {
 
         if (error) throw error;
 
+        // Check if the response indicates a session error
+        if (data?.error?.includes('Session expired or invalid') || data?.error?.includes('INVALID_SESSION_ID')) {
+          console.log('Salesforce session expired, clearing local storage');
+          localStorage.removeItem('sf_access_token');
+          localStorage.removeItem('sf_instance_url');
+          localStorage.removeItem('sf_token_timestamp');
+          localStorage.removeItem('sf_subscription_status');
+          
+          toast({
+            variant: "destructive",
+            title: "Session expired",
+            description: "Your Salesforce session has expired. Please reconnect.",
+          });
+          
+          // Force page reload to return to landing page
+          window.location.reload();
+          return;
+        }
+
         const inactiveUsers = calculateInactiveUsers(data.users);
         const potentialIntegrationUsers = analyzeIntegrationOpportunities(
           data.users,
@@ -78,6 +97,26 @@ export const useSalesforceUsers = () => {
         }
       } catch (error) {
         console.error('Error fetching users:', error);
+        
+        // Check if the error is related to session expiration
+        if (error.message?.includes('Session expired') || error.message?.includes('INVALID_SESSION_ID')) {
+          console.log('Salesforce session expired, clearing local storage');
+          localStorage.removeItem('sf_access_token');
+          localStorage.removeItem('sf_instance_url');
+          localStorage.removeItem('sf_token_timestamp');
+          localStorage.removeItem('sf_subscription_status');
+          
+          toast({
+            variant: "destructive",
+            title: "Session expired",
+            description: "Your Salesforce session has expired. Please reconnect.",
+          });
+          
+          // Force page reload to return to landing page
+          window.location.reload();
+          return;
+        }
+        
         toast({
           variant: "destructive",
           title: "Error loading users",

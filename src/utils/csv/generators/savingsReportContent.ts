@@ -5,35 +5,14 @@ export const generateSavingsReportContent = ({
   standardUsers,
   savingsBreakdown
 }: CsvExportData): string[][] => {
-  console.log('Savings Report - Input:', {
-    licensePrice,
-    standardUsers,
-    savingsBreakdown: JSON.stringify(savingsBreakdown, null, 2)
-  });
+  // Helper function to format currency values consistently without commas
+  const formatCurrency = (value: number): string => {
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  };
 
-  const {
-    inactiveUserSavings,
-    integrationUserSavings,
-    platformLicenseSavings,
-    sandboxSavings,
-    storageSavings,
-    totalSavings
-  } = savingsBreakdown;
-
-  const totalMonthlyLicenseCost = licensePrice * standardUsers;
-  const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
-
-  console.log('Savings Report - Calculations:', {
-    licensePrice,
-    standardUsers,
-    totalMonthlyLicenseCost,
-    totalAnnualLicenseCost,
-    totalSavings
-  });
-
-  const percentageOfAnnualCost = totalAnnualLicenseCost > 0 
-    ? ((totalSavings / totalAnnualLicenseCost) * 100).toFixed(1) 
-    : '0.0';
+  const platformSavings = savingsBreakdown.find(item => item.title === "Platform License Optimization");
+  const platformUserCount = platformSavings?.count || 0;
+  const platformSavingsPerUser = licensePrice - 25; // Calculate dynamic savings (standard license - platform license cost)
 
   return [
     ['Salesforce Organization Cost Optimization Report'],
@@ -41,50 +20,50 @@ export const generateSavingsReportContent = ({
     [''],
     ['Cost Overview'],
     ['Current License Cost per User (Monthly):', `$${licensePrice}`],
-    ['Total Users:', standardUsers.toString()],
-    ['Total Monthly License Cost:', `$${totalMonthlyLicenseCost.toLocaleString()}`],
-    ['Total Annual License Cost:', `$${totalAnnualLicenseCost.toLocaleString()}`],
+    ['Total Users:', standardUsers.length.toString()],
+    ['Total Monthly License Cost:', `$${formatCurrency(licensePrice * standardUsers.length)}`],
+    ['Total Annual License Cost:', `$${formatCurrency(licensePrice * standardUsers.length * 12)}`],
     [''],
     ['Savings Summary'],
-    ['Total Annual Potential Savings:', `$${totalSavings.toLocaleString()}`],
-    ['Percentage of Annual Cost:', `${percentageOfAnnualCost}%`],
+    ['Total Annual Potential Savings:', `$${formatCurrency(savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0))}`],
+    ['Percentage of Annual Cost:', `${((savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0) / (licensePrice * standardUsers.length * 12)) * 100).toFixed(1)}%`],
     [''],
     ['Detailed Savings Breakdown'],
     ['Category', 'Annual Savings', 'Monthly Savings', 'Details', 'Percentage of Total Savings'],
     [
-      'Inactive User Licenses', 
-      `$${inactiveUserSavings.savings.toLocaleString()}`,
-      `$${(inactiveUserSavings.savings / 12).toLocaleString()}`,
-      `${inactiveUserSavings.count} inactive users @ $${licensePrice}/month each`,
-      `${totalSavings > 0 ? ((inactiveUserSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+      'Inactive User Licenses',
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Inactive User Licenses")?.amount || 0))}`,
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Inactive User Licenses")?.amount || 0) / 12)}`,
+      `${savingsBreakdown.find(item => item.title === "Inactive User Licenses")?.count || 0} inactive users @ $${licensePrice}/month each`,
+      `${((savingsBreakdown.find(item => item.title === "Inactive User Licenses")?.amount || 0) / savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0) * 100).toFixed(1)}%`
     ],
     [
-      'Integration User Optimization', 
-      `$${integrationUserSavings.savings.toLocaleString()}`,
-      `$${(integrationUserSavings.savings / 12).toLocaleString()}`,
-      `${integrationUserSavings.count} users @ $${licensePrice}/month each`,
-      `${totalSavings > 0 ? ((integrationUserSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+      'Integration User Optimization',
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Integration User Optimization")?.amount || 0))}`,
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Integration User Optimization")?.amount || 0) / 12)}`,
+      `${savingsBreakdown.find(item => item.title === "Integration User Optimization")?.count || 0} users @ $${licensePrice}/month each`,
+      `${((savingsBreakdown.find(item => item.title === "Integration User Optimization")?.amount || 0) / savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0) * 100).toFixed(1)}%`
     ],
     [
-      'Platform License Optimization', 
-      `$${platformLicenseSavings.savings.toLocaleString()}`,
-      `$${(platformLicenseSavings.savings / 12).toLocaleString()}`,
-      `${platformLicenseSavings.count} users @ $${licensePrice - 25}/month savings each`,
-      `${totalSavings > 0 ? ((platformLicenseSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+      'Platform License Optimization',
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Platform License Optimization")?.amount || 0))}`,
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Platform License Optimization")?.amount || 0) / 12)}`,
+      `${platformUserCount} users @ $${platformSavingsPerUser}/month savings each`,
+      `${((savingsBreakdown.find(item => item.title === "Platform License Optimization")?.amount || 0) / savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0) * 100).toFixed(1)}%`
     ],
     [
-      'Sandbox Optimization', 
-      `$${sandboxSavings.savings.toLocaleString()}`,
-      `$${(sandboxSavings.savings / 12).toLocaleString()}`,
-      `${sandboxSavings.count} excess sandboxes`,
-      `${totalSavings > 0 ? ((sandboxSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+      'Sandbox Optimization',
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Sandbox Optimization")?.amount || 0))}`,
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Sandbox Optimization")?.amount || 0) / 12)}`,
+      `${savingsBreakdown.find(item => item.title === "Sandbox Optimization")?.count || 0} excess sandboxes`,
+      `${((savingsBreakdown.find(item => item.title === "Sandbox Optimization")?.amount || 0) / savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0) * 100).toFixed(1)}%`
     ],
     [
-      'Storage Optimization', 
-      `$${storageSavings.savings.toLocaleString()}`,
-      `$${(storageSavings.savings / 12).toLocaleString()}`,
-      `${storageSavings.potentialGBSavings}GB potential reduction`,
-      `${totalSavings > 0 ? ((storageSavings.savings / totalSavings) * 100).toFixed(1) : '0.0'}%`
+      'Storage Optimization',
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Storage Optimization")?.amount || 0))}`,
+      `$${formatCurrency((savingsBreakdown.find(item => item.title === "Storage Optimization")?.amount || 0) / 12)}`,
+      `${savingsBreakdown.find(item => item.title === "Storage Optimization")?.potentialGBSavings || 0}GB potential reduction`,
+      `${((savingsBreakdown.find(item => item.title === "Storage Optimization")?.amount || 0) / savingsBreakdown.reduce((acc, curr) => acc + curr.amount, 0) * 100).toFixed(1)}%`
     ],
     ['']
   ];
