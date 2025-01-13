@@ -17,17 +17,29 @@ serve(async (req) => {
   }
 
   try {
+    // Validate environment variables
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
     const { oauthTokens, orgId } = await req.json();
     
     console.log('Analyzing tools for org:', orgId);
     console.log('Number of OAuth tokens:', oauthTokens?.length);
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!orgId) {
+      throw new Error('Organization ID is required');
+    }
+
+    if (!Array.isArray(oauthTokens)) {
+      throw new Error('OAuth tokens must be an array');
     }
 
     // Create Supabase client
-    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if analysis already exists
     const { data: existingAnalysis, error: fetchError } = await supabase
@@ -36,7 +48,8 @@ serve(async (req) => {
       .eq('org_id', orgId)
       .single();
 
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Error fetching existing analysis:', fetchError);
       throw fetchError;
     }
 
@@ -55,7 +68,24 @@ serve(async (req) => {
       useCount: token.UseCount
     }));
 
-    const prompt = `Analyze these Salesforce connected apps and identify potential redundancies and cost-saving opportunities. Here's the data:
+    console.log('Sending request to OpenAI with tools list:', JSON.stringify(toolsList));
+
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a software license optimization expert. Analyze tools and provide specific, actionable recommendations for cost savings.' 
+          },
+          { 
+            role: 'user', 
+            content: `Analyze these Salesforce connected apps and identify potential redundancies and cost-saving opportunities. Here's the data:
 
 ${JSON.stringify(toolsList, null, 2)}
 
@@ -75,37 +105,24 @@ Focus on:
 1. Tools with overlapping functionality
 2. Underutilized tools (low use count or not recently used)
 3. Opportunities for consolidation
-4. Specific actionable recommendations`;
-
-    console.log('Sending request to OpenAI');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a software license optimization expert. Analyze tools and provide specific, actionable recommendations for cost savings.' 
-          },
-          { role: 'user', content: prompt }
+4. Specific actionable recommendations`
+          }
         ],
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
+    if (!openAIResponse.ok) {
+      const errorData = await openAIResponse.json();
+      console.error('OpenAI API error response:', errorData);
       throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
-    const aiResponse = await response.json();
-    console.log('Received response from OpenAI');
+    const aiResponse = await openAIResponse.json();
+    console.log('Received response from OpenAI:', JSON.stringify(aiResponse));
 
-    if (!aiResponse.choices?.[0]?.message?.content) {
+    // Validate OpenAI response structure
+    if (!aiResponse?.choices?.[0]?.message?.content) {
+      console.error('Invalid OpenAI response format:', aiResponse);
       throw new Error('Invalid response format from OpenAI');
     }
 
@@ -114,7 +131,14 @@ Focus on:
       analysis = JSON.parse(aiResponse.choices[0].message.content);
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', parseError);
-      throw new Error('Failed to parse OpenAI response');
+      console.error('Raw response content:', aiResponse.choices[0].message.content);
+      throw new Error('Failed to parse OpenAI response as JSON');
+    }
+
+    // Validate analysis structure
+    if (!analysis?.categories || !Array.isArray(analysis.categories)) {
+      console.error('Invalid analysis structure:', analysis);
+      throw new Error('OpenAI response does not match expected format');
     }
 
     // Store the analysis in the database
@@ -143,7 +167,10 @@ Focus on:
   } catch (error) {
     console.error('Error in analyze-tools function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack || 'No stack trace available'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
