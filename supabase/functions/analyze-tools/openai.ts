@@ -1,4 +1,4 @@
-import { OpenAIResponse, ToolsList } from './types';
+import { OpenAIResponse, ToolsList } from './types.ts';
 
 const SYSTEM_PROMPT = `You are a software license optimization expert. Analyze ONLY third-party/external tools (excluding native Salesforce tools) and provide specific, actionable recommendations for cost savings. 
 
@@ -16,7 +16,7 @@ Native Salesforce tools to exclude from analysis:
 
 Focus only on external tools where organizations can achieve real cost savings through consolidation or removal.
 
-For potential savings, provide per-user costs when available (e.g., "$15/user/month for Zoom"). Only show specific dollar amounts when you can find real pricing online. Do not show any estimated ranges or general cost savings if you cannot find real pricing data online.
+For potential savings, provide per-user costs when available (e.g., "$15/user/month for Zoom"). Only show specific dollar amounts when you can find real pricing online. Do not show any dollar amounts if you cannot find real pricing data online.
 
 Return ONLY the JSON object, no markdown formatting or additional text.`;
 
@@ -56,7 +56,7 @@ Focus on:
 2. Underutilized third-party tools (low use count or not recently used)
 3. Opportunities for consolidation among external tools
 4. Specific actionable recommendations for cost reduction
-5. Per-user pricing when available online, do not include estimated ranges`
+5. Per-user pricing when available online, do not include if not available`
         }
       ],
     }),
