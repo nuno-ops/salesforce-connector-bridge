@@ -1,3 +1,5 @@
+import { RawLicense } from '../types';
+
 export interface SavingsBreakdown {
   title: string;
   amount: number;
