@@ -17,8 +17,9 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       <div className="max-w-4xl mx-auto text-center space-y-12 animate-fadeIn">
         {/* Hero Section */}
         <div className="space-y-6">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-sf-blue to-purple-600 bg-clip-text text-transparent">
-            Unlock Salesforce Savings—Cut Costs and Optimize Efficiency Instantly!
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+            <span className="bg-gradient-to-r from-sf-blue to-purple-600 bg-clip-text text-transparent">Unlock Salesforce Savings</span>—
+            <span className="bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">Cut Costs and Optimize Efficiency Instantly!</span>
           </h1>
           <p className="text-lg md:text-xl text-sf-gray max-w-2xl mx-auto">
             Discover insights, reduce waste, and maximize your Salesforce investment with our powerful optimization dashboard.
@@ -26,8 +27,8 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
         </div>
 
         {/* Savings Preview */}
-        <div className="py-8">
-          <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-lg border-t-4 border-t-sf-blue">
+        <Card className="p-8 bg-white shadow-xl rounded-2xl border-0">
+          <div className="space-y-6">
             <p className="text-2xl font-semibold text-sf-blue mb-4">
               Potential Cost Savings
             </p>
@@ -37,36 +38,32 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             <p className="text-sf-gray">
               Identify unused licenses, optimize sandbox usage, and reduce overhead costs
             </p>
-            <div className="mt-6 p-4 bg-gradient-to-r from-sf-light to-white rounded-lg">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="flex flex-col items-center gap-2">
-                  <Database className="w-6 h-6 text-sf-blue animate-bounce" />
-                  <div className="text-2xl font-bold text-sf-blue">15</div>
-                  <div className="text-sm text-sf-gray">Unused Licenses</div>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <DollarSign className="w-6 h-6 text-sf-blue animate-bounce" />
-                  <div className="text-2xl font-bold text-sf-blue">$24k</div>
-                  <div className="text-sm text-sf-gray">Annual Savings</div>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <ChartBar className="w-6 h-6 text-sf-blue animate-bounce" />
-                  <div className="text-2xl font-bold text-sf-blue">3</div>
-                  <div className="text-sm text-sf-gray">Optimization Areas</div>
-                </div>
+            <div className="grid grid-cols-3 gap-4 text-center py-8">
+              <div className="flex flex-col items-center gap-2">
+                <Database className="w-8 h-8 text-sf-blue" />
+                <div className="text-2xl font-bold text-sf-blue">15</div>
+                <div className="text-sm text-sf-gray">Unused Licenses</div>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <DollarSign className="w-8 h-8 text-sf-blue" />
+                <div className="text-2xl font-bold text-sf-blue">$24k</div>
+                <div className="text-sm text-sf-gray">Annual Savings</div>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <ChartBar className="w-8 h-8 text-sf-blue" />
+                <div className="text-2xl font-bold text-sf-blue">3</div>
+                <div className="text-sm text-sf-gray">Optimization Areas</div>
               </div>
             </div>
-            <div className="mt-8">
-              <Button
-                onClick={onGetStarted}
-                size="lg"
-                className="bg-sf-blue hover:bg-sf-hover text-lg px-8 py-6 rounded-full transition-all transform hover:scale-105"
-              >
-                Start Saving Now
-              </Button>
-            </div>
-          </Card>
-        </div>
+            <Button
+              onClick={onGetStarted}
+              size="lg"
+              className="w-full md:w-auto px-8 py-6 text-lg bg-gradient-to-r from-sf-blue to-purple-600 hover:from-sf-hover hover:to-purple-700 text-white rounded-full transition-all transform hover:scale-105"
+            >
+              Start Saving Now
+            </Button>
+          </div>
+        </Card>
 
         {/* Features Grid */}
         <div 
@@ -78,21 +75,29 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             transition: "all 0.9s cubic-bezier(0.17, 0.55, 0.55, 1) 0.5s"
           }}
         >
-          <div className="flex flex-col items-center space-y-3 p-6 rounded-lg bg-gradient-to-br from-white to-sf-light hover:shadow-lg transition-all duration-300">
-            <DollarSign className="w-12 h-12 text-sf-blue animate-pulse" />
-            <h3 className="text-xl font-semibold">Save Money</h3>
-            <p className="text-sf-gray">Identify savings opportunities and optimize license usage</p>
-          </div>
-          <div className="flex flex-col items-center space-y-3 p-6 rounded-lg bg-gradient-to-br from-white to-sf-light hover:shadow-lg transition-all duration-300">
-            <Lightbulb className="w-12 h-12 text-sf-blue animate-pulse" />
-            <h3 className="text-xl font-semibold">Get Smart Tips</h3>
-            <p className="text-sf-gray">Get actionable insights to reduce costs</p>
-          </div>
-          <div className="flex flex-col items-center space-y-3 p-6 rounded-lg bg-gradient-to-br from-white to-sf-light hover:shadow-lg transition-all duration-300">
-            <Lock className="w-12 h-12 text-sf-blue animate-pulse" />
-            <h3 className="text-xl font-semibold">Stay Secure</h3>
-            <p className="text-sf-gray">Enterprise-grade security with data privacy controls</p>
-          </div>
+          <Card className="p-8 bg-white shadow-xl rounded-2xl border-0">
+            <div className="flex flex-col items-center space-y-3">
+              <DollarSign className="w-12 h-12 text-sf-blue" />
+              <h3 className="text-xl font-semibold">Save Money</h3>
+              <p className="text-sf-gray text-center">Identify savings opportunities and optimize license usage</p>
+            </div>
+          </Card>
+          
+          <Card className="p-8 bg-white shadow-xl rounded-2xl border-0">
+            <div className="flex flex-col items-center space-y-3">
+              <Lightbulb className="w-12 h-12 text-sf-blue" />
+              <h3 className="text-xl font-semibold">Get Smart Tips</h3>
+              <p className="text-sf-gray text-center">Get actionable insights to reduce costs</p>
+            </div>
+          </Card>
+          
+          <Card className="p-8 bg-white shadow-xl rounded-2xl border-0">
+            <div className="flex flex-col items-center space-y-3">
+              <Lock className="w-12 h-12 text-sf-blue" />
+              <h3 className="text-xl font-semibold">Stay Secure</h3>
+              <p className="text-sf-gray text-center">Enterprise-grade security with data privacy controls</p>
+            </div>
+          </Card>
         </div>
 
         {/* Footer */}
