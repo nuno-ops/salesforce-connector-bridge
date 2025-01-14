@@ -18,10 +18,16 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
         <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-purple-500/10 opacity-20" />
         
         <div className="relative space-y-8 text-center max-w-4xl mx-auto animate-fadeIn">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white">
-            Unlock Your Salesforce
-            <span className="text-sf-blue"> Cost Savings</span>
-          </h1>
+          <div className="space-y-4">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white">
+              Unlock Your Salesforce
+              <span className="text-sf-blue"> Cost Savings</span>
+            </h1>
+            
+            <p className="text-3xl font-semibold text-sf-blue">
+              Save up to 10% on Your Salesforce Costs
+            </p>
+          </div>
           
           <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
             Analyze your Salesforce instance and contracts to optimize licenses, 
