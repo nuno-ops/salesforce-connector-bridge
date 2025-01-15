@@ -1,14 +1,35 @@
+import { RawLicense } from '../types';
+
 export interface SavingsBreakdown {
-  inactiveUserSavings: { savings: number; count: number };
-  integrationUserSavings: { savings: number; count: number };
-  platformLicenseSavings: { savings: number; count: number };
-  sandboxSavings: { savings: number; count: number };
-  storageSavings: { savings: number; potentialGBSavings: number };
-  totalSavings: number;
+  title: string;
+  amount: number;
+  details: string;
+  viewAction?: () => void;
+  count?: number;
+  potentialGBSavings?: number;
 }
 
-export interface CsvExportData {
+export interface ExportData {
   licensePrice: number;
   standardUsers: any[];
-  savingsBreakdown: SavingsBreakdown;
+  savingsBreakdown: SavingsBreakdown[];
+  userLicenses: RawLicense[];
+  packageLicenses: RawLicense[];
+  permissionSetLicenses: RawLicense[];
+  sandboxes: any[];
+  limits: any;
+  users: any[];
+  oauthTokens: any[];
+  storageUsage?: number;
+  // Savings data
+  inactiveUserSavings?: number;
+  inactiveUserCount?: number;
+  integrationUserSavings?: number;
+  integrationUserCount?: number;
+  platformLicenseSavings?: number;
+  platformLicenseCount?: number;
+  sandboxSavings?: number;
+  excessSandboxCount?: number;
+  storageSavings?: number;
+  potentialStorageReduction?: number;
 }

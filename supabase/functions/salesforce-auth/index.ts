@@ -11,8 +11,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { code, clientId, clientSecret, redirectUri, grantType } = await req.json()
-    console.log('Received auth request:', { code, clientId, redirectUri, grantType })
+    const { code, redirectUri, grantType } = await req.json()
+    console.log('Received auth request:', { code, redirectUri, grantType })
+
+    // Get connected app credentials from environment variables
+    const clientId = Deno.env.get('MY_CONNECTED_APP_CLIENT_ID')
+    const clientSecret = Deno.env.get('MY_CONNECTED_APP_CLIENT_SECRET')
+
+    if (!clientId || !clientSecret) {
+      console.error('Missing connected app credentials in environment variables')
+      throw new Error('Server configuration error: Missing connected app credentials')
+    }
 
     // Exchange the authorization code for access token
     const tokenResponse = await fetch('https://login.salesforce.com/services/oauth2/token', {

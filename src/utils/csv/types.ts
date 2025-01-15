@@ -9,6 +9,14 @@ export interface RawLicense {
   Status?: string;
 }
 
+export interface SavingsBreakdown {
+  title: string;
+  amount: number;
+  details: string;
+  count?: number;
+  potentialGBSavings?: number;
+}
+
 export interface ExportData {
   userLicenses: RawLicense[];
   packageLicenses: RawLicense[];
@@ -20,6 +28,7 @@ export interface ExportData {
   oauthTokens: any[];
   licensePrice: number;
   storageUsage?: number;
+  savingsBreakdown: SavingsBreakdown[];
   // Savings data
   inactiveUserSavings?: number;
   inactiveUserCount?: number;
