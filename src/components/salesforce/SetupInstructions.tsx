@@ -53,10 +53,16 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
             <h4 className="font-medium">Step 2: Configure OAuth Settings</h4>
             <ol className="list-decimal list-inside space-y-2">
               <li>Enable OAuth Settings</li>
-              <li>Set Callback URL to: <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{callbackUrl}</span></li>
+              <li>Set Callback URL:
+                <div className="mt-2 p-2 bg-white rounded border border-gray-200">
+                  <code className="font-mono text-sm break-all select-all">{callbackUrl}</code>
+                </div>
+              </li>
               <li>Add OAuth Scopes:
                 <ul className="list-disc list-inside ml-4 mt-1">
-                  <li>Access and manage your data (api)</li>
+                  <li>Manage user data via APIs (api)</li>
+                  <li>Manage user data via Web browsers (web)</li>
+                  <li>Full access (full)</li>
                   <li>Perform requests at any time (refresh_token, offline_access)</li>
                 </ul>
               </li>

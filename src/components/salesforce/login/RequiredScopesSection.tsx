@@ -2,7 +2,9 @@ import React from 'react';
 import { Check, Info } from 'lucide-react';
 
 const REQUIRED_SCOPES = [
-  "Access and manage your data (api)",
+  "Manage user data via APIs (api)",
+  "Manage user data via Web browsers (web)",
+  "Full access (full)",
   "Perform requests at any time (refresh_token, offline_access)"
 ];
 
