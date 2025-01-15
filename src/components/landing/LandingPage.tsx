@@ -21,18 +21,14 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           <div className="space-y-4">
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white">
               Unlock Your Salesforce
-              <span className="text-sf-blue"> Cost Savings</span>
+              <br />
+              <span className="text-sf-blue">Cost Savings</span>
             </h1>
             
             <p className="text-3xl font-semibold text-sf-blue">
               Save up to 10% on Your Salesforce Costs
             </p>
           </div>
-          
-          <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
-            Analyze your Salesforce instance and contracts to optimize licenses, 
-            reduce storage costs, and maximize your ROI.
-          </p>
 
           <div className="flex justify-center">
             <Button
@@ -43,6 +39,11 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               Calculate Your Savings
             </Button>
           </div>
+          
+          <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
+            Analyze your Salesforce instance and contracts to optimize licenses, 
+            reduce storage costs, and maximize your ROI.
+          </p>
         </div>
       </div>
 
