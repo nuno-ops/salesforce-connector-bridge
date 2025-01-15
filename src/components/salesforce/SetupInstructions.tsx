@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { SetupStepsList } from './setup/SetupStepsList';
-import { SupportSection } from './setup/SupportSection';
+} from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SetupInstructionsProps {
   callbackUrl: string;
@@ -17,11 +15,11 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-4">
-      <CollapsibleTrigger className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-sf-blue hover:bg-sf-hover rounded-md transition-colors shadow-lg">
+      <CollapsibleTrigger className="flex items-center justify-center w-full h-14 px-8 text-lg font-medium bg-gradient-to-r from-sf-blue to-purple-600 hover:from-sf-hover hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105 rounded-md">
         {isOpen ? (
           <>
             <ChevronUp className="h-4 w-4 mr-1" />
-            Hide Setup Instructions
+            Hide setup instructions
           </>
         ) : (
           <>
@@ -30,17 +28,48 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
           </>
         )}
       </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-6 text-sm bg-gray-50 p-6 rounded-lg animate-fade-in">
-        <h3 className="font-bold text-lg mb-4">How to Create a Salesforce Connected App</h3>
-        
-        <SetupStepsList callbackUrl={callbackUrl} />
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sf-blue">
-          <p className="font-medium">Note:</p>
-          <p>It may take a few minutes for your Connected App to be ready after creation. If you get an error, please wait 5-10 minutes and try again.</p>
+      <CollapsibleContent className="space-y-4 text-left text-gray-200">
+        <div className="space-y-2">
+          <h3 className="font-medium">Step 1: Create a Connected App</h3>
+          <ol className="list-decimal list-inside space-y-2 text-sm">
+            <li>Go to Setup in your Salesforce org</li>
+            <li>Search for "App Manager" in Quick Find</li>
+            <li>Click "New Connected App"</li>
+            <li>Fill in the basic information:
+              <ul className="list-disc list-inside ml-4 mt-1">
+                <li>Connected App Name: SalesforceSaver</li>
+                <li>API Name: will auto-populate</li>
+                <li>Contact Email: your email</li>
+              </ul>
+            </li>
+          </ol>
         </div>
-        
-        <SupportSection />
+
+        <div className="space-y-2">
+          <h3 className="font-medium">Step 2: Configure OAuth Settings</h3>
+          <ol className="list-decimal list-inside space-y-2 text-sm">
+            <li>Enable OAuth Settings</li>
+            <li>Set Callback URL to: <span className="font-mono text-xs bg-black/30 px-2 py-1 rounded">{callbackUrl}</span></li>
+            <li>Add OAuth Scopes:
+              <ul className="list-disc list-inside ml-4 mt-1">
+                <li>Access and manage your data (api)</li>
+                <li>Perform requests at any time (refresh_token, offline_access)</li>
+              </ul>
+            </li>
+            <li>Save the Connected App</li>
+          </ol>
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="font-medium">Step 3: Get Credentials</h3>
+          <ol className="list-decimal list-inside space-y-2 text-sm">
+            <li>Wait a few minutes for the app to be created</li>
+            <li>Go to Manage Connected Apps</li>
+            <li>Find your Consumer Key (Client ID)</li>
+            <li>Click to reveal and copy your Consumer Secret (Client Secret)</li>
+          </ol>
+        </div>
       </CollapsibleContent>
     </Collapsible>
   );
