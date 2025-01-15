@@ -77,8 +77,10 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sf-light to-white p-4">
-      <Card className="w-full max-w-md p-8 animate-fadeIn space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B] p-4">
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-purple-500/10 opacity-20" />
+      
+      <Card className="relative w-full max-w-md p-8 animate-fadeIn space-y-8 bg-black/40 border-white/10 backdrop-blur-sm">
         <ConnectHeader />
         <LoginForm onSubmit={handleSubmit} isLoading={isLoading} />
         
