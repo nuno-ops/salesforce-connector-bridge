@@ -19,7 +19,7 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
         {isOpen ? (
           <>
             <ChevronUp className="h-4 w-4 mr-1" />
-            Hide setup instructions
+            Hide Setup Instructions
           </>
         ) : (
           <>
@@ -29,46 +29,55 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
         )}
       </CollapsibleTrigger>
 
-      <CollapsibleContent className="space-y-4 text-left text-gray-200">
-        <div className="space-y-2">
-          <h3 className="font-medium">Step 1: Create a Connected App</h3>
-          <ol className="list-decimal list-inside space-y-2 text-sm">
-            <li>Go to Setup in your Salesforce org</li>
-            <li>Search for "App Manager" in Quick Find</li>
-            <li>Click "New Connected App"</li>
-            <li>Fill in the basic information:
-              <ul className="list-disc list-inside ml-4 mt-1">
-                <li>Connected App Name: SalesforceSaver</li>
-                <li>API Name: will auto-populate</li>
-                <li>Contact Email: your email</li>
-              </ul>
-            </li>
-          </ol>
+      <CollapsibleContent className="space-y-6 text-sm bg-gray-50 p-6 rounded-lg animate-fadeIn">
+        <h3 className="font-bold text-lg mb-4">How to Create a Salesforce Connected App</h3>
+        
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h4 className="font-medium">Step 1: Create a Connected App</h4>
+            <ol className="list-decimal list-inside space-y-2">
+              <li>Go to Setup in your Salesforce org</li>
+              <li>Search for "App Manager" in Quick Find</li>
+              <li>Click "New Connected App"</li>
+              <li>Fill in the basic information:
+                <ul className="list-disc list-inside ml-4 mt-1">
+                  <li>Connected App Name: SalesforceSaver</li>
+                  <li>API Name: will auto-populate</li>
+                  <li>Contact Email: your email</li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-medium">Step 2: Configure OAuth Settings</h4>
+            <ol className="list-decimal list-inside space-y-2">
+              <li>Enable OAuth Settings</li>
+              <li>Set Callback URL to: <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{callbackUrl}</span></li>
+              <li>Add OAuth Scopes:
+                <ul className="list-disc list-inside ml-4 mt-1">
+                  <li>Access and manage your data (api)</li>
+                  <li>Perform requests at any time (refresh_token, offline_access)</li>
+                </ul>
+              </li>
+              <li>Save the Connected App</li>
+            </ol>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-medium">Step 3: Get Credentials</h4>
+            <ol className="list-decimal list-inside space-y-2">
+              <li>Wait a few minutes for the app to be created</li>
+              <li>Go to Manage Connected Apps</li>
+              <li>Find your Consumer Key (Client ID)</li>
+              <li>Click to reveal and copy your Consumer Secret (Client Secret)</li>
+            </ol>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <h3 className="font-medium">Step 2: Configure OAuth Settings</h3>
-          <ol className="list-decimal list-inside space-y-2 text-sm">
-            <li>Enable OAuth Settings</li>
-            <li>Set Callback URL to: <span className="font-mono text-xs bg-black/30 px-2 py-1 rounded">{callbackUrl}</span></li>
-            <li>Add OAuth Scopes:
-              <ul className="list-disc list-inside ml-4 mt-1">
-                <li>Access and manage your data (api)</li>
-                <li>Perform requests at any time (refresh_token, offline_access)</li>
-              </ul>
-            </li>
-            <li>Save the Connected App</li>
-          </ol>
-        </div>
-
-        <div className="space-y-2">
-          <h3 className="font-medium">Step 3: Get Credentials</h3>
-          <ol className="list-decimal list-inside space-y-2 text-sm">
-            <li>Wait a few minutes for the app to be created</li>
-            <li>Go to Manage Connected Apps</li>
-            <li>Find your Consumer Key (Client ID)</li>
-            <li>Click to reveal and copy your Consumer Secret (Client Secret)</li>
-          </ol>
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sf-blue">
+          <p className="font-medium">Note:</p>
+          <p>It may take a few minutes for your Connected App to be ready after creation. If you get an error, please wait 5-10 minutes and try again.</p>
         </div>
       </CollapsibleContent>
     </Collapsible>
