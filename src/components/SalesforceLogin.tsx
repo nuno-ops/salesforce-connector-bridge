@@ -41,30 +41,16 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   }, [onSuccess]);
 
   const resetOAuthState = () => {
-    localStorage.removeItem('sf_temp_client_id');
-    localStorage.removeItem('sf_temp_client_secret');
     localStorage.removeItem('sf_access_token');
     localStorage.removeItem('sf_instance_url');
     localStorage.removeItem('sf_token_timestamp');
     setIsLoading(false);
   };
 
-  const handleSubmit = async (credentials: {
-    clientId: string;
-    clientSecret: string;
-  }) => {
+  const handleConnect = async () => {
     setIsLoading(true);
-
     try {
-      localStorage.setItem('sf_temp_client_id', credentials.clientId);
-      localStorage.setItem('sf_temp_client_secret', credentials.clientSecret);
-      
-      console.log('Stored credentials in localStorage:', {
-        clientId: credentials.clientId,
-        hasSecret: !!credentials.clientSecret
-      });
-      
-      initiateOAuthFlow(credentials.clientId);
+      initiateOAuthFlow();
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -82,7 +68,7 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
       
       <Card className="relative w-full max-w-md p-8 animate-fadeIn space-y-8 bg-black/40 border-white/10 backdrop-blur-sm">
         <ConnectHeader />
-        <LoginForm onSubmit={handleSubmit} isLoading={isLoading} />
+        <LoginForm onSubmit={handleConnect} isLoading={isLoading} />
         
         <CallbackUrlSection callbackUrl={CALLBACK_URL} />
         <RequiredScopesSection />
