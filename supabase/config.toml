@@ -1,13 +1,1 @@
 project_id = "pnzdzneuynkyzfjwheej"
-
-[functions.salesforce-auth]
-verify_jwt = false
-
-[functions.salesforce-validate]
-verify_jwt = false
-
-[functions.salesforce-users]
-verify_jwt = false
-
-[functions.stripe-webhook]
-verify_jwt = false
