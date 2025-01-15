@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChartBarIcon, DollarSignIcon, ShieldCheckIcon, RocketIcon, GithubIcon, LinkedinIcon } from "lucide-react";
+import { ChartBarIcon, DollarSignIcon, ShieldCheckIcon, RocketIcon } from "lucide-react";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 
@@ -25,8 +25,9 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <span className="text-sf-blue">Cost Savings</span>
             </h1>
             
-            <p className="text-3xl font-semibold text-sf-blue">
-              Save up to 10% on Your Salesforce Costs
+            <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
+              Analyze your Salesforce instance and contracts to optimize licenses, 
+              reduce storage costs, and maximize your ROI.
             </p>
           </div>
 
@@ -40,9 +41,8 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </Button>
           </div>
           
-          <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
-            Analyze your Salesforce instance and contracts to optimize licenses, 
-            reduce storage costs, and maximize your ROI.
+          <p className="text-3xl font-semibold text-sf-blue">
+            Save up to 10% on Your Salesforce Costs
           </p>
         </div>
       </div>
@@ -114,15 +114,6 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </a>
               <a href="mailto:support@salesforcesaver.com" className="hover:text-white transition-colors">
                 Contact Support
-              </a>
-            </div>
-            
-            <div className="flex gap-4">
-              <a href="https://github.com" className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                <GithubIcon className="w-5 h-5 text-gray-200" />
-              </a>
-              <a href="https://linkedin.com" className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                <LinkedinIcon className="w-5 h-5 text-gray-200" />
               </a>
             </div>
           </div>
