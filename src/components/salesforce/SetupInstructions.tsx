@@ -17,7 +17,7 @@ export const SetupInstructions = ({ callbackUrl }: SetupInstructionsProps) => {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-4">
-      <CollapsibleTrigger className="flex items-center justify-center w-full text-sm text-sf-blue hover:text-sf-hover transition-colors">
+      <CollapsibleTrigger className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-sf-blue hover:bg-sf-hover rounded-md transition-colors shadow-lg">
         {isOpen ? (
           <>
             <ChevronUp className="h-4 w-4 mr-1" />
