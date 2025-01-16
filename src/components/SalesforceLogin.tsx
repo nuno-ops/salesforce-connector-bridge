@@ -5,9 +5,6 @@ import { LoginForm } from './salesforce/LoginForm';
 import { SetupInstructions } from './salesforce/SetupInstructions';
 import { initiateOAuthFlow } from './salesforce/useSalesforceAuth';
 import { ConnectHeader } from './salesforce/login/ConnectHeader';
-import { CallbackUrlSection } from './salesforce/login/CallbackUrlSection';
-import { RequiredScopesSection } from './salesforce/login/RequiredScopesSection';
-import { ImportantSettingsSection } from './salesforce/login/ImportantSettingsSection';
 
 interface SalesforceLoginProps {
   onSuccess?: () => void;
@@ -69,11 +66,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
       <Card className="relative w-full max-w-md p-8 animate-fadeIn space-y-8 bg-black/40 border-white/10 backdrop-blur-sm">
         <ConnectHeader />
         <LoginForm onSubmit={handleConnect} isLoading={isLoading} />
-        
-        <CallbackUrlSection callbackUrl={CALLBACK_URL} />
-        <RequiredScopesSection />
-        <ImportantSettingsSection />
-
         <SetupInstructions callbackUrl={CALLBACK_URL} />
       </Card>
     </div>
