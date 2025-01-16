@@ -21,8 +21,8 @@ export const initiateOAuthFlow = () => {
   console.log('Full Auth URL:', authUrl.toString());
   console.log('State:', authUrl.searchParams.get('state'));
 
-  // Open in a new window/tab instead of redirecting within the iframe
-  window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
+  // Redirect in the same tab instead of opening a new one
+  window.location.href = authUrl.toString();
 };
 
 export const handleOAuthCallback = async (code: string) => {
