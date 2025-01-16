@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 const REDIRECT_URI = 'https://salesforce-connector-bridge.lovable.app/salesforce/callback';
 
 // This client ID is public and safe to expose in frontend code
-const CLIENT_ID = '3MVG9n_HvETGhr3BZP3W8i8IhnydqLqd6kpwqoJ5MUTGdBZwq4GHhF_JXb0lGUwPqGZnJsq_OyFGdkwV0Qdxs';
+const CLIENT_ID = '3MVG9_kZcLde7U5pGPOR23oKIAODQZfn4NiF8DrNW3VuR6GmO18rvB74SLk902qeva8AH8aAJZTyl1kslzRib';
 
 export const initiateOAuthFlow = () => {
   // Construct the authorization URL for production Salesforce
