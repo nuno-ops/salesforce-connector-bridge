@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { LoginForm } from './salesforce/LoginForm';
-import { SetupInstructions } from './salesforce/SetupInstructions';
 import { initiateOAuthFlow } from './salesforce/useSalesforceAuth';
 import { ConnectHeader } from './salesforce/login/ConnectHeader';
 
@@ -13,10 +12,6 @@ interface SalesforceLoginProps {
 export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  const CALLBACK_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5173/salesforce/callback'
-    : `https://${window.location.hostname}/salesforce/callback`;
 
   useEffect(() => {
     const checkExistingConnection = () => {
@@ -66,7 +61,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
       <Card className="relative w-full max-w-md p-8 animate-fadeIn space-y-8 bg-black/40 border-white/10 backdrop-blur-sm">
         <ConnectHeader />
         <LoginForm onSubmit={handleConnect} isLoading={isLoading} />
-        <SetupInstructions callbackUrl={CALLBACK_URL} />
       </Card>
     </div>
   );

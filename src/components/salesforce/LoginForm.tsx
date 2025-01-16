@@ -12,11 +12,20 @@ export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
     await onSubmit();
   };
 
+  const handleSupportClick = () => {
+    window.location.href = "mailto:support@salesforcesaver.com";
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-center text-gray-200 mb-4">
-        <Lock className="h-5 w-5 mr-2" />
-        <span className="text-sm font-medium">Secure Connection</span>
+      <div className="space-y-2 text-center">
+        <div className="flex items-center justify-center text-gray-200 mb-2">
+          <Lock className="h-5 w-5 mr-2" />
+          <span className="text-sm font-medium">Secure Connection</span>
+        </div>
+        <p className="text-sm text-gray-400">
+          Your data is protected with Salesforce's secure, approved Connected App for seamless integration
+        </p>
       </div>
 
       <Button
@@ -33,6 +42,14 @@ export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
           'Connect to Salesforce'
         )}
       </Button>
+
+      <button
+        type="button"
+        onClick={handleSupportClick}
+        className="w-full text-sm text-gray-400 hover:text-gray-300 transition-colors"
+      >
+        Having trouble? Contact Support
+      </button>
     </form>
   );
 };
