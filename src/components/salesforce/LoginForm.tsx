@@ -58,12 +58,18 @@ export const LoginForm = ({ onSubmit, isLoading }: LoginFormProps) => {
         </div>
       </form>
 
-      <div className="rounded-lg bg-white/5 p-6 backdrop-blur-sm border border-white/10">
-        <h3 className="text-center text-white font-medium mb-4">What do you gain?</h3>
-        <div className="grid grid-cols-3 gap-4 text-center text-sm">
-          <div className="text-gray-300">Reduce license costs</div>
-          <div className="text-gray-300">Optimize storage usage</div>
-          <div className="text-gray-300">Save up to 10% annually</div>
+      <div className="rounded-xl bg-gradient-to-r from-purple-600/20 to-blue-600/20 p-8 backdrop-blur-sm border border-white/20 shadow-lg">
+        <h3 className="text-center text-white font-semibold text-lg mb-6">What do you gain?</h3>
+        <div className="grid grid-cols-3 gap-6 text-center">
+          <div className="space-y-2">
+            <div className="text-purple-300 font-medium">Reduce license costs</div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-blue-300 font-medium">Optimize storage usage</div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-indigo-300 font-medium">Save up to 10% annually</div>
+          </div>
         </div>
       </div>
     </div>
