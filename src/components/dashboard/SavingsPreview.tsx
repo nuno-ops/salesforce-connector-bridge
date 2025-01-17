@@ -39,7 +39,7 @@ export const SavingsPreview = ({
       <Card className="p-8 bg-[#0A0A0B] text-white border border-white/10 backdrop-blur-sm">
         <div className="space-y-8 text-center">
           <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-purple-500/10 opacity-20" />
-          <DollarSign className="h-16 w-16 mx-auto text-[#0EA5E9]" />
+          <DollarSign className="h-16 w-16 mx-auto text-sf-blue" />
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
             Potential Annual Savings Identified
           </h2>
@@ -47,7 +47,7 @@ export const SavingsPreview = ({
             {isOrgDataLoading ? (
               <LoadingSpinner className="w-12 h-12" />
             ) : (
-              <span className="text-[#0EA5E9]">${totalSavings.toLocaleString()}</span>
+              <span className="text-sf-blue">${totalSavings.toLocaleString()}</span>
             )}
           </div>
           <p className="text-lg md:text-xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
@@ -56,7 +56,7 @@ export const SavingsPreview = ({
           <Button 
             onClick={onViewReport}
             size="lg"
-            className="h-14 px-8 text-lg font-medium bg-[#0EA5E9] hover:bg-[#0284C7] text-white transition-all duration-300 transform hover:scale-105"
+            className="h-14 px-8 text-lg font-medium bg-gradient-to-r from-sf-blue to-purple-600 hover:from-sf-hover hover:to-purple-700 text-white transition-all duration-300 transform hover:scale-105"
           >
             View Detailed Report
           </Button>
@@ -64,10 +64,10 @@ export const SavingsPreview = ({
       </Card>
       
       <div className="grid md:grid-cols-3 gap-8">
-        <Card className="p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
+        <Card className="p-8 rounded-2xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
           <div className="flex flex-col items-center space-y-4">
-            <div className="p-3 rounded-full bg-[#0EA5E9]/10">
-              <Lock className="w-8 h-8 text-[#0EA5E9]" />
+            <div className="p-3 rounded-full bg-sf-blue/10">
+              <Lock className="w-8 h-8 text-sf-blue" />
             </div>
             <h3 className="text-xl font-semibold text-white">License Optimization</h3>
             <p className="text-gray-200 text-center">
@@ -76,10 +76,10 @@ export const SavingsPreview = ({
           </div>
         </Card>
         
-        <Card className="p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
+        <Card className="p-8 rounded-2xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
           <div className="flex flex-col items-center space-y-4">
-            <div className="p-3 rounded-full bg-[#0EA5E9]/10">
-              <Lock className="w-8 h-8 text-[#0EA5E9]" />
+            <div className="p-3 rounded-full bg-sf-blue/10">
+              <Lock className="w-8 h-8 text-sf-blue" />
             </div>
             <h3 className="text-xl font-semibold text-white">Package Analysis</h3>
             <p className="text-gray-200 text-center">
@@ -88,10 +88,10 @@ export const SavingsPreview = ({
           </div>
         </Card>
         
-        <Card className="p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
+        <Card className="p-8 rounded-2xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
           <div className="flex flex-col items-center space-y-4">
-            <div className="p-3 rounded-full bg-[#0EA5E9]/10">
-              <Lock className="w-8 h-8 text-[#0EA5E9]" />
+            <div className="p-3 rounded-full bg-sf-blue/10">
+              <Lock className="w-8 h-8 text-sf-blue" />
             </div>
             <h3 className="text-xl font-semibold text-white">Infrastructure Review</h3>
             <p className="text-gray-200 text-center">
