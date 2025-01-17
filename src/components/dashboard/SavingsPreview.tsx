@@ -35,10 +35,11 @@ export const SavingsPreview = ({
   });
 
   return (
-    <div className="space-y-12 pb-8">
-      <Card className="p-8 bg-[#0A0A0B] text-white border border-white/10 backdrop-blur-sm">
-        <div className="space-y-8 text-center">
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-purple-500/10 opacity-20" />
+    <div className="min-h-screen bg-[#0A0A0B] text-white overflow-hidden space-y-12 pb-8">
+      <div className="relative px-4 pt-20 md:pt-32 pb-16 mx-auto max-w-7xl">
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-purple-500/10 opacity-20" />
+        
+        <div className="relative space-y-8 text-center max-w-4xl mx-auto animate-fadeIn">
           <DollarSign className="h-16 w-16 mx-auto text-sf-blue" />
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
             Potential Annual Savings Identified
@@ -61,44 +62,46 @@ export const SavingsPreview = ({
             View Detailed Report
           </Button>
         </div>
-      </Card>
+      </div>
       
-      <div className="grid md:grid-cols-3 gap-8">
-        <Card className="p-8 rounded-2xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="p-3 rounded-full bg-sf-blue/10">
-              <Lock className="w-8 h-8 text-sf-blue" />
+      <div className="relative px-4 py-24">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="p-3 rounded-full bg-sf-blue/10">
+                <Lock className="w-8 h-8 text-sf-blue" />
+              </div>
+              <h3 className="text-xl font-semibold text-white">License Optimization</h3>
+              <p className="text-gray-200 text-center">
+                Identify unused and underutilized licenses
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-white">License Optimization</h3>
-            <p className="text-gray-200 text-center">
-              Identify unused and underutilized licenses
-            </p>
           </div>
-        </Card>
-        
-        <Card className="p-8 rounded-2xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="p-3 rounded-full bg-sf-blue/10">
-              <Lock className="w-8 h-8 text-sf-blue" />
+          
+          <div className="p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="p-3 rounded-full bg-sf-blue/10">
+                <Lock className="w-8 h-8 text-sf-blue" />
+              </div>
+              <h3 className="text-xl font-semibold text-white">Package Analysis</h3>
+              <p className="text-gray-200 text-center">
+                Review and optimize package licenses
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-white">Package Analysis</h3>
-            <p className="text-gray-200 text-center">
-              Review and optimize package licenses
-            </p>
           </div>
-        </Card>
-        
-        <Card className="p-8 rounded-2xl bg-black/40 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="p-3 rounded-full bg-sf-blue/10">
-              <Lock className="w-8 h-8 text-sf-blue" />
+          
+          <div className="p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="p-3 rounded-full bg-sf-blue/10">
+                <Lock className="w-8 h-8 text-sf-blue" />
+              </div>
+              <h3 className="text-xl font-semibold text-white">Infrastructure Review</h3>
+              <p className="text-gray-200 text-center">
+                Optimize sandbox and storage usage
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-white">Infrastructure Review</h3>
-            <p className="text-gray-200 text-center">
-              Optimize sandbox and storage usage
-            </p>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );
