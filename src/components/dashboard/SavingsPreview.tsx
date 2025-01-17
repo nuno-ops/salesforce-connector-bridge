@@ -56,7 +56,7 @@ export const SavingsPreview = ({
             onClick={onViewReport}
             size="lg"
             variant="secondary"
-            className="w-full md:w-auto"
+            className="w-full md:w-auto bg-white text-sf-blue hover:bg-gray-100"
           >
             View Detailed Report
           </Button>
@@ -64,21 +64,21 @@ export const SavingsPreview = ({
       </Card>
       
       <div className="grid md:grid-cols-3 gap-6">
-        <Card className="p-6">
-          <Lock className="h-5 w-5 text-sf-blue mb-2" />
-          <h3 className="font-semibold">License Optimization</h3>
+        <Card className="p-6 border-2">
+          <Lock className="h-5 w-5 text-sf-blue mb-4" />
+          <h3 className="font-semibold text-lg mb-2">License Optimization</h3>
           <p className="text-sm text-gray-600">Identify unused and underutilized licenses</p>
         </Card>
         
-        <Card className="p-6">
-          <Lock className="h-5 w-5 text-sf-blue mb-2" />
-          <h3 className="font-semibold">Package Analysis</h3>
+        <Card className="p-6 border-2">
+          <Lock className="h-5 w-5 text-sf-blue mb-4" />
+          <h3 className="font-semibold text-lg mb-2">Package Analysis</h3>
           <p className="text-sm text-gray-600">Review and optimize package licenses</p>
         </Card>
         
-        <Card className="p-6">
-          <Lock className="h-5 w-5 text-sf-blue mb-2" />
-          <h3 className="font-semibold">Infrastructure Review</h3>
+        <Card className="p-6 border-2">
+          <Lock className="h-5 w-5 text-sf-blue mb-4" />
+          <h3 className="font-semibold text-lg mb-2">Infrastructure Review</h3>
           <p className="text-sm text-gray-600">Optimize sandbox and storage usage</p>
         </Card>
       </div>
