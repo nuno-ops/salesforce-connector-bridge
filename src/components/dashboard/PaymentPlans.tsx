@@ -12,7 +12,7 @@ export const PaymentPlans = ({ onSubscribe }: PaymentPlansProps) => {
         <div className="text-center space-y-6 animate-fadeIn">
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
             Choose Your{" "}
-            <span className="bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-sf-blue">
               Savings Plan
             </span>
           </h2>
@@ -22,7 +22,7 @@ export const PaymentPlans = ({ onSubscribe }: PaymentPlansProps) => {
         </div>
         
         <div className="grid md:grid-cols-2 gap-8 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 opacity-20 blur-3xl -z-10" />
+          <div className="absolute inset-0 bg-gradient-to-b from-sf-blue/10 to-blue-500/10 opacity-20 blur-3xl -z-10" />
           <PlanCard 
             {...savingsMonitorData}
             onSubscribe={() => onSubscribe(savingsMonitorData.priceId)}
@@ -34,7 +34,7 @@ export const PaymentPlans = ({ onSubscribe }: PaymentPlansProps) => {
         </div>
 
         <div className="text-center text-sm text-gray-400">
-          Questions about our plans? <a href="mailto:support@salesforcesaver.com" className="text-purple-400 hover:text-purple-300 underline">Contact our support team</a>
+          Questions about our plans? <a href="mailto:support@salesforcesaver.com" className="text-sf-blue hover:text-sf-hover underline">Contact our support team</a>
         </div>
       </div>
     </div>
