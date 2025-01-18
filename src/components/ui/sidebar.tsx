@@ -103,7 +103,7 @@ export const MobileSidebar = ({
   className,
   children,
   ...props
-}: Omit<React.ComponentProps<typeof motion.div>, "onDrag">) => {
+}: React.ComponentProps<typeof motion.div>) => {
   const { open, setOpen } = useSidebar();
   return (
     <>
@@ -111,7 +111,6 @@ export const MobileSidebar = ({
         className={cn(
           "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
         )}
-        {...props}
       >
         <div className="flex justify-end z-20 w-full">
           <Menu
