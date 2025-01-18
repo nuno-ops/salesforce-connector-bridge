@@ -102,7 +102,6 @@ export const DesktopSidebar = ({
 export const MobileSidebar = ({
   className,
   children,
-  ...props
 }: React.ComponentProps<typeof motion.div>) => {
   const { open, setOpen } = useSidebar();
   return (
@@ -180,7 +179,7 @@ export const SidebarLink = ({
         }}
         className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
       >
-        {link.label}
+        {String(link.label)}
       </motion.span>
     </div>
   );
