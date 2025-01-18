@@ -13,9 +13,12 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   // Only show sidebar on the organizational health dashboard
   const showSidebar = location.pathname === "/org-health" || location.pathname === "/organization-health";
 
-  // Show consultation banner and support button on savings pages
-  const showSavingsFeatures = location.pathname.includes("savings") || 
-    location.pathname.includes("cost-savings");
+  // Show consultation banner and support button on savings pages and payment plans
+  const showSavingsFeatures = 
+    location.pathname.includes("savings") || 
+    location.pathname.includes("cost-savings") ||
+    location.pathname === "/" ||  // Root path shows savings preview
+    location.pathname.includes("payment-plans"); // Payment plans page
 
   return (
     <div className="min-h-screen flex w-full">
