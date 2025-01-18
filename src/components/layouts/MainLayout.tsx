@@ -2,6 +2,9 @@ import { useLocation } from "react-router-dom";
 import { DashboardSidebar } from "../dashboard/DashboardSidebar";
 import { SupportEmailButton } from "../SupportEmailButton";
 import { ConsultationBanner } from "../consultation/ConsultationBanner";
+import { ConsultationButton } from "../consultation/ConsultationButton";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -24,6 +27,19 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
     <div className="min-h-screen flex w-full">
       {showSidebar && <DashboardSidebar />}
       <main className={`flex-1 p-4 md:p-8 ${!showSidebar ? 'max-w-7xl mx-auto' : ''} relative`}>
+        {showSavingsFeatures && (
+          <div className="flex justify-between items-center mb-6">
+            <div className="space-x-4">
+              <ConsultationButton variant="outline" />
+              {onDisconnect && (
+                <Button variant="outline" onClick={onDisconnect}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Disconnect
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
         {children}
         {showSavingsFeatures && (
           <>
