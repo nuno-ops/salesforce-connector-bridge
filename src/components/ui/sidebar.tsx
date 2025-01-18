@@ -102,15 +102,14 @@ export const DesktopSidebar = ({
 export const MobileSidebar = ({
   className,
   children,
-}: React.ComponentProps<typeof motion.div>) => {
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) => {
   const { open, setOpen } = useSidebar();
   return (
     <>
-      <div
-        className={cn(
-          "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
-        )}
-      >
+      <div className="h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full">
         <div className="flex justify-end z-20 w-full">
           <Menu
             className="text-neutral-800 dark:text-neutral-200 cursor-pointer"
@@ -150,11 +149,9 @@ export const MobileSidebar = ({
 export const SidebarLink = ({
   link,
   className,
-  ...props
 }: {
   link: Links;
   className?: string;
-  props?: any;
 }) => {
   const { open, animate } = useSidebar();
   return (
@@ -169,7 +166,6 @@ export const SidebarLink = ({
           element.scrollIntoView({ behavior: 'smooth' });
         }
       }}
-      {...props}
     >
       {link.icon}
       <motion.span
@@ -180,7 +176,7 @@ export const SidebarLink = ({
         }}
         className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
       >
-        {String(link.label)}
+        {link.label}
       </motion.span>
     </div>
   );
