@@ -8,12 +8,13 @@ interface MainLayoutProps {
 
 export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   const location = useLocation();
-  const isDashboard = location.pathname === "/" || location.pathname === "/dashboard";
+  // Only show sidebar on the organizational health dashboard
+  const showSidebar = location.pathname === "/org-health" || location.pathname === "/organization-health";
 
   return (
     <div className="min-h-screen flex w-full">
-      {isDashboard && <DashboardSidebar />}
-      <main className={`flex-1 p-4 md:p-8 ${!isDashboard ? 'max-w-7xl mx-auto' : ''}`}>
+      {showSidebar && <DashboardSidebar />}
+      <main className={`flex-1 p-4 md:p-8 ${!showSidebar ? 'max-w-7xl mx-auto' : ''}`}>
         {children}
       </main>
     </div>
