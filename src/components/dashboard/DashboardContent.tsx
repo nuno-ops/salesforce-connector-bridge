@@ -27,32 +27,8 @@ export const DashboardContent = ({
   users = [],
   oauthTokens = []
 }: DashboardContentProps) => {
-  console.log('DashboardContent - Received props:', {
-    userLicensesCount: userLicenses?.length,
-    packageLicensesCount: packageLicenses?.length,
-    permissionSetLicensesCount: permissionSetLicenses?.length,
-    sandboxesCount: sandboxes?.length,
-    hasLimits: !!limits,
-    usersCount: users?.length,
-    oauthTokensCount: oauthTokens?.length,
-    firstUser: users?.[0],
-    firstOAuthToken: oauthTokens?.[0],
-    timestamp: new Date().toISOString()
-  });
-
   const { licensePrice } = useOrganizationData();
   const { isExporting, handleExport } = useExportReport();
-  
-  console.log('DashboardContent - Initial props:', {
-    userLicensesCount: userLicenses?.length,
-    packageLicensesCount: packageLicenses?.length,
-    permissionSetLicensesCount: permissionSetLicenses?.length,
-    sandboxesCount: sandboxes?.length,
-    hasLimits: !!limits,
-    usersCount: users?.length,
-    oauthTokensCount: oauthTokens?.length,
-    licensePrice
-  });
   
   const { 
     totalSavings,
@@ -69,25 +45,7 @@ export const DashboardContent = ({
     userLicenses
   });
 
-  console.log('DashboardContent - After savings calculations:', {
-    totalSavings,
-    savingsBreakdownLength: savingsBreakdown?.length,
-    inactiveUsersCount: inactiveUsers?.length,
-    integrationUsersCount: integrationUsers?.length,
-    platformUsersCount: platformUsers?.length
-  });
-
   const handleExportReport = () => {
-    console.log('DashboardContent - Before export:', {
-      users,
-      oauthTokens,
-      inactiveUsers,
-      integrationUsers,
-      platformUsers,
-      savingsBreakdown,
-      licensePrice
-    });
-
     handleExport({
       userLicenses,
       packageLicenses,
@@ -111,28 +69,39 @@ export const DashboardContent = ({
         onExport={handleExportReport}
       />
       
-      <OptimizationDashboard
-        userLicenses={userLicenses}
-        packageLicenses={packageLicenses}
-        sandboxes={sandboxes}
-        storageUsage={limits?.StorageUsed || 0}
-      />
+      <div id="cost-savings">
+        <OptimizationDashboard
+          userLicenses={userLicenses}
+          packageLicenses={packageLicenses}
+          sandboxes={sandboxes}
+          storageUsage={limits?.StorageUsed || 0}
+        />
+      </div>
       
-      <ToolAnalysis oauthTokens={oauthTokens} />
+      <div id="tool-analysis">
+        <ToolAnalysis oauthTokens={oauthTokens} />
+      </div>
       
-      <CostSavingsReport
-        userLicenses={userLicenses}
-        packageLicenses={packageLicenses}
-        permissionSetLicenses={permissionSetLicenses}
-        sandboxes={sandboxes}
-        apiUsage={limits?.DailyApiRequests?.Max || 0}
-        storageUsage={limits?.StorageUsed || 0}
-        contracts={[]}
-        invoices={[]}
-      />
+      <div id="cost-savings-report">
+        <CostSavingsReport
+          userLicenses={userLicenses}
+          packageLicenses={packageLicenses}
+          permissionSetLicenses={permissionSetLicenses}
+          sandboxes={sandboxes}
+          apiUsage={limits?.DailyApiRequests?.Max || 0}
+          storageUsage={limits?.StorageUsed || 0}
+          contracts={[]}
+          invoices={[]}
+        />
+      </div>
       
-      <SalesforceUsers />
-      <OrgHealth />
+      <div id="users">
+        <SalesforceUsers />
+      </div>
+
+      <div id="org-health">
+        <OrgHealth />
+      </div>
     </div>
   );
 };
