@@ -13,8 +13,10 @@ interface MainLayoutProps {
 
 export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   const location = useLocation();
-  // Only show sidebar on the organizational health dashboard
-  const showSidebar = location.pathname === "/org-health" || location.pathname === "/organization-health";
+  // Show sidebar on the organizational health dashboard and root path
+  const showSidebar = location.pathname === "/org-health" || 
+                      location.pathname === "/organization-health" ||
+                      location.pathname === "/";
 
   // Show consultation banner and support button on savings pages and payment plans
   const showSavingsFeatures = 
