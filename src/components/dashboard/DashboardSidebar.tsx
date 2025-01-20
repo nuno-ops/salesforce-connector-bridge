@@ -45,9 +45,10 @@ export function DashboardSidebar() {
   
   const handleLinkClick = (href: string) => {
     console.log('Sidebar link clicked:', href);
+    const sectionId = href.replace('#', '');
     // Dispatch a custom event to notify that a section should be expanded
-    const event = new CustomEvent('expandLicenseSection', {
-      detail: { tabValue: href.replace('#', '') }
+    const event = new CustomEvent('expandSection', {
+      detail: { sectionId }
     });
     window.dispatchEvent(event);
   };

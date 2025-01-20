@@ -26,8 +26,8 @@ export const OrgHealth = () => {
   console.log('OrgHealth render - Current hash:', location.hash);
   console.log('OrgHealth render - Expanded sections:', Array.from(expandedSections));
 
+  // Listen for hash changes
   useEffect(() => {
-    // Get the hash without the '#' symbol
     const hash = location.hash.slice(1);
     console.log('Hash changed effect - New hash:', hash);
     
@@ -40,6 +40,24 @@ export const OrgHealth = () => {
       });
     }
   }, [location.hash]);
+
+  // Listen for custom expand section events
+  useEffect(() => {
+    const handleExpandSection = (event: CustomEvent) => {
+      const { sectionId } = event.detail;
+      console.log('Received expand section event for:', sectionId);
+      setExpandedSections(prev => {
+        const newSet = new Set(prev);
+        newSet.add(sectionId);
+        return newSet;
+      });
+    };
+
+    window.addEventListener('expandSection', handleExpandSection as EventListener);
+    return () => {
+      window.removeEventListener('expandSection', handleExpandSection as EventListener);
+    };
+  }, []);
 
   const isExpanded = (sectionId: string) => {
     const expanded = expandedSections.has(sectionId);
