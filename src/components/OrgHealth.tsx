@@ -57,15 +57,26 @@ export const OrgHealth = () => {
 
   return (
     <div className="space-y-8">
-      <LicensesSection 
-        userLicenses={userLicenses || []}
-        packageLicenses={packageLicenses || []}
-        permissionSetLicenses={permissionSetLicenses || []}
-        defaultExpanded={isExpanded}
-      />
-      <LimitsSection limits={limits} defaultExpanded={isExpanded} />
-      <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />
-      <SandboxList sandboxes={sandboxes} defaultExpanded={isExpanded} />
+      <div id="licenses">
+        <LicensesSection 
+          userLicenses={userLicenses || []}
+          packageLicenses={packageLicenses || []}
+          permissionSetLicenses={permissionSetLicenses || []}
+          defaultExpanded={isExpanded}
+        />
+      </div>
+      
+      <div id="organization-limits">
+        <LimitsSection limits={limits} defaultExpanded={isExpanded} />
+      </div>
+      
+      <div id="operational-metrics">
+        <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />
+      </div>
+      
+      <div id="active-sandboxes">
+        <SandboxList sandboxes={sandboxes} defaultExpanded={isExpanded} />
+      </div>
     </div>
   );
 };
