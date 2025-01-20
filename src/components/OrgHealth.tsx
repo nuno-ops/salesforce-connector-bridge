@@ -23,23 +23,16 @@ export const OrgHealth = () => {
     error
   } = useOrgHealthData();
 
-  console.log('OrgHealth component data:', {
-    hasLimits: !!limits,
-    limitsData: limits,
-    hasSandboxes: Array.isArray(sandboxes),
-    sandboxCount: sandboxes?.length,
-    hasMetrics: !!metrics,
-    licenseData: {
-      userLicenses: userLicenses?.length,
-      packageLicenses: packageLicenses?.length,
-      permissionSetLicenses: permissionSetLicenses?.length,
-    }
-  });
+  console.log('OrgHealth render - Current hash:', location.hash);
+  console.log('OrgHealth render - Expanded sections:', Array.from(expandedSections));
 
   useEffect(() => {
     // Get the hash without the '#' symbol
     const hash = location.hash.slice(1);
+    console.log('Hash changed effect - New hash:', hash);
+    
     if (hash) {
+      console.log('Expanding section:', hash);
       setExpandedSections(prev => {
         const newSet = new Set(prev);
         newSet.add(hash);
@@ -48,9 +41,14 @@ export const OrgHealth = () => {
     }
   }, [location.hash]);
 
-  const isExpanded = (sectionId: string) => expandedSections.has(sectionId);
+  const isExpanded = (sectionId: string) => {
+    const expanded = expandedSections.has(sectionId);
+    console.log(`Checking if section ${sectionId} is expanded:`, expanded);
+    return expanded;
+  };
 
   const handleSectionToggle = (sectionId: string, isOpen: boolean) => {
+    console.log(`Toggle section ${sectionId} to ${isOpen}`);
     setExpandedSections(prev => {
       const newSet = new Set(prev);
       if (isOpen) {

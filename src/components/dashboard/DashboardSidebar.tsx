@@ -43,13 +43,24 @@ const links = [
 export function DashboardSidebar() {
   const [open, setOpen] = useState(false);
   
+  const handleLinkClick = (href: string) => {
+    console.log('Sidebar link clicked:', href);
+    // Dispatch a custom event to notify that a section should be expanded
+    const event = new CustomEvent('expandLicenseSection', {
+      detail: { tabValue: href.replace('#', '') }
+    });
+    window.dispatchEvent(event);
+  };
+  
   return (
     <Sidebar open={open} setOpen={setOpen}>
       <SidebarBody className="justify-between gap-10">
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
           <div className="mt-8 flex flex-col gap-2">
             {links.map((link, idx) => (
-              <SidebarLink key={idx} link={link} />
+              <div key={idx} onClick={() => handleLinkClick(link.href)}>
+                <SidebarLink link={link} />
+              </div>
             ))}
           </div>
         </div>
