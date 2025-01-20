@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 export const OrgHealth = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const {
     limits,
     sandboxes,
@@ -40,9 +40,27 @@ export const OrgHealth = () => {
     // Get the hash without the '#' symbol
     const hash = location.hash.slice(1);
     if (hash) {
-      setExpandedSection(hash);
+      setExpandedSections(prev => {
+        const newSet = new Set(prev);
+        newSet.add(hash);
+        return newSet;
+      });
     }
   }, [location.hash]);
+
+  const isExpanded = (sectionId: string) => expandedSections.has(sectionId);
+
+  const handleSectionToggle = (sectionId: string, isOpen: boolean) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (isOpen) {
+        newSet.add(sectionId);
+      } else {
+        newSet.delete(sectionId);
+      }
+      return newSet;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -67,28 +85,32 @@ export const OrgHealth = () => {
           userLicenses={userLicenses || []}
           packageLicenses={packageLicenses || []}
           permissionSetLicenses={permissionSetLicenses || []}
-          defaultExpanded={expandedSection === 'licenses'}
+          isOpen={isExpanded('licenses')}
+          onOpenChange={(isOpen) => handleSectionToggle('licenses', isOpen)}
         />
       </div>
       
       <div id="organization-limits">
         <LimitsSection 
-          limits={limits} 
-          defaultExpanded={expandedSection === 'organization-limits'} 
+          limits={limits}
+          isOpen={isExpanded('organization-limits')}
+          onOpenChange={(isOpen) => handleSectionToggle('organization-limits', isOpen)}
         />
       </div>
       
       <div id="operational-metrics">
         <MetricsSection 
-          metrics={metrics} 
-          defaultExpanded={expandedSection === 'operational-metrics'} 
+          metrics={metrics}
+          isOpen={isExpanded('operational-metrics')}
+          onOpenChange={(isOpen) => handleSectionToggle('operational-metrics', isOpen)}
         />
       </div>
       
       <div id="active-sandboxes">
         <SandboxList 
-          sandboxes={sandboxes} 
-          defaultExpanded={expandedSection === 'active-sandboxes'} 
+          sandboxes={sandboxes}
+          isOpen={isExpanded('active-sandboxes')}
+          onOpenChange={(isOpen) => handleSectionToggle('active-sandboxes', isOpen)}
         />
       </div>
     </div>

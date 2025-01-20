@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -13,16 +12,15 @@ interface SandboxInfo {
 
 interface SandboxListProps {
   sandboxes: SandboxInfo[];
-  defaultExpanded?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export const SandboxList = ({ sandboxes, defaultExpanded = false }: SandboxListProps) => {
-  const [isOpen, setIsOpen] = useState(defaultExpanded);
-
-  useEffect(() => {
-    setIsOpen(defaultExpanded);
-  }, [defaultExpanded]);
-
+export const SandboxList = ({ 
+  sandboxes, 
+  isOpen = false,
+  onOpenChange
+}: SandboxListProps) => {
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -30,7 +28,7 @@ export const SandboxList = ({ sandboxes, defaultExpanded = false }: SandboxListP
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => onOpenChange?.(!isOpen)}
           className="h-8 w-8"
         >
           {isOpen ? (
@@ -41,7 +39,7 @@ export const SandboxList = ({ sandboxes, defaultExpanded = false }: SandboxListP
         </Button>
       </div>
 
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={isOpen} onOpenChange={onOpenChange}>
         <CollapsibleContent>
           <Card>
             <CardContent className="pt-6">

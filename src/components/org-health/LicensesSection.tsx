@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { LicenseCard } from './LicenseCard';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -8,17 +7,17 @@ interface LicensesSectionProps {
   userLicenses: any[];
   packageLicenses: any[];
   permissionSetLicenses: any[];
-  defaultExpanded?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
 export const LicensesSection = ({ 
   userLicenses, 
   packageLicenses, 
   permissionSetLicenses,
-  defaultExpanded = false
+  isOpen = false,
+  onOpenChange
 }: LicensesSectionProps) => {
-  const [isOpen, setIsOpen] = useState(defaultExpanded);
-
   console.log('LicensesSection received:', {
     userLicenses,
     packageLicenses,
@@ -28,12 +27,9 @@ export const LicensesSection = ({
     isPackageLicensesArray: Array.isArray(packageLicenses),
     packageLicensesLength: packageLicenses?.length,
     isPermissionSetLicensesArray: Array.isArray(permissionSetLicenses),
-    permissionSetLicensesLength: permissionSetLicenses?.length
+    permissionSetLicensesLength: permissionSetLicenses?.length,
+    isOpen
   });
-
-  useEffect(() => {
-    setIsOpen(defaultExpanded);
-  }, [defaultExpanded]);
 
   // Ensure we're working with arrays and not strings
   const parsedUserLicenses = Array.isArray(userLicenses) ? userLicenses : [];
@@ -56,7 +52,7 @@ export const LicensesSection = ({
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => onOpenChange?.(!isOpen)}
           className="h-8 w-8"
         >
           {isOpen ? (
@@ -67,7 +63,7 @@ export const LicensesSection = ({
         </Button>
       </div>
       
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={isOpen} onOpenChange={onOpenChange}>
         <CollapsibleContent>
           <div className="space-y-6 pt-4">
             <LicenseCard 
