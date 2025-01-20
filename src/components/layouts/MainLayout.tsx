@@ -32,7 +32,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
       <main className={cn(
         "flex-1 p-4 md:p-8 relative",
         {
-          'md:ml-[60px] hover:md:ml-[300px] transition-[margin] duration-300': showSidebar,
+          'md:ml-[60px]': showSidebar,
           'max-w-7xl mx-auto': !showSidebar
         }
       )}>
