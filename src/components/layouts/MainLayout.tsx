@@ -5,6 +5,7 @@ import { ConsultationBanner } from "../consultation/ConsultationBanner";
 import { ConsultationButton } from "../consultation/ConsultationButton";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface MainLayoutProps {
   children: React.ReactNode;
