@@ -28,7 +28,13 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   return (
     <div className="min-h-screen flex w-full">
       {showSidebar && <DashboardSidebar />}
-      <main className={`flex-1 p-4 md:p-8 ${!showSidebar ? 'max-w-7xl mx-auto' : ''} relative`}>
+      <main className={cn(
+        "flex-1 p-4 md:p-8 relative",
+        {
+          'md:ml-[60px] hover:md:ml-[300px] transition-[margin] duration-300': showSidebar,
+          'max-w-7xl mx-auto': !showSidebar
+        }
+      )}>
         {showSavingsFeatures && (
           <div className="flex justify-between items-center mb-6">
             <div className="space-x-4">
