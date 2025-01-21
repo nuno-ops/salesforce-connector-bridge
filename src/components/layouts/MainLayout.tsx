@@ -14,17 +14,16 @@ interface MainLayoutProps {
 
 export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   const location = useLocation();
-  // Show sidebar on the organizational health dashboard and root path
+  
+  // Only show sidebar on the organizational health dashboard
   const showSidebar = location.pathname === "/org-health" || 
-                      location.pathname === "/organization-health" ||
-                      location.pathname === "/";
+                      location.pathname === "/organization-health";
 
   // Show consultation banner and support button on savings pages and payment plans
   const showSavingsFeatures = 
     location.pathname.includes("savings") || 
     location.pathname.includes("cost-savings") ||
-    location.pathname === "/" ||  // Root path shows savings preview
-    location.pathname.includes("payment-plans"); // Payment plans page
+    location.pathname.includes("payment-plans");
 
   return (
     <div className="min-h-screen flex w-full">
@@ -36,7 +35,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
           'max-w-7xl mx-auto': !showSidebar
         }
       )}>
-        {showSavingsFeatures && (
+        {(showSavingsFeatures || location.pathname === "/") && (
           <div className="flex justify-between items-center mb-6">
             <div className="space-x-4">
               <ConsultationButton variant="outline" />
@@ -50,7 +49,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
           </div>
         )}
         {children}
-        {showSavingsFeatures && (
+        {(showSavingsFeatures || location.pathname === "/") && (
           <>
             <SupportEmailButton />
             <ConsultationBanner />
