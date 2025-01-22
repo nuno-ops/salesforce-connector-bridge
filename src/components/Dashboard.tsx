@@ -6,7 +6,7 @@ import { ContractUploadDialog } from "@/components/salesforce/ContractUploadDial
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useCheckAccess } from "./dashboard/hooks/useCheckAccess";
 import { DashboardContent } from "./dashboard/DashboardContent";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SalesforceLogin } from "./SalesforceLogin";
 import { SavingsPreview } from "./dashboard/SavingsPreview";
@@ -20,6 +20,7 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const {
     userLicenses = [],
@@ -105,7 +106,13 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses || []);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses || []);
 
-  if (!hasAccess || showSavingsPreview) {
+  // Only show preview if explicitly requested AND user doesn't have access
+  // Never show preview after successful payment
+  const shouldShowPreview = !hasAccess && 
+                          showSavingsPreview && 
+                          searchParams.get('success') !== 'true';
+
+  if (shouldShowPreview) {
     return (
       <MainLayout onDisconnect={handleDisconnect}>
         <SavingsPreview
