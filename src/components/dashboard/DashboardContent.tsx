@@ -7,6 +7,7 @@ import { OrgHealth } from "@/components/OrgHealth";
 import { DashboardHeader } from "./DashboardHeader";
 import { useExportReport } from "./useExportReport";
 import { ToolAnalysis } from "../tools/ToolAnalysis";
+import { ReportAccessTimer } from "./ReportAccessTimer";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -68,6 +69,8 @@ export const DashboardContent = ({
         isExporting={isExporting}
         onExport={handleExportReport}
       />
+      
+      <ReportAccessTimer />
       
       <div id="cost-savings">
         <OptimizationDashboard
