@@ -22,6 +22,8 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
         const tokenAge = Date.now() - parseInt(timestamp);
         if (tokenAge < 7200000) {
           console.log('Found valid existing connection');
+          // Clear any cached subscription status to ensure proper access check
+          localStorage.removeItem('sf_subscription_status');
           onSuccess?.();
           return;
         }
@@ -36,6 +38,7 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
     localStorage.removeItem('sf_access_token');
     localStorage.removeItem('sf_instance_url');
     localStorage.removeItem('sf_token_timestamp');
+    localStorage.removeItem('sf_subscription_status');
     setIsLoading(false);
   };
 

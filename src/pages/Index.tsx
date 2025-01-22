@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SalesforceLogin } from "@/components/SalesforceLogin";
 import { LandingPage } from "@/components/landing/LandingPage";
@@ -28,10 +28,16 @@ const Index = () => {
       navigate('/dashboard', { replace: true });
       return;
     }
+
+    // If connected but no successful payment, redirect to savings preview
+    if (isConnected && !success) {
+      navigate('/dashboard/savings-preview', { replace: true });
+      return;
+    }
   }, [searchParams, navigate, isConnected, toast]);
 
   if (showLoginForm) {
-    return <SalesforceLogin onSuccess={() => navigate('/dashboard')} />;
+    return <SalesforceLogin onSuccess={() => navigate('/dashboard/savings-preview')} />;
   }
 
   if (isConnected) {
@@ -48,7 +54,6 @@ const Index = () => {
     );
   }
 
-  // Show landing page immediately without loading state
   return <LandingPage onGetStarted={() => setShowLoginForm(true)} />;
 };
 

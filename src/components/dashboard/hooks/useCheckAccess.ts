@@ -29,15 +29,9 @@ export const useCheckAccess = () => {
         // Force a fresh check if we're coming from a successful payment
         const forceRefresh = success === 'true' && sessionId;
         
-        // Only use cached status if we're not forcing a refresh
+        // Clear cached status on initialization to ensure fresh check
         if (!forceRefresh) {
-          const cachedStatus = localStorage.getItem('sf_subscription_status');
-          if (cachedStatus === 'active') {
-            console.log('Using cached subscription status: active');
-            setHasAccess(true);
-            setIsCheckingAccess(false);
-            return;
-          }
+          localStorage.removeItem('sf_subscription_status');
         }
 
         console.log('Checking subscription status with force refresh:', forceRefresh);
