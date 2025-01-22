@@ -35,7 +35,7 @@ export const SavingsPreview = ({
   });
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-white overflow-hidden space-y-12 pb-8">
+    <div className="min-h-screen bg-[#0A0A0B] text-white">
       <div className="relative px-4 pt-20 md:pt-32 pb-16 mx-auto max-w-7xl">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-purple-500/10 opacity-20" />
         
@@ -104,7 +104,7 @@ export const SavingsPreview = ({
         </div>
       </div>
 
-      <div className="text-center text-gray-300">
+      <div className="text-center text-gray-300 pb-8">
         Questions about our plans? <a href="mailto:support@salesforcesaver.com" className="text-sf-blue hover:underline">Contact our support team</a>
       </div>
     </div>

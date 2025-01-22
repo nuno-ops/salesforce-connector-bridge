@@ -27,7 +27,10 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
                     location.pathname.includes("payment-plans");
 
   return (
-    <div className="min-h-screen flex w-full">
+    <div className={cn(
+      "min-h-screen flex w-full",
+      { "bg-[#0A0A0B]": isDarkPage }
+    )}>
       {showSidebar && <DashboardSidebar />}
       <main className={cn(
         "flex-1 p-4 md:p-8 relative",
