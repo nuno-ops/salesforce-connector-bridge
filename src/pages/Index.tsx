@@ -1,22 +1,40 @@
-import { useState, lazy, Suspense } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, lazy, Suspense, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SalesforceLogin } from "@/components/SalesforceLogin";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { Loader } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
   
   // Check for existing connection
   const isConnected = !!localStorage.getItem('sf_access_token');
+
+  useEffect(() => {
+    // Handle successful payment redirect
+    const success = searchParams.get('success');
+    const sessionId = searchParams.get('session_id');
+
+    if (success === 'true' && sessionId && isConnected) {
+      toast({
+        title: "Payment Successful",
+        description: "Thank you for your payment. Redirecting to dashboard...",
+      });
+      // Clear URL parameters and redirect to dashboard
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+  }, [searchParams, navigate, isConnected, toast]);
 
   if (showLoginForm) {
     return <SalesforceLogin onSuccess={() => navigate('/dashboard')} />;
   }
 
   if (isConnected) {
-    navigate('/dashboard');
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-6 bg-gradient-to-b from-sf-light to-white p-4">
         <div className="flex items-center space-x-3">
