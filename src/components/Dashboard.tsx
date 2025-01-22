@@ -105,19 +105,6 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses || []);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses || []);
 
-  console.log('Dashboard - Formatted data before passing to DashboardContent:', {
-    formattedUserLicensesCount: formattedUserLicenses?.length,
-    formattedPackageLicensesCount: formattedPackageLicenses?.length,
-    formattedPermissionSetLicensesCount: formattedPermissionSetLicenses?.length,
-    sandboxesCount: sandboxes?.length,
-    hasLimits: !!limits,
-    usersCount: users?.length,
-    oauthTokensCount: oauthTokens?.length,
-    firstUser: users?.[0],
-    firstOAuthToken: oauthTokens?.[0],
-    timestamp: new Date().toISOString()
-  });
-
   if (!hasAccess || showSavingsPreview) {
     return (
       <MainLayout onDisconnect={handleDisconnect}>
@@ -125,7 +112,7 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
           userLicenses={formattedUserLicenses}
           packageLicenses={formattedPackageLicenses}
           sandboxes={sandboxes}
-          onViewReport={() => navigate('/payment-plans')}
+          onViewReport={() => navigate('/dashboard/payment-plans')}
         />
       </MainLayout>
     );
