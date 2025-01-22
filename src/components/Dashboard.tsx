@@ -6,18 +6,14 @@ import { ContractUploadDialog } from "@/components/salesforce/ContractUploadDial
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useCheckAccess } from "./dashboard/hooks/useCheckAccess";
 import { DashboardContent } from "./dashboard/DashboardContent";
-import { SavingsPreview } from "./dashboard/SavingsPreview";
-import { PaymentPlans } from "./dashboard/PaymentPlans";
-import { SuccessRedirect } from "./dashboard/SuccessRedirect";
-import { useSubscription } from "./dashboard/useSubscription";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SalesforceLogin } from "./SalesforceLogin";
 
-const Dashboard = () => {
+export const MainDashboard = () => {
   const [showContractDialog, setShowContractDialog] = useState(true);
-  const [showPaymentPlans, setShowPaymentPlans] = useState(false);
   const [needsReconnect, setNeedsReconnect] = useState(false);
-  const { handleSubscribe } = useSubscription();
+  const navigate = useNavigate();
   const { toast } = useToast();
   
   const {
@@ -118,29 +114,20 @@ const Dashboard = () => {
   });
 
   if (!hasAccess) {
-    if (!showPaymentPlans) {
-      return (
-        <MainLayout onDisconnect={handleDisconnect}>
-          <SavingsPreview
-            userLicenses={formattedUserLicenses}
-            packageLicenses={formattedPackageLicenses}
-            sandboxes={sandboxes}
-            onViewReport={() => setShowPaymentPlans(true)}
-          />
-        </MainLayout>
-      );
-    }
-
     return (
       <MainLayout onDisconnect={handleDisconnect}>
-        <PaymentPlans onSubscribe={handleSubscribe} />
+        <SavingsPreview
+          userLicenses={formattedUserLicenses}
+          packageLicenses={formattedPackageLicenses}
+          sandboxes={sandboxes}
+          onViewReport={() => navigate('/dashboard/payment-plans')}
+        />
       </MainLayout>
     );
   }
 
   return (
     <MainLayout onDisconnect={handleDisconnect}>
-      <SuccessRedirect />
       <ContractUploadDialog 
         open={showContractDialog} 
         onOpenChange={setShowContractDialog}
@@ -158,5 +145,3 @@ const Dashboard = () => {
     </MainLayout>
   );
 };
-
-export default Dashboard;
