@@ -21,9 +21,18 @@ const Dashboard = () => {
     );
   }
 
-  // If no access and trying to access main dashboard, redirect to preview
+  // If no access and trying to access main dashboard, force redirect to preview
   if (!hasAccess && location.pathname === '/dashboard') {
-    console.log('No access detected, redirecting to savings preview');
+    console.log('No access detected, forcing redirect to savings preview');
+    return <Navigate to="/dashboard/savings-preview" replace />;
+  }
+
+  // If no access and trying to access any dashboard route except preview or payment plans,
+  // redirect to preview
+  if (!hasAccess && 
+      location.pathname !== '/dashboard/savings-preview' && 
+      location.pathname !== '/dashboard/payment-plans') {
+    console.log('No access detected for protected route, redirecting to savings preview');
     return <Navigate to="/dashboard/savings-preview" replace />;
   }
 
@@ -34,7 +43,16 @@ const Dashboard = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<MainDashboard showSavingsPreview={false} />} />
+      <Route 
+        path="/" 
+        element={
+          hasAccess ? (
+            <MainDashboard showSavingsPreview={false} />
+          ) : (
+            <Navigate to="/dashboard/savings-preview" replace />
+          )
+        } 
+      />
       <Route 
         path="/savings-preview" 
         element={
