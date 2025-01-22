@@ -9,8 +9,13 @@ import { DashboardContent } from "./dashboard/DashboardContent";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SalesforceLogin } from "./SalesforceLogin";
+import { SavingsPreview } from "./dashboard/SavingsPreview";
 
-export const MainDashboard = () => {
+interface MainDashboardProps {
+  showSavingsPreview?: boolean;
+}
+
+export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps) => {
   const [showContractDialog, setShowContractDialog] = useState(true);
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const navigate = useNavigate();
@@ -113,14 +118,14 @@ export const MainDashboard = () => {
     timestamp: new Date().toISOString()
   });
 
-  if (!hasAccess) {
+  if (!hasAccess || showSavingsPreview) {
     return (
       <MainLayout onDisconnect={handleDisconnect}>
         <SavingsPreview
           userLicenses={formattedUserLicenses}
           packageLicenses={formattedPackageLicenses}
           sandboxes={sandboxes}
-          onViewReport={() => navigate('/dashboard/payment-plans')}
+          onViewReport={() => navigate('/payment-plans')}
         />
       </MainLayout>
     );
