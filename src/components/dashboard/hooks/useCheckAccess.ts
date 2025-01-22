@@ -20,40 +20,57 @@ export const useCheckAccess = () => {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        // First check localStorage for cached subscription status
-        const cachedStatus = localStorage.getItem('sf_subscription_status');
-        if (cachedStatus === 'active') {
-          setHasAccess(true);
-          setIsCheckingAccess(false);
-          return;
-        }
-
         const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
         if (!orgId) throw new Error('No organization ID found');
 
         const sessionId = searchParams.get('session_id');
         const success = searchParams.get('success');
+        
+        // Force a fresh check if we're coming from a successful payment
+        const forceRefresh = success === 'true' && sessionId;
+        
+        // Only use cached status if we're not forcing a refresh
+        if (!forceRefresh) {
+          const cachedStatus = localStorage.getItem('sf_subscription_status');
+          if (cachedStatus === 'active') {
+            console.log('Using cached subscription status: active');
+            setHasAccess(true);
+            setIsCheckingAccess(false);
+            return;
+          }
+        }
 
+        console.log('Checking subscription status with force refresh:', forceRefresh);
         const { data, error } = await supabase.functions.invoke('check-subscription', {
           body: { 
             orgId,
             sessionId,
-            forceRefresh: success === 'true'
+            forceRefresh: !!forceRefresh
           }
         });
 
         if (error) throw error;
 
-        // Cache the subscription status
+        console.log('Subscription check response:', data);
+
+        // Only cache the status if we got a definitive response
         if (data?.hasAccess) {
+          console.log('Setting subscription status to active');
           localStorage.setItem('sf_subscription_status', 'active');
+          setHasAccess(true);
         } else {
+          console.log('Clearing subscription status');
           localStorage.removeItem('sf_subscription_status');
+          setHasAccess(false);
         }
 
-        setHasAccess(data?.hasAccess || false);
-
-        if (success === 'true' && data?.hasAccess) {
+        // If we had a successful payment, show a success message
+        if (forceRefresh && data?.hasAccess) {
+          toast({
+            title: "Subscription Activated",
+            description: "Your subscription has been activated successfully.",
+          });
+          // Clean up the URL
           window.history.replaceState({}, '', window.location.pathname);
         }
       } catch (error) {
@@ -65,6 +82,7 @@ export const useCheckAccess = () => {
         });
         // Clear cached status on error
         localStorage.removeItem('sf_subscription_status');
+        setHasAccess(false);
       } finally {
         setIsCheckingAccess(false);
       }
