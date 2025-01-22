@@ -23,6 +23,9 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
     location.pathname.includes("savings") || 
     location.pathname.includes("payment-plans");
 
+  const isDarkPage = location.pathname.includes("savings-preview") || 
+                    location.pathname.includes("payment-plans");
+
   return (
     <div className="min-h-screen flex w-full">
       {showSidebar && <DashboardSidebar />}
@@ -36,9 +39,21 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
         {(showSavingsFeatures || location.pathname === "/dashboard") && (
           <div className="flex justify-between items-center mb-6">
             <div className="space-x-4">
-              <ConsultationButton variant="outline" />
+              <ConsultationButton 
+                variant={isDarkPage ? "outline" : "default"}
+                className={cn({
+                  "bg-white text-black hover:bg-gray-100": isDarkPage,
+                  "border-white/20": isDarkPage
+                })}
+              />
               {onDisconnect && (
-                <Button variant="outline" onClick={onDisconnect}>
+                <Button 
+                  variant="outline" 
+                  onClick={onDisconnect}
+                  className={cn({
+                    "bg-white/10 text-white hover:bg-white/20 border-white/20": isDarkPage
+                  })}
+                >
                   <LogOut className="h-4 w-4 mr-2" />
                   Disconnect
                 </Button>

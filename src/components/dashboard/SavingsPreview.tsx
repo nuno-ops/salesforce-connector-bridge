@@ -103,6 +103,10 @@ export const SavingsPreview = ({
           </div>
         </div>
       </div>
+
+      <div className="text-center text-gray-300">
+        Questions about our plans? <a href="mailto:support@salesforcesaver.com" className="text-sf-blue hover:underline">Contact our support team</a>
+      </div>
     </div>
   );
 };
