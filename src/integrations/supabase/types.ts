@@ -102,6 +102,39 @@ export type Database = {
         }
         Relationships: []
       }
+      report_access: {
+        Row: {
+          access_expiration: string
+          access_start: string | null
+          created_at: string | null
+          id: string
+          org_id: string
+          status: string
+          stripe_payment_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          access_expiration: string
+          access_start?: string | null
+          created_at?: string | null
+          id?: string
+          org_id: string
+          status?: string
+          stripe_payment_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          access_expiration?: string
+          access_start?: string | null
+          created_at?: string | null
+          id?: string
+          org_id?: string
+          status?: string
+          stripe_payment_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       salesforce_contracts: {
         Row: {
           created_at: string | null

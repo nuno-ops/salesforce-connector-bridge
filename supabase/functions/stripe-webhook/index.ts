@@ -36,6 +36,59 @@ serve(async (req) => {
     console.log('Processing webhook event:', event.type)
 
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log('Processing completed checkout session:', session.id);
+        
+        if (session.mode === 'subscription' && session.subscription) {
+          // Handle subscription payment
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+          console.log('Retrieved subscription details:', {
+            id: subscription.id,
+            status: subscription.status,
+            customerId: subscription.customer
+          });
+
+          const { error } = await supabase
+            .from('organization_subscriptions')
+            .update({
+              status: 'active',
+              updated_at: new Date().toISOString()
+            })
+            .eq('stripe_subscription_id', subscription.id);
+
+          if (error) {
+            console.error('Error updating subscription:', error);
+            throw error;
+          }
+          console.log('Successfully updated subscription status to active');
+        } else if (session.mode === 'payment') {
+          // Handle one-time payment for report access
+          console.log('Processing one-time payment for report access');
+          
+          // Calculate expiration date (2 days from now)
+          const now = new Date();
+          const expiration = new Date(now.getTime() + (2 * 24 * 60 * 60 * 1000));
+
+          const { error } = await supabase
+            .from('report_access')
+            .insert({
+              org_id: session.metadata?.orgId,
+              stripe_payment_id: session.payment_intent as string,
+              access_start: now.toISOString(),
+              access_expiration: expiration.toISOString(),
+              status: 'active'
+            });
+
+          if (error) {
+            console.error('Error creating report access:', error);
+            throw error;
+          }
+          console.log('Successfully created report access until:', expiration);
+        }
+        break;
+      }
+
       case 'customer.subscription.created': {
         const subscription = event.data.object as Stripe.Subscription;
         console.log('Processing new subscription:', {
@@ -62,36 +115,6 @@ serve(async (req) => {
           throw error;
         }
         console.log('Successfully created subscription with pending status');
-        break;
-      }
-
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        console.log('Processing completed checkout session:', session.id);
-        
-        if (session.mode === 'subscription' && session.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-          console.log('Retrieved subscription details:', {
-            id: subscription.id,
-            status: subscription.status,
-            customerId: subscription.customer
-          });
-
-          // Now that payment is confirmed, update status to active
-          const { error } = await supabase
-            .from('organization_subscriptions')
-            .update({
-              status: 'active',
-              updated_at: new Date().toISOString()
-            })
-            .eq('stripe_subscription_id', subscription.id);
-
-          if (error) {
-            console.error('Error updating subscription:', error);
-            throw error;
-          }
-          console.log('Successfully updated subscription status to active');
-        }
         break;
       }
 
