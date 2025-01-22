@@ -28,38 +28,55 @@ export const useCheckAccess = () => {
         
         // Force a fresh check if we're coming from a successful payment
         const forceRefresh = success === 'true' && sessionId;
-        
-        // Clear cached status on initialization to ensure fresh check
-        if (!forceRefresh) {
-          localStorage.removeItem('sf_subscription_status');
-        }
 
-        console.log('Checking subscription status with force refresh:', forceRefresh);
-        const { data, error } = await supabase.functions.invoke('check-subscription', {
-          body: { 
-            orgId,
-            sessionId,
-            forceRefresh: !!forceRefresh
-          }
+        // Always clear cached status on initialization
+        localStorage.removeItem('sf_subscription_status');
+
+        console.log('Checking subscription and report access status for org:', orgId);
+
+        // Check subscription status
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+          .from('organization_subscriptions')
+          .select('status')
+          .eq('org_id', orgId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (subscriptionError) throw subscriptionError;
+
+        // Check report access status
+        const { data: reportAccessData, error: reportError } = await supabase
+          .from('report_access')
+          .select('status, access_expiration')
+          .eq('org_id', orgId)
+          .eq('status', 'active')
+          .gt('access_expiration', new Date().toISOString())
+          .maybeSingle();
+
+        if (reportError) throw reportError;
+
+        console.log('Access check results:', {
+          hasSubscription: !!subscriptionData,
+          hasReportAccess: !!reportAccessData,
+          subscriptionData,
+          reportAccessData
         });
 
-        if (error) throw error;
+        // Grant access if either subscription is active or report access is valid
+        const hasValidAccess = !!subscriptionData || !!reportAccessData;
 
-        console.log('Subscription check response:', data);
-
-        // Only cache the status if we got a definitive response
-        if (data?.hasAccess) {
+        if (hasValidAccess) {
           console.log('Setting subscription status to active');
           localStorage.setItem('sf_subscription_status', 'active');
           setHasAccess(true);
         } else {
-          console.log('Clearing subscription status');
+          console.log('No valid access found');
           localStorage.removeItem('sf_subscription_status');
           setHasAccess(false);
         }
 
-        // If we had a successful payment, show a success message
-        if (forceRefresh && data?.hasAccess) {
+        // Show success message for successful payments
+        if (forceRefresh && hasValidAccess) {
           toast({
             title: "Subscription Activated",
             description: "Your subscription has been activated successfully.",
