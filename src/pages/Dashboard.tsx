@@ -21,6 +21,11 @@ const Dashboard = () => {
     );
   }
 
+  // Normalize trailing slashes - redirect /dashboard/ to /dashboard
+  if (location.pathname === '/dashboard/') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   // If no access and trying to access main dashboard, force redirect to preview
   if (!hasAccess && location.pathname === '/dashboard') {
     console.log('No access detected, forcing redirect to savings preview');

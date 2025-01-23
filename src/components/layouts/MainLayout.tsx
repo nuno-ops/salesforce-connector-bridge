@@ -15,8 +15,8 @@ interface MainLayoutProps {
 export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   const location = useLocation();
   
-  // Show sidebar only on the main dashboard page
-  const showSidebar = location.pathname === "/dashboard";
+  // Show sidebar on main dashboard page, handling both with and without trailing slash
+  const showSidebar = location.pathname === "/dashboard" || location.pathname === "/dashboard/";
 
   // Show consultation banner and support button on savings pages and payment plans
   const showSavingsFeatures = 
@@ -39,7 +39,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
           'max-w-7xl mx-auto': !showSidebar
         }
       )}>
-        {(showSavingsFeatures || location.pathname === "/dashboard") && (
+        {(showSavingsFeatures || location.pathname === "/dashboard" || location.pathname === "/dashboard/") && (
           <div className="flex justify-between items-center mb-6">
             <div className="space-x-4">
               <ConsultationButton 
@@ -65,7 +65,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
           </div>
         )}
         {children}
-        {(showSavingsFeatures || location.pathname === "/dashboard") && (
+        {(showSavingsFeatures || location.pathname === "/dashboard" || location.pathname === "/dashboard/") && (
           <>
             <SupportEmailButton />
             <ConsultationBanner />
