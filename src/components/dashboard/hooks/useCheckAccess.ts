@@ -20,40 +20,68 @@ export const useCheckAccess = () => {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        // First check localStorage for cached subscription status
-        const cachedStatus = localStorage.getItem('sf_subscription_status');
-        if (cachedStatus === 'active') {
-          setHasAccess(true);
-          setIsCheckingAccess(false);
-          return;
-        }
-
         const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
         if (!orgId) throw new Error('No organization ID found');
 
         const sessionId = searchParams.get('session_id');
         const success = searchParams.get('success');
+        
+        // Force a fresh check if we're coming from a successful payment
+        const forceRefresh = success === 'true' && sessionId;
 
-        const { data, error } = await supabase.functions.invoke('check-subscription', {
-          body: { 
-            orgId,
-            sessionId,
-            forceRefresh: success === 'true'
-          }
+        // Always clear cached status on initialization
+        localStorage.removeItem('sf_subscription_status');
+
+        console.log('Checking subscription and report access status for org:', orgId);
+
+        // Check subscription status
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+          .from('organization_subscriptions')
+          .select('status')
+          .eq('org_id', orgId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (subscriptionError) throw subscriptionError;
+
+        // Check report access status
+        const { data: reportAccessData, error: reportError } = await supabase
+          .from('report_access')
+          .select('status, access_expiration')
+          .eq('org_id', orgId)
+          .eq('status', 'active')
+          .gt('access_expiration', new Date().toISOString())
+          .maybeSingle();
+
+        if (reportError) throw reportError;
+
+        console.log('Access check results:', {
+          hasSubscription: !!subscriptionData,
+          hasReportAccess: !!reportAccessData,
+          subscriptionData,
+          reportAccessData
         });
 
-        if (error) throw error;
+        // Grant access if either subscription is active or report access is valid
+        const hasValidAccess = !!subscriptionData || !!reportAccessData;
 
-        // Cache the subscription status
-        if (data?.hasAccess) {
+        if (hasValidAccess) {
+          console.log('Setting subscription status to active');
           localStorage.setItem('sf_subscription_status', 'active');
+          setHasAccess(true);
         } else {
+          console.log('No valid access found');
           localStorage.removeItem('sf_subscription_status');
+          setHasAccess(false);
         }
 
-        setHasAccess(data?.hasAccess || false);
-
-        if (success === 'true' && data?.hasAccess) {
+        // Show success message for successful payments
+        if (forceRefresh && hasValidAccess) {
+          toast({
+            title: "Subscription Activated",
+            description: "Your subscription has been activated successfully.",
+          });
+          // Clean up the URL
           window.history.replaceState({}, '', window.location.pathname);
         }
       } catch (error) {
@@ -65,6 +93,7 @@ export const useCheckAccess = () => {
         });
         // Clear cached status on error
         localStorage.removeItem('sf_subscription_status');
+        setHasAccess(false);
       } finally {
         setIsCheckingAccess(false);
       }

@@ -5,12 +5,13 @@ import { SandboxList } from './org-health/SandboxList';
 import { useOrgHealthData } from './org-health/useOrgHealthData';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 export const OrgHealth = () => {
   const [searchParams] = useSearchParams();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const location = useLocation();
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const {
     limits,
     sandboxes,
@@ -22,22 +23,60 @@ export const OrgHealth = () => {
     error
   } = useOrgHealthData();
 
-  console.log('OrgHealth component data:', {
-    hasLimits: !!limits,
-    limitsData: limits,
-    hasSandboxes: Array.isArray(sandboxes),
-    sandboxCount: sandboxes?.length,
-    hasMetrics: !!metrics,
-    licenseData: {
-      userLicenses: userLicenses?.length,
-      packageLicenses: packageLicenses?.length,
-      permissionSetLicenses: permissionSetLicenses?.length,
-    }
-  });
+  console.log('OrgHealth render - Current hash:', location.hash);
+  console.log('OrgHealth render - Expanded sections:', Array.from(expandedSections));
 
+  // Listen for hash changes
   useEffect(() => {
-    setIsExpanded(searchParams.get('expanded') === 'true');
-  }, [searchParams]);
+    const hash = location.hash.slice(1);
+    console.log('Hash changed effect - New hash:', hash);
+    
+    if (hash) {
+      console.log('Expanding section:', hash);
+      setExpandedSections(prev => {
+        const newSet = new Set(prev);
+        newSet.add(hash);
+        return newSet;
+      });
+    }
+  }, [location.hash]);
+
+  // Listen for custom expand section events
+  useEffect(() => {
+    const handleExpandSection = (event: CustomEvent) => {
+      const { sectionId } = event.detail;
+      console.log('Received expand section event for:', sectionId);
+      setExpandedSections(prev => {
+        const newSet = new Set(prev);
+        newSet.add(sectionId);
+        return newSet;
+      });
+    };
+
+    window.addEventListener('expandSection', handleExpandSection as EventListener);
+    return () => {
+      window.removeEventListener('expandSection', handleExpandSection as EventListener);
+    };
+  }, []);
+
+  const isExpanded = (sectionId: string) => {
+    const expanded = expandedSections.has(sectionId);
+    console.log(`Checking if section ${sectionId} is expanded:`, expanded);
+    return expanded;
+  };
+
+  const handleSectionToggle = (sectionId: string, isOpen: boolean) => {
+    console.log(`Toggle section ${sectionId} to ${isOpen}`);
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (isOpen) {
+        newSet.add(sectionId);
+      } else {
+        newSet.delete(sectionId);
+      }
+      return newSet;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -57,15 +96,39 @@ export const OrgHealth = () => {
 
   return (
     <div className="space-y-8">
-      <LicensesSection 
-        userLicenses={userLicenses || []}
-        packageLicenses={packageLicenses || []}
-        permissionSetLicenses={permissionSetLicenses || []}
-        defaultExpanded={isExpanded}
-      />
-      <LimitsSection limits={limits} defaultExpanded={isExpanded} />
-      <MetricsSection metrics={metrics} defaultExpanded={isExpanded} />
-      <SandboxList sandboxes={sandboxes} defaultExpanded={isExpanded} />
+      <div id="licenses">
+        <LicensesSection 
+          userLicenses={userLicenses || []}
+          packageLicenses={packageLicenses || []}
+          permissionSetLicenses={permissionSetLicenses || []}
+          isOpen={isExpanded('licenses')}
+          onOpenChange={(isOpen) => handleSectionToggle('licenses', isOpen)}
+        />
+      </div>
+      
+      <div id="organization-limits">
+        <LimitsSection 
+          limits={limits}
+          isOpen={isExpanded('organization-limits')}
+          onOpenChange={(isOpen) => handleSectionToggle('organization-limits', isOpen)}
+        />
+      </div>
+      
+      <div id="operational-metrics">
+        <MetricsSection 
+          metrics={metrics}
+          isOpen={isExpanded('operational-metrics')}
+          onOpenChange={(isOpen) => handleSectionToggle('operational-metrics', isOpen)}
+        />
+      </div>
+      
+      <div id="active-sandboxes">
+        <SandboxList 
+          sandboxes={sandboxes}
+          isOpen={isExpanded('active-sandboxes')}
+          onOpenChange={(isOpen) => handleSectionToggle('active-sandboxes', isOpen)}
+        />
+      </div>
     </div>
   );
 };

@@ -47,8 +47,8 @@ const SalesforceCallback = () => {
           description: "You are now connected to Salesforce.",
         });
 
-        // Redirect to home page
-        navigate('/', { replace: true });
+        // Redirect to dashboard instead of home page
+        navigate('/dashboard', { replace: true });
 
       } catch (error) {
         console.error('OAuth callback error:', error);

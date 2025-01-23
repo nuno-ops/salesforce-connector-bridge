@@ -28,22 +28,21 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const supabase = createClient(supabaseUrl!, supabaseKey!)
 
-    console.log('Checking subscription status for org:', orgId, 'sessionId:', sessionId)
+    console.log('Checking access status for org:', orgId, 'sessionId:', sessionId)
 
-    let hasValidPayment = false
+    let hasValidAccess = false
 
     // If we have a session ID, verify it first
     if (sessionId && forceRefresh) {
       const session = await stripe.checkout.sessions.retrieve(sessionId)
       if (session.payment_status === 'paid' && session.metadata?.orgId === orgId) {
         console.log('Valid payment found in session')
-        // Grant access immediately for both subscription and one-time payments
-        hasValidPayment = true
+        hasValidAccess = true
       }
     }
 
-    if (!hasValidPayment) {
-      // Check for active subscription in our database
+    if (!hasValidAccess) {
+      // Check for active subscription first
       const { data: subscription } = await supabase
         .from('organization_subscriptions')
         .select('*')
@@ -54,32 +53,37 @@ serve(async (req) => {
       if (subscription) {
         const now = new Date()
         const periodEnd = new Date(subscription.current_period_end)
-        hasValidPayment = now <= periodEnd
+        hasValidAccess = now <= periodEnd
         console.log('Found active subscription:', { 
-          hasValidPayment, 
+          hasValidAccess, 
           periodEnd: periodEnd.toISOString() 
         })
       }
 
-      if (!hasValidPayment) {
-        // Check for completed one-time payments as fallback
-        const payments = await stripe.paymentIntents.list({
-          limit: 100,
-        })
+      // If no active subscription, check for valid report access
+      if (!hasValidAccess) {
+        const now = new Date()
+        const { data: reportAccess } = await supabase
+          .from('report_access')
+          .select('*')
+          .eq('org_id', orgId)
+          .eq('status', 'active')
+          .lte('access_start', now.toISOString())
+          .gte('access_expiration', now.toISOString())
+          .maybeSingle()
 
-        hasValidPayment = payments.data.some(payment => 
-          payment.metadata.orgId === orgId && 
-          payment.status === 'succeeded' &&
-          payment.amount_received > 0
-        )
+        if (reportAccess) {
+          hasValidAccess = true
+          console.log('Found valid report access until:', reportAccess.access_expiration)
+        }
       }
     }
 
-    console.log('Access check result:', { hasValidPayment })
+    console.log('Access check result:', { hasValidAccess })
 
     return new Response(
       JSON.stringify({ 
-        hasAccess: hasValidPayment
+        hasAccess: hasValidAccess
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

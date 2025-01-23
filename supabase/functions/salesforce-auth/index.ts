@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
     const tokenData = await tokenResponse.json()
     console.log('Token exchange successful')
 
-    // Now that we have the access token and instance URL, fetch org data and set up settings
+    // Now that we have the access token and instance URL, fetch org data
     console.log('Fetching organization data...')
     const orgResponse = await fetch(`${tokenData.instance_url}/services/data/v59.0/sobjects/Organization`, {
       headers: {
@@ -56,10 +57,15 @@ Deno.serve(async (req) => {
     })
 
     if (!orgResponse.ok) {
+      const errorText = await orgResponse.text()
+      console.error('Organization data fetch error:', orgResponse.status, errorText)
       throw new Error('Failed to fetch organization data')
     }
 
-    // Call the salesforce-org function to set up organization settings
+    const orgData = await orgResponse.json()
+    console.log('Organization data fetched successfully')
+
+    // Set up organization settings
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
@@ -73,7 +79,8 @@ Deno.serve(async (req) => {
     const { data: orgSetupData, error: orgSetupError } = await supabase.functions.invoke('salesforce-org', {
       body: { 
         access_token: tokenData.access_token,
-        instance_url: tokenData.instance_url
+        instance_url: tokenData.instance_url,
+        org_data: orgData
       }
     })
 
@@ -94,7 +101,7 @@ Deno.serve(async (req) => {
       error: error.message,
       details: error.stack
     }), {
-      status: 400,
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { LimitCard } from './LimitCard';
 import { OrgLimits } from './types';
 import { Button } from '@/components/ui/button';
@@ -7,16 +6,15 @@ import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface LimitsSectionProps {
   limits?: OrgLimits;
-  defaultExpanded?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export const LimitsSection = ({ limits, defaultExpanded = false }: LimitsSectionProps) => {
-  const [isOpen, setIsOpen] = useState(defaultExpanded);
-
-  useEffect(() => {
-    setIsOpen(defaultExpanded);
-  }, [defaultExpanded]);
-
+export const LimitsSection = ({ 
+  limits, 
+  isOpen = false,
+  onOpenChange
+}: LimitsSectionProps) => {
   // Add null check for limits
   if (!limits) {
     console.log('LimitsSection: No limits data available');
@@ -31,7 +29,8 @@ export const LimitsSection = ({ limits, defaultExpanded = false }: LimitsSection
   console.log('LimitsSection rendering with data:', {
     dataStorage,
     fileStorage,
-    apiRequests
+    apiRequests,
+    isOpen
   });
 
   return (
@@ -41,7 +40,7 @@ export const LimitsSection = ({ limits, defaultExpanded = false }: LimitsSection
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => onOpenChange?.(!isOpen)}
           className="h-8 w-8"
         >
           {isOpen ? (
@@ -52,7 +51,7 @@ export const LimitsSection = ({ limits, defaultExpanded = false }: LimitsSection
         </Button>
       </div>
       
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={isOpen} onOpenChange={onOpenChange}>
         <CollapsibleContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
             <LimitCard

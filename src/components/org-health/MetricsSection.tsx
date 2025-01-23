@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { MetricsCard } from './MetricsCard';
 import { calculateMonthlyMetrics } from './MetricsCalculator';
 import { Button } from "@/components/ui/button";
@@ -7,16 +6,16 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface MetricsSectionProps {
   metrics: any;
-  defaultExpanded?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export const MetricsSection = ({ metrics, defaultExpanded = false }: MetricsSectionProps) => {
-  const [isOpen, setIsOpen] = useState(defaultExpanded);
+export const MetricsSection = ({ 
+  metrics, 
+  isOpen = false,
+  onOpenChange 
+}: MetricsSectionProps) => {
   const { leadConversion, oppWinRate } = calculateMonthlyMetrics(metrics);
-
-  useEffect(() => {
-    setIsOpen(defaultExpanded);
-  }, [defaultExpanded]);
 
   return (
     <div className="space-y-2">
@@ -25,7 +24,7 @@ export const MetricsSection = ({ metrics, defaultExpanded = false }: MetricsSect
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => onOpenChange?.(!isOpen)}
           className="h-8 w-8"
         >
           {isOpen ? (
@@ -36,7 +35,7 @@ export const MetricsSection = ({ metrics, defaultExpanded = false }: MetricsSect
         </Button>
       </div>
 
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={isOpen} onOpenChange={onOpenChange}>
         <CollapsibleContent>
           <div className="grid gap-4 md:grid-cols-2">
             <MetricsCard 

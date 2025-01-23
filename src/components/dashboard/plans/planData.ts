@@ -8,24 +8,24 @@ export const savingsMonitorData = {
   period: "/month",
   benefits: [
     {
-      highlight: "Unlimited Access",
-      text: "View your savings dashboard and reports anytime throughout the subscription period."
+      text: "Unlimited Access",
+      description: "View your savings dashboard and reports anytime throughout the subscription period."
     },
     {
-      highlight: "Ongoing Updates",
-      text: "Stay updated with the latest cost-saving insights as your Salesforce organization evolves."
+      text: "Ongoing Updates",
+      description: "Stay updated with the latest cost-saving insights as your Salesforce organization evolves."
     },
     {
-      highlight: "Continuous Savings Opportunities",
-      text: "Get alerts for new opportunities to optimize licenses, storage, or contracts (coming soon)."
+      text: "Continuous Savings Opportunities",
+      description: "Get alerts for new opportunities to optimize licenses, storage, or contracts (coming soon)."
     },
     {
-      highlight: "Flexible Cancellation",
-      text: "Cancel anytime after the first month if you no longer need the service."
+      text: "Flexible Cancellation",
+      description: "Cancel anytime after the first month if you no longer need the service."
     },
     {
-      highlight: "Free Consultation",
-      text: "Includes a complimentary consultation call."
+      text: "Free Consultation",
+      description: "Includes a complimentary consultation call."
     }
   ],
   buttonText: "Subscribe Monthly",
@@ -40,20 +40,20 @@ export const savingsSnapshotData = {
   period: "one-time",
   benefits: [
     {
-      highlight: "One-Time Investment",
-      text: "Pay once and get a detailed, actionable report on your Salesforce savings."
+      text: "One-Time Investment",
+      description: "Pay once and get a detailed, actionable report on your Salesforce savings."
     },
     {
-      highlight: "Immediate ROI",
-      text: "Gain instant clarity on where you can save, without committing to a subscription."
+      text: "Immediate ROI",
+      description: "Gain instant clarity on where you can save, without committing to a subscription."
     },
     {
-      highlight: "Downloadable Report",
-      text: "Access and share the comprehensive savings analysis with your team."
+      text: "Downloadable Report",
+      description: "Access and share the comprehensive savings analysis with your team."
     },
     {
-      highlight: "Perfect for Quick Wins",
-      text: "Ideal for organizations needing immediate insights without ongoing monitoring."
+      text: "Perfect for Quick Wins",
+      description: "Ideal for organizations needing immediate insights without ongoing monitoring."
     }
   ],
   buttonText: "Purchase Report",

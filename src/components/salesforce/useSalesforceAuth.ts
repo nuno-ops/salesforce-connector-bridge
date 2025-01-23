@@ -3,11 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 // Update redirect URI to match production bridge URL without trailing slash
 const REDIRECT_URI = 'https://salesforce-connector-bridge.lovable.app/salesforce/callback';
 
+// This client ID is public and safe to expose in frontend code
+const CLIENT_ID = '3MVG9_kZcLde7U5pGPOR23oKIAODQZfn4NiF8DrNW3VuR6GmO18rvB74SLk902qeva8AH8aAJZTyl1kslzRib';
+
 export const initiateOAuthFlow = () => {
   // Construct the authorization URL for production Salesforce
   const authUrl = new URL('https://login.salesforce.com/services/oauth2/authorize');
   authUrl.searchParams.append('response_type', 'code');
-  authUrl.searchParams.append('client_id', 'YOUR_CLIENT_ID'); // This will be replaced by the server
+  authUrl.searchParams.append('client_id', CLIENT_ID);
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
   authUrl.searchParams.append('scope', 'api refresh_token offline_access');
   authUrl.searchParams.append('state', crypto.randomUUID()); // For CSRF protection
@@ -18,8 +21,8 @@ export const initiateOAuthFlow = () => {
   console.log('Full Auth URL:', authUrl.toString());
   console.log('State:', authUrl.searchParams.get('state'));
 
-  // Open in a new window/tab instead of redirecting within the iframe
-  window.open(authUrl.toString(), '_blank', 'noopener,noreferrer');
+  // Redirect in the same tab instead of opening a new one
+  window.location.href = authUrl.toString();
 };
 
 export const handleOAuthCallback = async (code: string) => {
@@ -40,12 +43,16 @@ export const handleOAuthCallback = async (code: string) => {
       }
     });
 
-    console.log('Token exchange response:', data);
     if (error) {
       console.error('Supabase function error:', error);
       throw error;
     }
 
+    if (!data) {
+      throw new Error('No data received from Salesforce authentication');
+    }
+
+    console.log('Token exchange response:', data);
     return data;
   } catch (error) {
     console.error('OAuth callback error details:', {
@@ -72,11 +79,12 @@ export const validateToken = async (access_token: string, instance_url: string) 
       body: { access_token, instance_url }
     });
 
-    console.log('Token validation response:', data);
     if (error) {
       console.error('Token validation error:', error);
       throw error;
     }
+
+    console.log('Token validation response:', data);
     return data.isValid;
   } catch (error) {
     console.error('Token validation error details:', {

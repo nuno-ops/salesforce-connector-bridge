@@ -6,19 +6,21 @@ import { ContractUploadDialog } from "@/components/salesforce/ContractUploadDial
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useCheckAccess } from "./dashboard/hooks/useCheckAccess";
 import { DashboardContent } from "./dashboard/DashboardContent";
-import { SavingsPreview } from "./dashboard/SavingsPreview";
-import { PaymentPlans } from "./dashboard/PaymentPlans";
-import { SuccessRedirect } from "./dashboard/SuccessRedirect";
-import { useSubscription } from "./dashboard/useSubscription";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SalesforceLogin } from "./SalesforceLogin";
+import { SavingsPreview } from "./dashboard/SavingsPreview";
 
-const Dashboard = () => {
+interface MainDashboardProps {
+  showSavingsPreview?: boolean;
+}
+
+export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps) => {
   const [showContractDialog, setShowContractDialog] = useState(true);
-  const [showPaymentPlans, setShowPaymentPlans] = useState(false);
   const [needsReconnect, setNeedsReconnect] = useState(false);
-  const { handleSubscribe } = useSubscription();
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const {
     userLicenses = [],
@@ -104,43 +106,27 @@ const Dashboard = () => {
   const formattedPackageLicenses = formatPackageLicenseData(packageLicenses || []);
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses || []);
 
-  console.log('Dashboard - Formatted data before passing to DashboardContent:', {
-    formattedUserLicensesCount: formattedUserLicenses?.length,
-    formattedPackageLicensesCount: formattedPackageLicenses?.length,
-    formattedPermissionSetLicensesCount: formattedPermissionSetLicenses?.length,
-    sandboxesCount: sandboxes?.length,
-    hasLimits: !!limits,
-    usersCount: users?.length,
-    oauthTokensCount: oauthTokens?.length,
-    firstUser: users?.[0],
-    firstOAuthToken: oauthTokens?.[0],
-    timestamp: new Date().toISOString()
-  });
+  // Only show preview if explicitly requested AND user doesn't have access
+  // Never show preview after successful payment
+  const shouldShowPreview = !hasAccess && 
+                          showSavingsPreview && 
+                          searchParams.get('success') !== 'true';
 
-  if (!hasAccess) {
-    if (!showPaymentPlans) {
-      return (
-        <MainLayout onDisconnect={handleDisconnect}>
-          <SavingsPreview
-            userLicenses={formattedUserLicenses}
-            packageLicenses={formattedPackageLicenses}
-            sandboxes={sandboxes}
-            onViewReport={() => setShowPaymentPlans(true)}
-          />
-        </MainLayout>
-      );
-    }
-
+  if (shouldShowPreview) {
     return (
       <MainLayout onDisconnect={handleDisconnect}>
-        <PaymentPlans onSubscribe={handleSubscribe} />
+        <SavingsPreview
+          userLicenses={formattedUserLicenses}
+          packageLicenses={formattedPackageLicenses}
+          sandboxes={sandboxes}
+          onViewReport={() => navigate('/dashboard/payment-plans')}
+        />
       </MainLayout>
     );
   }
 
   return (
     <MainLayout onDisconnect={handleDisconnect}>
-      <SuccessRedirect />
       <ContractUploadDialog 
         open={showContractDialog} 
         onOpenChange={setShowContractDialog}
@@ -158,5 +144,3 @@ const Dashboard = () => {
     </MainLayout>
   );
 };
-
-export default Dashboard;

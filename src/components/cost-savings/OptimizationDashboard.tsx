@@ -3,6 +3,8 @@ import { useSavingsCalculations } from "./SavingsCalculator";
 import { SavingsSummaryCard } from "./SavingsSummaryCard";
 import { LicenseCostInput } from "./LicenseCostInput";
 import { RecommendationsSection } from "./RecommendationsSection";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 interface OptimizationDashboardProps {
   userLicenses: Array<{
@@ -18,13 +20,15 @@ interface OptimizationDashboardProps {
   }>;
   sandboxes: any[];
   storageUsage: number;
+  onDisconnect?: () => void;
 }
 
 export const OptimizationDashboard = ({
   userLicenses,
   packageLicenses,
   sandboxes,
-  storageUsage
+  storageUsage,
+  onDisconnect
 }: OptimizationDashboardProps) => {
   const {
     licensePrice,
@@ -43,18 +47,20 @@ export const OptimizationDashboard = ({
   });
 
   return (
-    <div className="space-y-6 mb-8">
-      <LicenseCostInput 
-        licensePrice={licensePrice}
-        onPriceChange={setLicensePrice}
-      />
+    <div>
+      <div className="space-y-6 mb-8">
+        <LicenseCostInput 
+          licensePrice={licensePrice}
+          onPriceChange={setLicensePrice}
+        />
 
-      <SavingsSummaryCard 
-        totalSavings={totalSavings}
-        breakdownItems={savingsBreakdown}
-      />
+        <SavingsSummaryCard 
+          totalSavings={totalSavings}
+          breakdownItems={savingsBreakdown}
+        />
 
-      <RecommendationsSection items={savingsBreakdown} />
+        <RecommendationsSection items={savingsBreakdown} />
+      </div>
     </div>
   );
 };

@@ -2,12 +2,8 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { LoginForm } from './salesforce/LoginForm';
-import { SetupInstructions } from './salesforce/SetupInstructions';
 import { initiateOAuthFlow } from './salesforce/useSalesforceAuth';
 import { ConnectHeader } from './salesforce/login/ConnectHeader';
-import { CallbackUrlSection } from './salesforce/login/CallbackUrlSection';
-import { RequiredScopesSection } from './salesforce/login/RequiredScopesSection';
-import { ImportantSettingsSection } from './salesforce/login/ImportantSettingsSection';
 
 interface SalesforceLoginProps {
   onSuccess?: () => void;
@@ -16,10 +12,6 @@ interface SalesforceLoginProps {
 export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  const CALLBACK_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5173/salesforce/callback'
-    : `https://${window.location.hostname}/salesforce/callback`;
 
   useEffect(() => {
     const checkExistingConnection = () => {
@@ -30,6 +22,8 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
         const tokenAge = Date.now() - parseInt(timestamp);
         if (tokenAge < 7200000) {
           console.log('Found valid existing connection');
+          // Clear any cached subscription status to ensure proper access check
+          localStorage.removeItem('sf_subscription_status');
           onSuccess?.();
           return;
         }
@@ -44,6 +38,7 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
     localStorage.removeItem('sf_access_token');
     localStorage.removeItem('sf_instance_url');
     localStorage.removeItem('sf_token_timestamp');
+    localStorage.removeItem('sf_subscription_status');
     setIsLoading(false);
   };
 
@@ -69,12 +64,6 @@ export const SalesforceLogin = ({ onSuccess }: SalesforceLoginProps) => {
       <Card className="relative w-full max-w-md p-8 animate-fadeIn space-y-8 bg-black/40 border-white/10 backdrop-blur-sm">
         <ConnectHeader />
         <LoginForm onSubmit={handleConnect} isLoading={isLoading} />
-        
-        <CallbackUrlSection callbackUrl={CALLBACK_URL} />
-        <RequiredScopesSection />
-        <ImportantSettingsSection />
-
-        <SetupInstructions callbackUrl={CALLBACK_URL} />
       </Card>
     </div>
   );

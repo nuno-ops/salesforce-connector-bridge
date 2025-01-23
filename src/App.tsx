@@ -3,11 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SupportEmailButton } from "@/components/SupportEmailButton";
 
 // Lazy load routes
-const Index = lazy(() => import("./pages/Index"));
+const Landing = lazy(() => import("./pages/Index"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const SalesforceCallback = lazy(() => import("./pages/SalesforceCallback"));
 
 const queryClient = new QueryClient({
@@ -27,7 +28,8 @@ const App = () => (
       <BrowserRouter>
         <Suspense fallback={null}>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/dashboard/*" element={<Dashboard />} />
             <Route path="/salesforce/callback" element={<SalesforceCallback />} />
           </Routes>
         </Suspense>
