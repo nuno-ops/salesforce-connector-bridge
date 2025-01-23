@@ -14,6 +14,11 @@ Native Salesforce tools to exclude from analysis:
 - Any tool with 'salesforce' or 'sfdc' in the name
 - Any tool clearly part of core Salesforce
 
+Additional tools to exclude:
+- SalesforceSaver
+- Any tool containing 'salesforcesaver' in the name
+- Any tool containing 'lovable' in the name
+
 Focus only on external tools where organizations can achieve real cost savings through consolidation or removal.
 
 For potential savings, provide per-user costs when available (e.g., "$15/user/month for Zoom"). Only show specific dollar amounts when you can find real pricing online. Do not show any dollar amounts if you cannot find real pricing data online.
