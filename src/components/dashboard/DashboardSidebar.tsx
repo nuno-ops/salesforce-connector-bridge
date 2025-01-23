@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import { BarChart2, Package, Database, Box, HardDrive, Users, Activity } from "lucide-react";
+import { BarChart2, Package, Database, Box, HardDrive, Activity } from "lucide-react";
 
 const links = [
   {
     label: "Cost Savings",
     href: "#cost-savings",
     icon: <BarChart2 className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+  },
+  {
+    label: "Tool Analysis",
+    href: "#tool-analysis",
+    icon: <Activity className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
   },
   {
     label: "License Optimization",
@@ -24,19 +29,14 @@ const links = [
     icon: <Box className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
   },
   {
-    label: "Active Sandboxes",
-    href: "#active-sandboxes",
-    icon: <HardDrive className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-  {
-    label: "Users",
-    href: "#users",
-    icon: <Users className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-  {
     label: "Operational Metrics",
     href: "#operational-metrics",
     icon: <Activity className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+  },
+  {
+    label: "Active Sandboxes",
+    href: "#active-sandboxes",
+    icon: <HardDrive className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
   },
 ];
 
