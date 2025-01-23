@@ -46,11 +46,20 @@ export function DashboardSidebar() {
   const handleLinkClick = (href: string) => {
     console.log('Sidebar link clicked:', href);
     const sectionId = href.replace('#', '');
-    // Dispatch a custom event to notify that a section should be expanded
-    const event = new CustomEvent('expandSection', {
-      detail: { sectionId }
-    });
-    window.dispatchEvent(event);
+    
+    // Special handling for license optimization section
+    if (sectionId === 'license-optimization') {
+      const event = new CustomEvent('expandSection', {
+        detail: { sectionId, tabValue: 'inactive' }
+      });
+      window.dispatchEvent(event);
+    } else {
+      // Regular sections
+      const event = new CustomEvent('expandSection', {
+        detail: { sectionId }
+      });
+      window.dispatchEvent(event);
+    }
   };
   
   return (

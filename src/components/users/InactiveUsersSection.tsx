@@ -27,14 +27,18 @@ export const InactiveUsersSection = ({
   const [activeTab, setActiveTab] = useState('inactive');
 
   useEffect(() => {
-    const handleExpand = (event: CustomEvent<{ tabValue: string }>) => {
-      setIsOpen(true);
-      setActiveTab(event.detail.tabValue);
+    const handleExpand = (event: CustomEvent<{ sectionId: string; tabValue?: string }>) => {
+      if (event.detail.sectionId === 'license-optimization') {
+        setIsOpen(true);
+        if (event.detail.tabValue) {
+          setActiveTab(event.detail.tabValue);
+        }
+      }
     };
 
-    window.addEventListener('expandLicenseSection', handleExpand as EventListener);
+    window.addEventListener('expandSection', handleExpand as EventListener);
     return () => {
-      window.removeEventListener('expandLicenseSection', handleExpand as EventListener);
+      window.removeEventListener('expandSection', handleExpand as EventListener);
     };
   }, []);
 
