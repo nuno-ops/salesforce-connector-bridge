@@ -23,16 +23,10 @@ export const OrgHealth = () => {
     error
   } = useOrgHealthData();
 
-  console.log('OrgHealth render - Current hash:', location.hash);
-  console.log('OrgHealth render - Expanded sections:', Array.from(expandedSections));
-
   // Listen for hash changes
   useEffect(() => {
     const hash = location.hash.slice(1);
-    console.log('Hash changed effect - New hash:', hash);
-    
     if (hash) {
-      console.log('Expanding section:', hash);
       setExpandedSections(prev => {
         const newSet = new Set(prev);
         newSet.add(hash);
@@ -45,7 +39,6 @@ export const OrgHealth = () => {
   useEffect(() => {
     const handleExpandSection = (event: CustomEvent) => {
       const { sectionId } = event.detail;
-      console.log('Received expand section event for:', sectionId);
       setExpandedSections(prev => {
         const newSet = new Set(prev);
         newSet.add(sectionId);
@@ -60,13 +53,10 @@ export const OrgHealth = () => {
   }, []);
 
   const isExpanded = (sectionId: string) => {
-    const expanded = expandedSections.has(sectionId);
-    console.log(`Checking if section ${sectionId} is expanded:`, expanded);
-    return expanded;
+    return expandedSections.has(sectionId);
   };
 
   const handleSectionToggle = (sectionId: string, isOpen: boolean) => {
-    console.log(`Toggle section ${sectionId} to ${isOpen}`);
     setExpandedSections(prev => {
       const newSet = new Set(prev);
       if (isOpen) {

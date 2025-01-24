@@ -8,6 +8,7 @@ import { DashboardHeader } from "./DashboardHeader";
 import { useExportReport } from "./useExportReport";
 import { ToolAnalysis } from "../tools/ToolAnalysis";
 import { ReportAccessTimer } from "./ReportAccessTimer";
+import { useEffect } from "react";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -46,22 +47,13 @@ export const DashboardContent = ({
     userLicenses
   });
 
-  const handleExportReport = () => {
-    handleExport({
-      userLicenses,
-      packageLicenses,
-      permissionSetLicenses,
-      sandboxes,
-      limits,
-      users,
-      oauthTokens,
-      inactiveUsers,
-      integrationUsers,
-      platformUsers,
-      savingsBreakdown,
-      licensePrice
+  // Expand cost savings section by default
+  useEffect(() => {
+    const event = new CustomEvent('expandSection', {
+      detail: { sectionId: 'cost-savings' }
     });
-  };
+    window.dispatchEvent(event);
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -96,10 +88,6 @@ export const DashboardContent = ({
           contracts={[]}
           invoices={[]}
         />
-      </div>
-      
-      <div id="users">
-        <SalesforceUsers />
       </div>
 
       <div id="org-health">
