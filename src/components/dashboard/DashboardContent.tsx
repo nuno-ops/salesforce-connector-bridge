@@ -2,12 +2,12 @@ import { useSavingsCalculations } from "@/components/cost-savings/SavingsCalcula
 import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
 import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
 import { CostSavingsReport } from "@/components/CostSavingsReport";
+import { SalesforceUsers } from "@/components/SalesforceUsers";
 import { OrgHealth } from "@/components/OrgHealth";
 import { DashboardHeader } from "./DashboardHeader";
 import { useExportReport } from "./useExportReport";
 import { ToolAnalysis } from "../tools/ToolAnalysis";
 import { ReportAccessTimer } from "./ReportAccessTimer";
-import { useEffect } from "react";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -63,14 +63,6 @@ export const DashboardContent = ({
     });
   };
 
-  // Expand cost savings section by default
-  useEffect(() => {
-    const event = new CustomEvent('expandSection', {
-      detail: { sectionId: 'cost-savings' }
-    });
-    window.dispatchEvent(event);
-  }, []);
-
   return (
     <div className="space-y-8">
       <DashboardHeader 
@@ -104,6 +96,10 @@ export const DashboardContent = ({
           contracts={[]}
           invoices={[]}
         />
+      </div>
+      
+      <div id="users">
+        <SalesforceUsers />
       </div>
 
       <div id="org-health">
