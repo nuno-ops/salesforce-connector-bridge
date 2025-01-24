@@ -1,18 +1,41 @@
+import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConsultationButton } from "./ConsultationButton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export const ConsultationBanner = () => {
   return (
-    <div className="fixed right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg max-w-[200px] z-50 border border-border">
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Need Expert Advice? Book a 30-Minute Consultation Call!
-        </p>
-        <ConsultationButton 
-          variant="default"
-          className="w-full"
-        />
-      </div>
-    </div>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="fixed bottom-20 right-4 rounded-full shadow-lg hover:shadow-xl transition-all bg-white dark:bg-gray-800 border-sf-blue hover:border-sf-hover"
+        >
+          <HelpCircle className="h-5 w-5 text-sf-blue hover:text-sf-hover" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Need Expert Advice?</DialogTitle>
+          <DialogDescription>
+            Book a 30-Minute Consultation Call with our Salesforce experts!
+          </DialogDescription>
+        </DialogHeader>
+        <div className="mt-4">
+          <ConsultationButton 
+            variant="default"
+            className="w-full"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };

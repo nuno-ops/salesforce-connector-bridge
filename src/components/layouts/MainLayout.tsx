@@ -15,10 +15,8 @@ interface MainLayoutProps {
 export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
   const location = useLocation();
   
-  // Show sidebar on main dashboard page, handling both with and without trailing slash
   const showSidebar = location.pathname === "/dashboard" || location.pathname === "/dashboard/";
 
-  // Show consultation banner and support button on savings pages and payment plans
   const showSavingsFeatures = 
     location.pathname.includes("savings") || 
     location.pathname.includes("payment-plans");
@@ -67,8 +65,8 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
         {children}
         {(showSavingsFeatures || location.pathname === "/dashboard" || location.pathname === "/dashboard/") && (
           <>
-            <SupportEmailButton />
             <ConsultationBanner />
+            <SupportEmailButton />
           </>
         )}
       </main>
