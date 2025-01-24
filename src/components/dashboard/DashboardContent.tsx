@@ -2,7 +2,6 @@ import { useSavingsCalculations } from "@/components/cost-savings/SavingsCalcula
 import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
 import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
 import { CostSavingsReport } from "@/components/CostSavingsReport";
-import { SalesforceUsers } from "@/components/SalesforceUsers";
 import { OrgHealth } from "@/components/OrgHealth";
 import { DashboardHeader } from "./DashboardHeader";
 import { useExportReport } from "./useExportReport";
@@ -46,6 +45,23 @@ export const DashboardContent = ({
     storageUsage: limits?.StorageUsed || 0,
     userLicenses
   });
+
+  const handleExportReport = () => {
+    handleExport({
+      userLicenses,
+      packageLicenses,
+      permissionSetLicenses,
+      sandboxes,
+      limits,
+      users,
+      oauthTokens,
+      inactiveUsers,
+      integrationUsers,
+      platformUsers,
+      savingsBreakdown,
+      licensePrice
+    });
+  };
 
   // Expand cost savings section by default
   useEffect(() => {
