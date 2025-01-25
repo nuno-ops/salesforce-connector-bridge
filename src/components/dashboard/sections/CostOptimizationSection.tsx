@@ -25,7 +25,7 @@ export const CostOptimizationSection = ({
   storageUsage
 }: CostOptimizationSectionProps) => {
   return (
-    <section className="bg-gradient-to-r from-sf-blue/5 to-sf-hover/5 rounded-xl shadow-lg border border-sf-blue/10 p-8">
+    <section id="cost-savings" className="bg-gradient-to-r from-sf-blue/5 to-sf-hover/5 rounded-xl shadow-lg border border-sf-blue/10 p-8">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-3 rounded-full bg-sf-blue/10">
           <TrendingUp className="h-7 w-7 text-sf-blue" />

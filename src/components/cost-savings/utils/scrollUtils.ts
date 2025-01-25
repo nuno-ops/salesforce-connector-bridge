@@ -27,3 +27,21 @@ export const scrollToLicenseOptimization = (tabValue: string) => {
     }, 200); // Increased delay to ensure section is expanded
   }
 };
+
+export const scrollToSection = (sectionId: string) => {
+  const element = document.getElementById(sectionId);
+  if (element) {
+    // Find the ScrollArea viewport element
+    const scrollViewport = document.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollViewport) {
+      const elementTop = element.offsetTop;
+      // Subtract some pixels to give some space at the top
+      const scrollPosition = Math.max(0, elementTop - 100);
+      
+      scrollViewport.scrollTo({
+        top: scrollPosition,
+        behavior: 'smooth'
+      });
+    }
+  }
+};

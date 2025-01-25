@@ -3,6 +3,7 @@ import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ConsultationButton } from "../consultation/ConsultationButton";
+import { scrollToSection } from "../cost-savings/utils/scrollUtils";
 
 const navigationLinks = [
   {
@@ -65,6 +66,8 @@ export function DashboardSidebar({ onDisconnect }: DashboardSidebarProps) {
         detail: { sectionId }
       });
       window.dispatchEvent(event);
+      // Add smooth scrolling for all sections
+      scrollToSection(sectionId);
     }
   };
 
