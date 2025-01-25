@@ -14,6 +14,7 @@ export const initiateOAuthFlow = () => {
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
   authUrl.searchParams.append('scope', 'api refresh_token offline_access');
   authUrl.searchParams.append('state', crypto.randomUUID()); // For CSRF protection
+  authUrl.searchParams.append('prompt', 'login'); // Force login screen
 
   // Debug logging
   console.log('=== OAuth Flow Initialization ===');
@@ -23,6 +24,42 @@ export const initiateOAuthFlow = () => {
 
   // Redirect in the same tab instead of opening a new one
   window.location.href = authUrl.toString();
+};
+
+export const handleLogout = async () => {
+  console.log('=== Initiating Salesforce Logout ===');
+  const access_token = localStorage.getItem('sf_access_token');
+  const instance_url = localStorage.getItem('sf_instance_url');
+
+  if (access_token) {
+    try {
+      // Revoke the token using Salesforce's revoke endpoint
+      const { data, error } = await supabase.functions.invoke('salesforce-logout', {
+        body: { 
+          access_token,
+          instance_url
+        }
+      });
+
+      if (error) {
+        console.error('Token revocation error:', error);
+        throw error;
+      }
+
+      console.log('Token revocation response:', data);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  }
+
+  // Clear local storage regardless of revocation success
+  localStorage.removeItem('sf_access_token');
+  localStorage.removeItem('sf_instance_url');
+  localStorage.removeItem('sf_token_timestamp');
+  localStorage.removeItem('sf_subscription_status');
+  
+  // Force page reload
+  window.location.reload();
 };
 
 export const handleOAuthCallback = async (code: string) => {

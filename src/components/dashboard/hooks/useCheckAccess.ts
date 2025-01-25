@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleLogout } from "@/components/salesforce/useSalesforceAuth";
 
 export const useCheckAccess = () => {
   const [searchParams] = useSearchParams();
@@ -9,12 +10,23 @@ export const useCheckAccess = () => {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const { toast } = useToast();
 
-  const handleDisconnect = () => {
-    localStorage.removeItem('sf_access_token');
-    localStorage.removeItem('sf_instance_url');
-    localStorage.removeItem('sf_token_timestamp');
-    localStorage.removeItem('sf_subscription_status');
-    window.location.reload();
+  const handleDisconnect = async () => {
+    try {
+      await handleLogout();
+      toast({
+        title: "Disconnected",
+        description: "Successfully logged out of Salesforce.",
+      });
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to disconnect properly. Please try again.",
+      });
+      // Force disconnect anyway
+      window.location.reload();
+    }
   };
 
   useEffect(() => {
