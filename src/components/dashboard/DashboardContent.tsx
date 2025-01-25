@@ -5,6 +5,7 @@ import { ToolAnalysisSection } from "./sections/ToolAnalysisSection";
 import { DetailedAnalysisSection } from "./sections/DetailedAnalysisSection";
 import { UserManagementSection } from "./sections/UserManagementSection";
 import { OrganizationHealthSection } from "./sections/OrganizationHealthSection";
+import { ReportAccessTimer } from "./ReportAccessTimer";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -32,6 +33,7 @@ export const DashboardContent = ({
       <ScrollArea className="h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <DashboardHeader onDisconnect={onDisconnect} />
+          <ReportAccessTimer />
           
           <div className="space-y-8 mt-8">
             <CostOptimizationSection
