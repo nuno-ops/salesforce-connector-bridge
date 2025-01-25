@@ -1,6 +1,5 @@
 import { useLocation } from "react-router-dom";
 import { DashboardSidebar } from "../dashboard/DashboardSidebar";
-import { SupportEmailButton } from "../SupportEmailButton";
 import { ConsultationBanner } from "../consultation/ConsultationBanner";
 import { cn } from "@/lib/utils";
 
@@ -36,10 +35,7 @@ export const MainLayout = ({ children, onDisconnect }: MainLayoutProps) => {
       )}>
         {children}
         {(showSavingsFeatures || location.pathname === "/dashboard" || location.pathname === "/dashboard/") && (
-          <>
-            <ConsultationBanner />
-            <SupportEmailButton />
-          </>
+          <ConsultationBanner />
         )}
       </main>
     </div>
