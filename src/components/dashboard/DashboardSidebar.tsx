@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut } from "lucide-react";
+import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut, Download } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ConsultationButton } from "../consultation/ConsultationButton";
 import { scrollToSection } from "../cost-savings/utils/scrollUtils";
+import { Button } from "../ui/button";
+import { useExportReport } from "./useExportReport";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navigationLinks = [
   {
@@ -45,43 +48,85 @@ const navigationLinks = [
 
 interface DashboardSidebarProps {
   onDisconnect?: () => void;
+  userLicenses?: any[];
+  packageLicenses?: any[];
+  permissionSetLicenses?: any[];
+  sandboxes?: any[];
+  limits?: any;
+  users?: any[];
+  oauthTokens?: any[];
+  inactiveUsers?: any[];
+  integrationUsers?: any[];
+  platformUsers?: any[];
+  savingsBreakdown?: any[];
+  licensePrice?: number;
 }
 
-export function DashboardSidebar({ onDisconnect }: DashboardSidebarProps) {
+export function DashboardSidebar({ 
+  onDisconnect,
+  userLicenses = [],
+  packageLicenses = [],
+  permissionSetLicenses = [],
+  sandboxes = [],
+  limits = {},
+  users = [],
+  oauthTokens = [],
+  inactiveUsers = [],
+  integrationUsers = [],
+  platformUsers = [],
+  savingsBreakdown = [],
+  licensePrice = 0,
+}: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
+  const { isExporting, handleExport } = useExportReport();
   
   const handleLinkClick = (href: string) => {
     console.log('Sidebar link clicked:', href);
     const sectionId = href.replace('#', '');
     
-    // Special handling for license optimization section
     if (sectionId === 'license-optimization') {
       const event = new CustomEvent('expandSection', {
         detail: { sectionId, tabValue: 'inactive' }
       });
       window.dispatchEvent(event);
     } else {
-      // Regular sections
       const event = new CustomEvent('expandSection', {
         detail: { sectionId }
       });
       window.dispatchEvent(event);
-      // Add smooth scrolling for all sections
       scrollToSection(sectionId);
     }
+  };
+
+  const handleExportClick = () => {
+    handleExport({
+      userLicenses,
+      packageLicenses,
+      permissionSetLicenses,
+      sandboxes,
+      limits,
+      users,
+      oauthTokens,
+      inactiveUsers,
+      integrationUsers,
+      platformUsers,
+      savingsBreakdown,
+      licensePrice,
+    });
   };
 
   const actionLinks = [
     {
       label: "Book a Consultation",
       href: "#consultation",
-      icon: <HelpCircle className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      icon: <HelpCircle className="text-sf-blue dark:text-sf-blue h-5 w-5 flex-shrink-0" />,
       onClick: () => {
         const consultButton = document.querySelector('[aria-label="Book a consultation"]') as HTMLButtonElement;
         if (consultButton) {
           consultButton.click();
         }
-      }
+      },
+      highlight: true
     },
     {
       label: "Disconnect",
@@ -103,12 +148,34 @@ export function DashboardSidebar({ onDisconnect }: DashboardSidebarProps) {
             ))}
             
             <Separator className="my-4" />
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2 mb-2"
+                    onClick={handleExportClick}
+                    disabled={isExporting}
+                  >
+                    <Download className="h-5 w-5" />
+                    <span>Export Report</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Download a detailed report of your Salesforce optimization analysis</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             
             {actionLinks.map((link, idx) => (
               <div 
                 key={`action-${idx}`} 
                 onClick={link.onClick}
-                className="cursor-pointer"
+                className={`cursor-pointer transition-all duration-200 ${
+                  link.highlight ? 'bg-sf-light hover:bg-sf-light/80 rounded-md p-1 ring-2 ring-sf-blue ring-offset-2 animate-pulse' : ''
+                }`}
               >
                 <SidebarLink link={link} />
               </div>
