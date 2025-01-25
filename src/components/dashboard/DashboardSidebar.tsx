@@ -59,6 +59,7 @@ interface DashboardSidebarProps {
   platformUsers?: any[];
   savingsBreakdown?: any[];
   licensePrice?: number;
+  showSavingsFeatures?: boolean;
 }
 
 export function DashboardSidebar({ 
@@ -75,6 +76,7 @@ export function DashboardSidebar({
   platformUsers = [],
   savingsBreakdown = [],
   licensePrice = 0,
+  showSavingsFeatures = true,
 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
   const { isExporting, handleExport } = useExportReport();
@@ -148,7 +150,7 @@ export function DashboardSidebar({
       <SidebarBody className="justify-between gap-10">
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
           <div className="mt-8 flex flex-col gap-2">
-            {navigationLinks.map((link, idx) => (
+            {showSavingsFeatures && navigationLinks.map((link, idx) => (
               <div key={idx} onClick={() => handleLinkClick(link.href)}>
                 <SidebarLink link={link} />
               </div>
