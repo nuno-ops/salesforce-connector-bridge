@@ -12,13 +12,18 @@ export const scrollToLicenseOptimization = (tabValue: string) => {
 
     // Add a delay to allow the section to expand before scrolling
     setTimeout(() => {
-      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - 100;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }, 150);
+      // Find the ScrollArea viewport element
+      const scrollViewport = document.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollViewport) {
+        const elementTop = element.offsetTop;
+        // Subtract some pixels to give some space at the top
+        const scrollPosition = Math.max(0, elementTop - 100);
+        
+        scrollViewport.scrollTo({
+          top: scrollPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 200); // Increased delay to ensure section is expanded
   }
 };
