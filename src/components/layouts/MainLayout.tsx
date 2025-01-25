@@ -22,7 +22,7 @@ export const MainLayout = ({
         showSavingsFeatures={showSavingsFeatures} 
       />
       <main className={cn(
-        "flex-1 overflow-y-auto bg-sf-bg",
+        "flex-1 overflow-y-auto bg-sf-bg pl-[60px]", // Added pl-[60px] for sidebar width
         {
           "pb-20": showSavingsFeatures || 
                    location.pathname === "/dashboard" || 
