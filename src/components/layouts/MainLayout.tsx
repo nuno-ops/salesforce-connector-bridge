@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { DashboardSidebar } from "../dashboard/DashboardSidebar";
 import { SupportEmailButton } from "../SupportEmailButton";
 import { ConsultationBanner } from "../consultation/ConsultationBanner";
+import { cn } from "@/lib/utils";
 
 interface MainLayoutProps {
   children: React.ReactNode;
