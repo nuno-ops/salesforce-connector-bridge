@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut, Download, Mail } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
