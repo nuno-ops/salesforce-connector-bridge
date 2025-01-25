@@ -2,7 +2,12 @@ export const scrollToLicenseOptimization = (tabValue: string) => {
   const element = document.getElementById('license-optimization');
   if (element) {
     // First, dispatch the event to expand the section
-    const event = new CustomEvent('expandLicenseSection', { detail: { tabValue } });
+    const event = new CustomEvent('expandSection', { 
+      detail: { 
+        sectionId: 'license-optimization',
+        tabValue 
+      } 
+    });
     window.dispatchEvent(event);
 
     // Add a delay to allow the section to expand before scrolling
@@ -14,6 +19,6 @@ export const scrollToLicenseOptimization = (tabValue: string) => {
         top: offsetPosition,
         behavior: 'smooth'
       });
-    }, 150); // Increased delay to ensure expansion completes
+    }, 150);
   }
 };
