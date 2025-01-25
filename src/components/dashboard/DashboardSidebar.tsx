@@ -149,32 +149,22 @@ export function DashboardSidebar({
             
             <Separator className="my-4" />
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start gap-2 mb-2"
-                    onClick={handleExportClick}
-                    disabled={isExporting}
-                  >
-                    <Download className="h-5 w-5" />
-                    <span>Export Report</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Download a detailed report of your Salesforce optimization analysis</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div onClick={handleExportClick} className="cursor-pointer">
+              <SidebarLink 
+                link={{
+                  label: "Export Report",
+                  href: "#export",
+                  icon: <Download className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+                }}
+              />
+            </div>
             
             {actionLinks.map((link, idx) => (
               <div 
                 key={`action-${idx}`} 
                 onClick={link.onClick}
                 className={`cursor-pointer transition-all duration-200 ${
-                  link.highlight ? 'bg-sf-light hover:bg-sf-light/80 rounded-md p-1 ring-2 ring-sf-blue ring-offset-2 animate-pulse' : ''
+                  link.highlight ? 'bg-sf-light hover:bg-sf-light/80 rounded-md p-1 ring-2 ring-sf-blue ring-offset-2' : ''
                 }`}
               >
                 <SidebarLink link={link} />
