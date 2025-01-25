@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut, Download } from "lucide-react";
+import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut, Download, Mail } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ConsultationButton } from "../consultation/ConsultationButton";
 import { scrollToSection } from "../cost-savings/utils/scrollUtils";
 import { Button } from "../ui/button";
 import { useExportReport } from "./useExportReport";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navigationLinks = [
   {
@@ -129,6 +128,14 @@ export function DashboardSidebar({
       highlight: true
     },
     {
+      label: "Contact Support",
+      href: "mailto:support@salesforcesaver.com",
+      icon: <Mail className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      onClick: () => {
+        window.location.href = "mailto:support@salesforcesaver.com";
+      }
+    },
+    {
       label: "Disconnect",
       href: "#disconnect",
       icon: <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
@@ -164,7 +171,7 @@ export function DashboardSidebar({
                 key={`action-${idx}`} 
                 onClick={link.onClick}
                 className={`cursor-pointer transition-all duration-200 ${
-                  link.highlight ? 'bg-sf-light hover:bg-sf-light/80 rounded-md p-1 ring-2 ring-sf-blue ring-offset-2' : ''
+                  link.highlight ? 'bg-sf-light hover:bg-sf-light/80 rounded-md p-1' : ''
                 }`}
               >
                 <SidebarLink link={link} />
