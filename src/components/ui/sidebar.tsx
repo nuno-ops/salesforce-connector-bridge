@@ -168,7 +168,7 @@ export const SidebarLink = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-start gap-2 group/sidebar py-2 cursor-pointer",
+        "flex items-center justify-start gap-2 group/sidebar py-1.5 px-2 cursor-pointer",
         className
       )}
       onClick={() => {
@@ -192,3 +192,5 @@ export const SidebarLink = ({
     </div>
   );
 };
+
+// ... keep existing code (rest of the file)

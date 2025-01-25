@@ -120,7 +120,7 @@ export function DashboardSidebar({
     {
       label: "Book a Consultation",
       href: "#consultation",
-      icon: <HelpCircle className="text-sf-blue dark:text-sf-blue h-5 w-5 flex-shrink-0" />,
+      icon: <HelpCircle className="text-sf-blue dark:text-sf-blue h-4 w-4 flex-shrink-0" />,
       onClick: () => {
         const consultButton = document.querySelector('[aria-label="Book a consultation"]') as HTMLButtonElement;
         if (consultButton) {
@@ -132,7 +132,7 @@ export function DashboardSidebar({
     {
       label: "Contact Support",
       href: "mailto:support@salesforcesaver.com",
-      icon: <Mail className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      icon: <Mail className="text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0" />,
       onClick: () => {
         window.location.href = "mailto:support@salesforcesaver.com";
       }
@@ -140,30 +140,35 @@ export function DashboardSidebar({
     {
       label: "Disconnect",
       href: "#disconnect",
-      icon: <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      icon: <LogOut className="text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0" />,
       onClick: onDisconnect
     }
   ];
   
   return (
     <Sidebar open={open} setOpen={setOpen}>
-      <SidebarBody className="justify-between gap-10">
+      <SidebarBody className="justify-between gap-6">
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="mt-8 flex flex-col gap-2">
+          <div className="mt-6 flex flex-col gap-1.5">
             {showSavingsFeatures && navigationLinks.map((link, idx) => (
               <div key={idx} onClick={() => handleLinkClick(link.href)}>
-                <SidebarLink link={link} />
+                <SidebarLink link={{
+                  ...link,
+                  icon: React.cloneElement(link.icon as React.ReactElement, {
+                    className: "text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0"
+                  })
+                }} />
               </div>
             ))}
             
-            <Separator className="my-4" />
+            <Separator className="my-3" />
 
             <div onClick={handleExportClick} className="cursor-pointer">
               <SidebarLink 
                 link={{
                   label: "Export Report",
                   href: "#export",
-                  icon: <Download className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+                  icon: <Download className="text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0" />
                 }}
               />
             </div>
@@ -173,7 +178,7 @@ export function DashboardSidebar({
                 key={`action-${idx}`} 
                 onClick={link.onClick}
                 className={`cursor-pointer transition-all duration-200 ${
-                  link.highlight ? 'bg-sf-light hover:bg-sf-light/80 rounded-md p-1' : ''
+                  link.highlight ? 'bg-sf-light hover:bg-sf-light/80 rounded-md' : ''
                 }`}
               >
                 <SidebarLink link={link} />
