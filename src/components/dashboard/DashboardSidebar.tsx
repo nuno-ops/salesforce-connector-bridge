@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import { BarChart2, Package, Database, Box, HardDrive, Activity } from "lucide-react";
+import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ConsultationButton } from "../consultation/ConsultationButton";
 
-const links = [
+const navigationLinks = [
   {
     label: "Cost Savings",
     href: "#cost-savings",
@@ -40,7 +42,11 @@ const links = [
   },
 ];
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  onDisconnect?: () => void;
+}
+
+export function DashboardSidebar({ onDisconnect }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
   
   const handleLinkClick = (href: string) => {
@@ -61,14 +67,46 @@ export function DashboardSidebar() {
       window.dispatchEvent(event);
     }
   };
+
+  const actionLinks = [
+    {
+      label: "Book a Consultation",
+      href: "#consultation",
+      icon: <HelpCircle className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      onClick: () => {
+        const consultButton = document.querySelector('[aria-label="Book a consultation"]') as HTMLButtonElement;
+        if (consultButton) {
+          consultButton.click();
+        }
+      }
+    },
+    {
+      label: "Disconnect",
+      href: "#disconnect",
+      icon: <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      onClick: onDisconnect
+    }
+  ];
   
   return (
     <Sidebar open={open} setOpen={setOpen}>
       <SidebarBody className="justify-between gap-10">
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
           <div className="mt-8 flex flex-col gap-2">
-            {links.map((link, idx) => (
+            {navigationLinks.map((link, idx) => (
               <div key={idx} onClick={() => handleLinkClick(link.href)}>
+                <SidebarLink link={link} />
+              </div>
+            ))}
+            
+            <Separator className="my-4" />
+            
+            {actionLinks.map((link, idx) => (
+              <div 
+                key={`action-${idx}`} 
+                onClick={link.onClick}
+                className="cursor-pointer"
+              >
                 <SidebarLink link={link} />
               </div>
             ))}
