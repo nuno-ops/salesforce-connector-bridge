@@ -2,10 +2,17 @@ import React, { useState } from 'react';
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut, Download, Mail } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { ConsultationButton } from "../consultation/ConsultationButton";
 import { scrollToSection } from "../cost-savings/utils/scrollUtils";
 import { Button } from "../ui/button";
 import { useExportReport } from "./useExportReport";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  CALENDLY_URL,
+  showCalendlyToast,
+  createConsultationBooking,
+  checkConsultationEligibility
+} from "@/utils/consultationUtils";
 
 const navigationLinks = [
   {
@@ -80,6 +87,7 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
   const { isExporting, handleExport } = useExportReport();
+  const { toast } = useToast();
   
   const handleLinkClick = (href: string) => {
     console.log('Sidebar link clicked:', href);
@@ -96,6 +104,44 @@ export function DashboardSidebar({
       });
       window.dispatchEvent(event);
       scrollToSection(sectionId);
+    }
+  };
+
+  const handleConsultation = async () => {
+    try {
+      const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
+      if (!orgId) throw new Error('No organization ID found');
+
+      const { isSubscriber, hasUsedFreeConsultation } = await checkConsultationEligibility(orgId);
+
+      if (isSubscriber && !hasUsedFreeConsultation) {
+        // Show toast for free consultation immediately
+        showCalendlyToast(toast, CALENDLY_URL, true);
+        // Create free consultation booking after 1 minute
+        await createConsultationBooking(toast, orgId, true);
+        return;
+      }
+
+      // For paid consultations, create Stripe checkout session
+      const { data, error } = await supabase.functions.invoke('consultation-checkout', {
+        body: { 
+          priceId: 'price_1QdqvXBqwIrd79CSGsiAiC9F',
+          orgId,
+          returnUrl: window.location.origin
+        }
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Consultation booking error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to initiate consultation booking. Please try again."
+      });
     }
   };
 
@@ -121,12 +167,7 @@ export function DashboardSidebar({
       label: "Book a Consultation",
       href: "#consultation",
       icon: <HelpCircle className="text-sf-blue dark:text-sf-blue h-4 w-4 flex-shrink-0" />,
-      onClick: () => {
-        const consultButton = document.querySelector('[aria-label="Book a consultation"]') as HTMLButtonElement;
-        if (consultButton) {
-          consultButton.click();
-        }
-      },
+      onClick: handleConsultation,
       highlight: true
     },
     {
