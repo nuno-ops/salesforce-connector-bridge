@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { useExportReport } from "./useExportReport";
 import { NavigationLinks } from "./sidebar/NavigationLinks";
 import { ActionLinks } from "./sidebar/ActionLinks";
+import { scrollToSection } from "../cost-savings/utils/scrollUtils";
 
 interface DashboardSidebarProps {
   onDisconnect?: () => void;

@@ -1,3 +1,4 @@
+import React from 'react';
 import { BarChart2, Package, Database, Box, HardDrive, Activity } from "lucide-react";
 import { SidebarLink } from "@/components/ui/sidebar";
 import { scrollToSection } from "../../cost-savings/utils/scrollUtils";
