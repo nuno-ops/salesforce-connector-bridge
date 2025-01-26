@@ -1,56 +1,9 @@
-import React, { useState } from 'react';
-import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
-import { BarChart2, Package, Database, Box, HardDrive, Activity, HelpCircle, LogOut, Download, Mail } from "lucide-react";
+import { useState } from 'react';
+import { Sidebar, SidebarBody } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { scrollToSection } from "../cost-savings/utils/scrollUtils";
-import { Button } from "../ui/button";
 import { useExportReport } from "./useExportReport";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  CALENDLY_URL,
-  showCalendlyToast,
-  createConsultationBooking,
-  checkConsultationEligibility
-} from "@/utils/consultationUtils";
-
-const navigationLinks = [
-  {
-    label: "Cost Savings",
-    href: "#cost-savings",
-    icon: <BarChart2 className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-  {
-    label: "Tool Analysis",
-    href: "#tool-analysis",
-    icon: <Activity className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-  {
-    label: "License Optimization",
-    href: "#license-optimization",
-    icon: <Package className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-  {
-    label: "Licenses",
-    href: "#licenses",
-    icon: <Database className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-  {
-    label: "Organization Limits",
-    href: "#organization-limits",
-    icon: <Box className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-  {
-    label: "Operational Metrics",
-    href: "#operational-metrics",
-    icon: <Activity className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-  {
-    label: "Active Sandboxes",
-    href: "#active-sandboxes",
-    icon: <HardDrive className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
-  },
-];
+import { NavigationLinks } from "./sidebar/NavigationLinks";
+import { ActionLinks } from "./sidebar/ActionLinks";
 
 interface DashboardSidebarProps {
   onDisconnect?: () => void;
@@ -87,7 +40,6 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
   const { isExporting, handleExport } = useExportReport();
-  const { toast } = useToast();
   
   const handleLinkClick = (href: string) => {
     console.log('Sidebar link clicked:', href);
@@ -107,44 +59,6 @@ export function DashboardSidebar({
     }
   };
 
-  const handleConsultation = async () => {
-    try {
-      const orgId = localStorage.getItem('sf_instance_url')?.replace(/[^a-zA-Z0-9]/g, '_');
-      if (!orgId) throw new Error('No organization ID found');
-
-      const { isSubscriber, hasUsedFreeConsultation } = await checkConsultationEligibility(orgId);
-
-      if (isSubscriber && !hasUsedFreeConsultation) {
-        // Show toast for free consultation immediately
-        showCalendlyToast(toast, CALENDLY_URL, true);
-        // Create free consultation booking after 1 minute
-        await createConsultationBooking(toast, orgId, true);
-        return;
-      }
-
-      // For paid consultations, create Stripe checkout session
-      const { data, error } = await supabase.functions.invoke('consultation-checkout', {
-        body: { 
-          priceId: 'price_1QdqvXBqwIrd79CSGsiAiC9F',
-          orgId,
-          returnUrl: window.location.origin
-        }
-      });
-
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error('Consultation booking error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to initiate consultation booking. Please try again."
-      });
-    }
-  };
-
   const handleExportClick = () => {
     handleExport({
       userLicenses,
@@ -161,70 +75,22 @@ export function DashboardSidebar({
       licensePrice,
     });
   };
-
-  const actionLinks = [
-    {
-      label: "Book a Consultation",
-      href: "#consultation",
-      icon: <HelpCircle className="text-sf-blue dark:text-sf-blue h-4 w-4 flex-shrink-0" />,
-      onClick: handleConsultation,
-      highlight: true
-    },
-    {
-      label: "Contact Support",
-      href: "mailto:support@salesforcesaver.com",
-      icon: <Mail className="text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0" />,
-      onClick: () => {
-        window.location.href = "mailto:support@salesforcesaver.com";
-      }
-    },
-    {
-      label: "Disconnect",
-      href: "#disconnect",
-      icon: <LogOut className="text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0" />,
-      onClick: onDisconnect
-    }
-  ];
   
   return (
     <Sidebar open={open} setOpen={setOpen}>
       <SidebarBody className="justify-between gap-6">
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
           <div className="mt-6 flex flex-col gap-1.5">
-            {showSavingsFeatures && navigationLinks.map((link, idx) => (
-              <div key={idx} onClick={() => handleLinkClick(link.href)}>
-                <SidebarLink link={{
-                  ...link,
-                  icon: React.cloneElement(link.icon as React.ReactElement, {
-                    className: "text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0"
-                  })
-                }} />
-              </div>
-            ))}
+            {showSavingsFeatures && (
+              <NavigationLinks onLinkClick={handleLinkClick} />
+            )}
             
             <Separator className="my-3" />
 
-            <div onClick={handleExportClick} className="cursor-pointer">
-              <SidebarLink 
-                link={{
-                  label: "Export Report",
-                  href: "#export",
-                  icon: <Download className="text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0" />
-                }}
-              />
-            </div>
-            
-            {actionLinks.map((link, idx) => (
-              <div 
-                key={`action-${idx}`} 
-                onClick={link.onClick}
-                className={`cursor-pointer transition-all duration-200 ${
-                  link.highlight ? 'bg-sf-light hover:bg-sf-light/80 rounded-md' : ''
-                }`}
-              >
-                <SidebarLink link={link} />
-              </div>
-            ))}
+            <ActionLinks 
+              onDisconnect={onDisconnect}
+              onExport={handleExportClick}
+            />
           </div>
         </div>
       </SidebarBody>
