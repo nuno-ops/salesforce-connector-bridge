@@ -1,4 +1,7 @@
-import { ExportData } from '../types';
+import { ExportData, CSVSection } from '../types';
+import { createLicenseSection } from '../sections/licenseSection';
+import { createSandboxSection } from '../sections/sandboxSection';
+import { createLimitsSection } from '../sections/limitsSection';
 
 export const generateSavingsReportContent = ({
   licensePrice,
@@ -6,11 +9,13 @@ export const generateSavingsReportContent = ({
   savingsBreakdown,
   userLicenses,
   packageLicenses,
+  permissionSetLicenses,
   sandboxes,
   limits,
   storageUsage
 }: ExportData): string[][] => {
-  console.log('Generating savings report with data:', {
+  console.log('=== CSV Generation Started ===');
+  console.log('Input data:', {
     licensePrice,
     standardUsersCount: standardUsers?.length,
     breakdownItems: savingsBreakdown?.length,
@@ -31,6 +36,12 @@ export const generateSavingsReportContent = ({
   const totalSavings = savingsBreakdown?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
   const totalMonthlyLicenseCost = (licensePrice || 0) * (standardUsers?.length || 0);
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
+
+  console.log('Calculated values:', {
+    totalSavings,
+    totalMonthlyLicenseCost,
+    totalAnnualLicenseCost
+  });
 
   // Generate the CSV content
   const csvContent: string[][] = [
@@ -67,110 +78,37 @@ export const generateSavingsReportContent = ({
     ]);
   });
 
-  // Add License Details section
+  console.log('Creating license sections...');
+  
+  // Add License sections
   if (userLicenses?.length > 0) {
-    csvContent.push(
-      [''],
-      ['User License Details'],
-      ['License Name', 'Total', 'Used', 'Available', 'Usage %']
-    );
-
-    userLicenses.forEach(license => {
-      const total = license.TotalLicenses || 0;
-      const used = license.UsedLicenses || 0;
-      const available = total - used;
-      const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
-
-      csvContent.push([
-        license.Name || 'Unknown',
-        total.toString(),
-        used.toString(),
-        available.toString(),
-        `${usagePercentage}%`
-      ]);
-    });
+    const userLicenseSection = createLicenseSection('User License Details', userLicenses);
+    csvContent.push([''], [userLicenseSection.title], userLicenseSection.headers);
+    csvContent.push(...userLicenseSection.rows);
   }
 
-  // Add Package License Details
   if (packageLicenses?.length > 0) {
-    csvContent.push(
-      [''],
-      ['Package License Details'],
-      ['Package Name', 'Total', 'Used', 'Available', 'Usage %', 'Status']
-    );
-
-    packageLicenses.forEach(pkg => {
-      const total = pkg.TotalLicenses || pkg.AllowedLicenses || 0;
-      const used = pkg.UsedLicenses || 0;
-      const available = total - used;
-      const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
-
-      csvContent.push([
-        pkg.Name || pkg.NamespacePrefix || 'Unknown',
-        total.toString(),
-        used.toString(),
-        available.toString(),
-        `${usagePercentage}%`,
-        pkg.Status || 'Unknown'
-      ]);
-    });
+    const packageLicenseSection = createLicenseSection('Package License Details', packageLicenses);
+    csvContent.push([''], [packageLicenseSection.title], packageLicenseSection.headers);
+    csvContent.push(...packageLicenseSection.rows);
   }
 
   // Add Sandbox Information
   if (sandboxes?.length > 0) {
-    csvContent.push(
-      [''],
-      ['Sandbox Details'],
-      ['Name', 'Type', 'Status']
-    );
-
-    sandboxes.forEach(sandbox => {
-      csvContent.push([
-        sandbox.SandboxName || 'Unknown',
-        sandbox.LicenseType || 'Unknown',
-        sandbox.Status || 'Unknown'
-      ]);
-    });
+    const sandboxSection = createSandboxSection(sandboxes);
+    csvContent.push([''], [sandboxSection.title], sandboxSection.headers);
+    csvContent.push(...sandboxSection.rows);
   }
 
   // Add Storage and Limits Information
   if (limits) {
-    csvContent.push(
-      [''],
-      ['Organization Limits'],
-      ['Limit Type', 'Used', 'Total', 'Remaining', 'Usage %']
-    );
-
-    if (limits.DataStorageMB) {
-      const used = limits.DataStorageMB.Max - (limits.DataStorageMB.Remaining || 0);
-      const total = limits.DataStorageMB.Max || 0;
-      const remaining = limits.DataStorageMB.Remaining || 0;
-      const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
-
-      csvContent.push([
-        'Data Storage (MB)',
-        used.toString(),
-        total.toString(),
-        remaining.toString(),
-        `${usagePercentage}%`
-      ]);
-    }
-
-    if (limits.FileStorageMB) {
-      const used = limits.FileStorageMB.Max - (limits.FileStorageMB.Remaining || 0);
-      const total = limits.FileStorageMB.Max || 0;
-      const remaining = limits.FileStorageMB.Remaining || 0;
-      const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
-
-      csvContent.push([
-        'File Storage (MB)',
-        used.toString(),
-        total.toString(),
-        remaining.toString(),
-        `${usagePercentage}%`
-      ]);
-    }
+    const limitsSection = createLimitsSection(limits);
+    csvContent.push([''], [limitsSection.title], limitsSection.headers);
+    csvContent.push(...limitsSection.rows);
   }
+
+  console.log('=== CSV Generation Completed ===');
+  console.log('Final CSV content rows:', csvContent.length);
 
   return csvContent;
 };
