@@ -15,9 +15,6 @@ interface DashboardSidebarProps {
   limits?: any;
   users?: any[];
   oauthTokens?: any[];
-  inactiveUsers?: any[];
-  integrationUsers?: any[];
-  platformUsers?: any[];
   savingsBreakdown?: any[];
   licensePrice?: number;
   showSavingsFeatures?: boolean;
@@ -32,9 +29,6 @@ export function DashboardSidebar({
   limits = {},
   users = [],
   oauthTokens = [],
-  inactiveUsers = [],
-  integrationUsers = [],
-  platformUsers = [],
   savingsBreakdown = [],
   licensePrice = 0,
   showSavingsFeatures = true,
@@ -61,7 +55,7 @@ export function DashboardSidebar({
   };
 
   const handleExportClick = () => {
-    handleExport({
+    const exportData = {
       userLicenses,
       packageLicenses,
       permissionSetLicenses,
@@ -69,12 +63,13 @@ export function DashboardSidebar({
       limits,
       users,
       oauthTokens,
-      inactiveUsers,
-      integrationUsers,
-      platformUsers,
       savingsBreakdown,
       licensePrice,
-    });
+      standardUsers: users,
+      storageUsage: limits?.StorageUsed || 0
+    };
+    
+    handleExport(exportData);
   };
   
   return (
