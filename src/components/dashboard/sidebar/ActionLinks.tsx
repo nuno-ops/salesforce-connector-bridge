@@ -5,9 +5,10 @@ import { useConsultation } from "./useConsultation";
 interface ActionLinksProps {
   onDisconnect?: () => void;
   onExport: () => void;
+  isExporting?: boolean;
 }
 
-export const ActionLinks = ({ onDisconnect, onExport }: ActionLinksProps) => {
+export const ActionLinks = ({ onDisconnect, onExport, isExporting = false }: ActionLinksProps) => {
   const { handleConsultation } = useConsultation();
 
   const actionLinks = [
@@ -39,7 +40,7 @@ export const ActionLinks = ({ onDisconnect, onExport }: ActionLinksProps) => {
       <div onClick={onExport} className="cursor-pointer">
         <SidebarLink 
           link={{
-            label: "Export Report",
+            label: isExporting ? "Exporting..." : "Export Report",
             href: "#export",
             icon: <Download className="text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0" />
           }}
