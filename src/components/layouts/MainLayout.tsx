@@ -14,16 +14,20 @@ export const MainLayout = ({
   showSavingsFeatures = true,
 }: MainLayoutProps) => {
   const location = useLocation();
+  const isSavingsPreview = location.pathname === "/dashboard/savings-preview";
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <DashboardSidebar 
-        onDisconnect={onDisconnect} 
-        showSavingsFeatures={showSavingsFeatures} 
-      />
+      {!isSavingsPreview && (
+        <DashboardSidebar 
+          onDisconnect={onDisconnect} 
+          showSavingsFeatures={showSavingsFeatures} 
+        />
+      )}
       <main className={cn(
-        "flex-1 overflow-y-auto bg-sf-bg pl-[60px]", // Added pl-[60px] for sidebar width
+        "flex-1 overflow-y-auto bg-sf-bg",
         {
+          "pl-[60px]": !isSavingsPreview, // Only add left padding if sidebar is shown
           "pb-20": showSavingsFeatures || 
                    location.pathname === "/dashboard" || 
                    location.pathname === "/dashboard/"
