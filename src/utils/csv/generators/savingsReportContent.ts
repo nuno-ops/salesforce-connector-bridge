@@ -78,23 +78,38 @@ export const generateSavingsReportContent = ({
     ]);
   });
 
-  console.log('Creating license sections...');
-  
-  // Add License sections
+  // Add License sections with proper data transformation
   if (userLicenses?.length > 0) {
-    const userLicenseSection = createLicenseSection('User License Details', userLicenses);
+    console.log('Creating User License section with:', userLicenses.length, 'licenses');
+    const formattedUserLicenses = userLicenses.map(license => ({
+      name: license.Name || license.name || 'Unknown',
+      total: license.TotalLicenses || license.total || 0,
+      used: license.UsedLicenses || license.used || 0,
+      status: license.Status || license.status || 'Active'
+    }));
+    
+    const userLicenseSection = createLicenseSection('User License Details', formattedUserLicenses);
     csvContent.push([''], [userLicenseSection.title], userLicenseSection.headers);
     csvContent.push(...userLicenseSection.rows);
   }
 
   if (packageLicenses?.length > 0) {
-    const packageLicenseSection = createLicenseSection('Package License Details', packageLicenses);
+    console.log('Creating Package License section with:', packageLicenses.length, 'licenses');
+    const formattedPackageLicenses = packageLicenses.map(license => ({
+      name: license.NamespacePrefix || license.name || 'Unknown',
+      total: license.AllowedLicenses || license.total || -1,
+      used: license.UsedLicenses || license.used || 0,
+      status: license.Status || license.status || 'Active'
+    }));
+
+    const packageLicenseSection = createLicenseSection('Package License Details', formattedPackageLicenses);
     csvContent.push([''], [packageLicenseSection.title], packageLicenseSection.headers);
     csvContent.push(...packageLicenseSection.rows);
   }
 
   // Add Sandbox Information
   if (sandboxes?.length > 0) {
+    console.log('Creating sandbox section with data:', sandboxes);
     const sandboxSection = createSandboxSection(sandboxes);
     csvContent.push([''], [sandboxSection.title], sandboxSection.headers);
     csvContent.push(...sandboxSection.rows);

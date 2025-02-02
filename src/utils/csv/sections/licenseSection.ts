@@ -1,32 +1,27 @@
 import { RawLicense, CSVSection } from '../types';
-import { 
-  getLicenseName, 
-  getLicenseTotal, 
-  getLicenseUsed, 
-  getLicenseStatus,
-  calculateUsagePercentage 
-} from '../formatters';
 
 export const createLicenseSection = (title: string, licenses: RawLicense[]): CSVSection => {
   console.log(`=== CREATE LICENSE SECTION START: ${title} ===`);
   console.log('Input licenses:', licenses);
   
   const rows = licenses.map(license => {
-    const name = getLicenseName(license);
-    const total = getLicenseTotal(license);
-    const used = getLicenseUsed(license);
-    const available = total === -1 ? 'Unlimited' : (total - used).toString();
-    const usagePercentage = calculateUsagePercentage(used, total);
+    const name = license.name || 'Unknown';
+    const total = license.total === -1 ? 'Unlimited' : license.total;
+    const used = license.used || 0;
+    const available = total === 'Unlimited' ? 'Unlimited' : (Number(total) - used).toString();
+    const usagePercentage = total === 'Unlimited' ? 
+      '0.0' : 
+      ((used / (Number(total) || 1)) * 100).toFixed(1);
 
     console.log('Processing license:', { name, total, used, available, usagePercentage });
 
     return [
       name,
-      total === -1 ? 'Unlimited' : total.toString(),
+      total.toString(),
       used.toString(),
       available,
       `${usagePercentage}%`,
-      getLicenseStatus(license)
+      license.status || 'Active'
     ];
   });
 
