@@ -59,12 +59,14 @@ export function DashboardSidebar({
       userLicenses: {
         count: userLicenses.length,
         samples: userLicenses.slice(0, 2),
-        properties: userLicenses[0] ? Object.keys(userLicenses[0]) : []
+        properties: userLicenses[0] ? Object.keys(userLicenses[0]) : [],
+        firstLicenseFullData: userLicenses[0]
       },
       packageLicenses: {
         count: packageLicenses.length,
         samples: packageLicenses.slice(0, 2),
-        properties: packageLicenses[0] ? Object.keys(packageLicenses[0]) : []
+        properties: packageLicenses[0] ? Object.keys(packageLicenses[0]) : [],
+        firstLicenseFullData: packageLicenses[0]
       }
     });
 
