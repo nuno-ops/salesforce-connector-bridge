@@ -76,13 +76,13 @@ export const generateSavingsReportContent = ({
     );
 
     userLicenses.forEach(license => {
-      const total = license.total || 0;
-      const used = license.used || 0;
+      const total = license.TotalLicenses || 0;
+      const used = license.UsedLicenses || 0;
       const available = total - used;
       const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
 
       csvContent.push([
-        license.name,
+        license.Name || 'Unknown',
         total.toString(),
         used.toString(),
         available.toString(),
@@ -100,18 +100,18 @@ export const generateSavingsReportContent = ({
     );
 
     packageLicenses.forEach(pkg => {
-      const total = pkg.total || 0;
-      const used = pkg.used || 0;
+      const total = pkg.TotalLicenses || pkg.AllowedLicenses || 0;
+      const used = pkg.UsedLicenses || 0;
       const available = total - used;
       const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
 
       csvContent.push([
-        pkg.name,
+        pkg.Name || pkg.NamespacePrefix || 'Unknown',
         total.toString(),
         used.toString(),
         available.toString(),
         `${usagePercentage}%`,
-        pkg.status || 'Unknown'
+        pkg.Status || 'Unknown'
       ]);
     });
   }
