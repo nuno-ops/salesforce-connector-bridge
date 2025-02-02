@@ -16,7 +16,7 @@ interface DashboardSidebarProps {
   users?: any[];
   oauthTokens?: any[];
   savingsBreakdown?: any[];
-  licensePrice?: number;
+  totalSavings?: number;
   showSavingsFeatures?: boolean;
 }
 
@@ -30,7 +30,7 @@ export function DashboardSidebar({
   users = [],
   oauthTokens = [],
   savingsBreakdown = [],
-  licensePrice = 0,
+  totalSavings = 0,
   showSavingsFeatures = true,
 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
@@ -55,6 +55,15 @@ export function DashboardSidebar({
   };
 
   const handleExportClick = () => {
+    console.log('Export clicked with data:', {
+      userLicensesCount: userLicenses.length,
+      packageLicensesCount: packageLicenses.length,
+      usersCount: users.length,
+      oauthTokensCount: oauthTokens.length,
+      savingsBreakdownCount: savingsBreakdown.length,
+      totalSavings
+    });
+
     const exportData = {
       userLicenses,
       packageLicenses,
@@ -64,9 +73,9 @@ export function DashboardSidebar({
       users,
       oauthTokens,
       savingsBreakdown,
-      licensePrice,
       standardUsers: users,
-      storageUsage: limits?.StorageUsed || 0
+      storageUsage: limits?.StorageUsed || 0,
+      licensePrice: 100, // Default value, should be fetched from settings
     };
     
     handleExport(exportData);
@@ -86,6 +95,7 @@ export function DashboardSidebar({
             <ActionLinks 
               onDisconnect={onDisconnect}
               onExport={handleExportClick}
+              isExporting={isExporting}
             />
           </div>
         </div>
