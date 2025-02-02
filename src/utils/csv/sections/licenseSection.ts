@@ -4,10 +4,19 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
   console.log(`Creating ${title} section with raw license data:`, {
     licensesCount: licenses?.length,
     firstLicense: licenses?.[0],
-    allLicenses: licenses
+    allLicenses: licenses,
+    timestamp: new Date().toISOString()
   });
   
-  const rows = licenses.map(license => {
+  const rows = licenses.map((license, index) => {
+    // Log the raw license data
+    console.log(`Processing license ${index}:`, {
+      rawLicense: license,
+      properties: Object.keys(license),
+      values: Object.values(license),
+      timestamp: new Date().toISOString()
+    });
+
     // Handle Salesforce's capitalized property names
     const name = license.Name || 
                  license.NamespacePrefix || 
@@ -24,13 +33,14 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
     const usagePercentage = total === -1 ? 'N/A' : 
                            (total > 0 ? ((used / total) * 100).toFixed(1) + '%' : '0.0%');
 
-    console.log('Processing license row:', {
+    console.log('Transformed license data:', {
       name,
       total,
       used,
       available,
       usagePercentage,
-      originalLicense: license
+      originalLicense: license,
+      timestamp: new Date().toISOString()
     });
 
     return [
@@ -41,6 +51,12 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
       usagePercentage,
       license.Status || 'Active'
     ];
+  });
+
+  console.log(`${title} section final output:`, {
+    rowCount: rows.length,
+    sampleRows: rows.slice(0, 2),
+    timestamp: new Date().toISOString()
   });
 
   return {

@@ -55,13 +55,17 @@ export function DashboardSidebar({
   };
 
   const handleExportClick = () => {
-    console.log('Export clicked with data:', {
-      userLicensesCount: userLicenses.length,
-      packageLicensesCount: packageLicenses.length,
-      usersCount: users.length,
-      oauthTokensCount: oauthTokens.length,
-      savingsBreakdownCount: savingsBreakdown.length,
-      totalSavings
+    console.log('Export clicked with raw license data:', {
+      userLicenses: {
+        count: userLicenses.length,
+        samples: userLicenses.slice(0, 2),
+        properties: userLicenses[0] ? Object.keys(userLicenses[0]) : []
+      },
+      packageLicenses: {
+        count: packageLicenses.length,
+        samples: packageLicenses.slice(0, 2),
+        properties: packageLicenses[0] ? Object.keys(packageLicenses[0]) : []
+      }
     });
 
     const exportData = {
