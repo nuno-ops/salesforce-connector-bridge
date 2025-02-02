@@ -51,15 +51,20 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
     ];
   });
 
-  console.log(`createLicenseSection [${title}] - Final output:`, {
-    rowCount: rows.length,
-    sampleRows: rows.slice(0, 2),
-    timestamp: new Date().toISOString()
-  });
-
-  return {
+  const section = {
     title,
     headers: ['Name', 'Total Licenses', 'Used Licenses', 'Available Licenses', 'Usage %', 'Status'],
     rows
   };
+
+  console.log(`createLicenseSection [${title}] - Final output:`, {
+    title: section.title,
+    headerCount: section.headers.length,
+    rowCount: section.rows.length,
+    sampleRow: section.rows[0],
+    allRows: section.rows,
+    timestamp: new Date().toISOString()
+  });
+
+  return section;
 };
