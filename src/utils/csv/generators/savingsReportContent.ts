@@ -82,10 +82,11 @@ export const generateSavingsReportContent = ({
   if (userLicenses?.length > 0) {
     console.log('Creating User License section with:', userLicenses.length, 'licenses');
     const formattedUserLicenses = userLicenses.map(license => ({
-      name: license.Name || license.name || 'Unknown',
-      total: license.TotalLicenses || license.total || 0,
-      used: license.UsedLicenses || license.used || 0,
-      status: license.Status || license.status || 'Active'
+      Id: license.Id,
+      Name: license.Name || license.NamespacePrefix || license.DeveloperName || 'Unknown',
+      TotalLicenses: license.TotalLicenses || license.AllowedLicenses || 0,
+      UsedLicenses: license.UsedLicenses || 0,
+      Status: license.Status || 'Active'
     }));
     
     const userLicenseSection = createLicenseSection('User License Details', formattedUserLicenses);
@@ -96,10 +97,11 @@ export const generateSavingsReportContent = ({
   if (packageLicenses?.length > 0) {
     console.log('Creating Package License section with:', packageLicenses.length, 'licenses');
     const formattedPackageLicenses = packageLicenses.map(license => ({
-      name: license.NamespacePrefix || license.name || 'Unknown',
-      total: license.AllowedLicenses || license.total || -1,
-      used: license.UsedLicenses || license.used || 0,
-      status: license.Status || license.status || 'Active'
+      Id: license.Id,
+      Name: license.NamespacePrefix || license.Name || 'Unknown',
+      TotalLicenses: license.AllowedLicenses || license.TotalLicenses || -1,
+      UsedLicenses: license.UsedLicenses || 0,
+      Status: license.Status || 'Active'
     }));
 
     const packageLicenseSection = createLicenseSection('Package License Details', formattedPackageLicenses);
