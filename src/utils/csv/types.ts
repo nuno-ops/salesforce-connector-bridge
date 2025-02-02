@@ -18,28 +18,25 @@ export interface SavingsBreakdown {
 }
 
 export interface ExportData {
-  userLicenses: RawLicense[];
-  packageLicenses: RawLicense[];
+  userLicenses: Array<{
+    name: string;
+    total: number;
+    used: number;
+    status?: string;
+  }>;
+  packageLicenses: Array<{
+    name: string;
+    total: number;
+    used: number;
+    status: string;
+  }>;
   permissionSetLicenses: RawLicense[];
   sandboxes: any[];
   limits: any;
-  users: any[];
   standardUsers: any[];
-  oauthTokens: any[];
   licensePrice: number;
   storageUsage?: number;
   savingsBreakdown: SavingsBreakdown[];
-  // Savings data
-  inactiveUserSavings?: number;
-  inactiveUserCount?: number;
-  integrationUserSavings?: number;
-  integrationUserCount?: number;
-  platformLicenseSavings?: number;
-  platformLicenseCount?: number;
-  sandboxSavings?: number;
-  excessSandboxCount?: number;
-  storageSavings?: number;
-  potentialStorageReduction?: number;
 }
 
 export interface CSVSection {
