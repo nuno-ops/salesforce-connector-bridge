@@ -1,12 +1,10 @@
-import { useSavingsCalculations } from "@/components/cost-savings/SavingsCalculator";
-import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
-import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
-import { CostSavingsReport } from "@/components/CostSavingsReport";
-import { SalesforceUsers } from "@/components/SalesforceUsers";
-import { OrgHealth } from "@/components/OrgHealth";
-import { DashboardHeader } from "./DashboardHeader";
-import { useExportReport } from "./useExportReport";
-import { ToolAnalysis } from "../tools/ToolAnalysis";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { DashboardHeader } from "./sections/DashboardHeader";
+import { CostOptimizationSection } from "./sections/CostOptimizationSection";
+import { ToolAnalysisSection } from "./sections/ToolAnalysisSection";
+import { DetailedAnalysisSection } from "./sections/DetailedAnalysisSection";
+import { UserManagementSection } from "./sections/UserManagementSection";
+import { OrganizationHealthSection } from "./sections/OrganizationHealthSection";
 import { ReportAccessTimer } from "./ReportAccessTimer";
 
 interface DashboardContentProps {
@@ -17,6 +15,7 @@ interface DashboardContentProps {
   limits: any;
   users?: any[];
   oauthTokens?: any[];
+  onDisconnect?: () => void;
 }
 
 export const DashboardContent = ({
@@ -26,85 +25,40 @@ export const DashboardContent = ({
   sandboxes,
   limits,
   users = [],
-  oauthTokens = []
+  oauthTokens = [],
+  onDisconnect
 }: DashboardContentProps) => {
-  const { licensePrice } = useOrganizationData();
-  const { isExporting, handleExport } = useExportReport();
-  
-  const { 
-    totalSavings,
-    savingsBreakdown,
-    inactiveUsers,
-    integrationUsers,
-    platformUsers
-  } = useSavingsCalculations({
-    users,
-    oauthTokens,
-    licensePrice,
-    sandboxes,
-    storageUsage: limits?.StorageUsed || 0,
-    userLicenses
-  });
-
-  const handleExportReport = () => {
-    handleExport({
-      userLicenses,
-      packageLicenses,
-      permissionSetLicenses,
-      sandboxes,
-      limits,
-      users,
-      oauthTokens,
-      inactiveUsers,
-      integrationUsers,
-      platformUsers,
-      savingsBreakdown,
-      licensePrice
-    });
-  };
-
   return (
-    <div className="space-y-8">
-      <DashboardHeader 
-        isExporting={isExporting}
-        onExport={handleExportReport}
-      />
-      
-      <ReportAccessTimer />
-      
-      <div id="cost-savings">
-        <OptimizationDashboard
-          userLicenses={userLicenses}
-          packageLicenses={packageLicenses}
-          sandboxes={sandboxes}
-          storageUsage={limits?.StorageUsed || 0}
-        />
-      </div>
-      
-      <div id="tool-analysis">
-        <ToolAnalysis oauthTokens={oauthTokens} />
-      </div>
-      
-      <div id="cost-savings-report">
-        <CostSavingsReport
-          userLicenses={userLicenses}
-          packageLicenses={packageLicenses}
-          permissionSetLicenses={permissionSetLicenses}
-          sandboxes={sandboxes}
-          apiUsage={limits?.DailyApiRequests?.Max || 0}
-          storageUsage={limits?.StorageUsed || 0}
-          contracts={[]}
-          invoices={[]}
-        />
-      </div>
-      
-      <div id="users">
-        <SalesforceUsers />
-      </div>
+    <div className="min-h-screen bg-sf-bg">
+      <ScrollArea className="h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <DashboardHeader onDisconnect={onDisconnect} />
+          <ReportAccessTimer />
+          
+          <div className="space-y-8 mt-8">
+            <CostOptimizationSection
+              userLicenses={userLicenses}
+              packageLicenses={packageLicenses}
+              sandboxes={sandboxes}
+              storageUsage={limits?.StorageUsed || 0}
+            />
 
-      <div id="org-health">
-        <OrgHealth />
-      </div>
+            <ToolAnalysisSection oauthTokens={oauthTokens} />
+
+            <DetailedAnalysisSection
+              userLicenses={userLicenses}
+              packageLicenses={packageLicenses}
+              permissionSetLicenses={permissionSetLicenses}
+              sandboxes={sandboxes}
+              limits={limits}
+            />
+
+            <UserManagementSection />
+
+            <OrganizationHealthSection />
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };

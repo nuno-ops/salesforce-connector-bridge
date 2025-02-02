@@ -2,18 +2,46 @@ export const scrollToLicenseOptimization = (tabValue: string) => {
   const element = document.getElementById('license-optimization');
   if (element) {
     // First, dispatch the event to expand the section
-    const event = new CustomEvent('expandLicenseSection', { detail: { tabValue } });
+    const event = new CustomEvent('expandSection', { 
+      detail: { 
+        sectionId: 'license-optimization',
+        tabValue 
+      } 
+    });
     window.dispatchEvent(event);
 
     // Add a delay to allow the section to expand before scrolling
     setTimeout(() => {
-      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - 100;
+      // Find the ScrollArea viewport element
+      const scrollViewport = document.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollViewport) {
+        const elementTop = element.offsetTop;
+        // Subtract some pixels to give some space at the top
+        const scrollPosition = Math.max(0, elementTop - 100);
+        
+        scrollViewport.scrollTo({
+          top: scrollPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 200); // Increased delay to ensure section is expanded
+  }
+};
 
-      window.scrollTo({
-        top: offsetPosition,
+export const scrollToSection = (sectionId: string) => {
+  const element = document.getElementById(sectionId);
+  if (element) {
+    // Find the ScrollArea viewport element
+    const scrollViewport = document.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollViewport) {
+      const elementTop = element.offsetTop;
+      // Subtract some pixels to give some space at the top
+      const scrollPosition = Math.max(0, elementTop - 100);
+      
+      scrollViewport.scrollTo({
+        top: scrollPosition,
         behavior: 'smooth'
       });
-    }, 150); // Increased delay to ensure expansion completes
+    }
   }
 };
