@@ -12,7 +12,13 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     platformLicenseSavings: data.platformLicenseSavings,
     inactiveUserCount: data.inactiveUserCount,
     integrationUserCount: data.integrationUserCount,
-    platformLicenseCount: data.platformLicenseCount
+    platformLicenseCount: data.platformLicenseCount,
+    hasUserLicenses: !!data.userLicenses,
+    userLicensesCount: data.userLicenses?.length,
+    hasPackageLicenses: !!data.packageLicenses,
+    packageLicensesCount: data.packageLicenses?.length,
+    hasPermissionSetLicenses: !!data.permissionSetLicenses,
+    permissionSetLicensesCount: data.permissionSetLicenses?.length
   });
 
   // Process users data
@@ -30,16 +36,22 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
                       (data.sandboxSavings || 0) +
                       (data.storageSavings || 0);
 
-  console.log('CSV Generation - Step 2: Calculated values:', {
-    totalMonthlyLicenseCost,
-    totalAnnualLicenseCost,
-    totalSavings,
-    savingsBreakdown: {
-      inactiveUserSavings: data.inactiveUserSavings,
-      integrationUserSavings: data.integrationUserSavings,
-      platformLicenseSavings: data.platformLicenseSavings,
-      sandboxSavings: data.sandboxSavings,
-      storageSavings: data.storageSavings
+  console.log('CSV Generation - Step 2: About to create sections:', {
+    timestamp: new Date().toISOString(),
+    userLicensesData: {
+      exists: !!data.userLicenses,
+      length: data.userLicenses?.length,
+      sample: data.userLicenses?.[0]
+    },
+    packageLicensesData: {
+      exists: !!data.packageLicenses,
+      length: data.packageLicenses?.length,
+      sample: data.packageLicenses?.[0]
+    },
+    permissionSetLicensesData: {
+      exists: !!data.permissionSetLicenses,
+      length: data.permissionSetLicenses?.length,
+      sample: data.permissionSetLicenses?.[0]
     }
   });
 
@@ -101,6 +113,8 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     ]
   ];
 
+  console.log('CSV Generation - Step 3: Creating sections...');
+  
   // Add sections
   const sections = [
     createLicenseSection('User Licenses', data.userLicenses),
@@ -109,6 +123,11 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
     createSandboxSection(data.sandboxes),
     createLimitsSection(data.limits)
   ];
+
+  console.log('CSV Generation - Step 4: Sections created:', {
+    sectionsCount: sections.length,
+    sectionsNotNull: sections.filter(Boolean).length
+  });
 
   sections.forEach(section => {
     if (section) {
@@ -119,6 +138,13 @@ export const generateReportCSV = async (data: ExportData): Promise<string> => {
         ...section.rows
       );
     }
+  });
+
+  console.log('CSV Generation - Step 5: Final CSV content:', {
+    totalRows: csvContent.length,
+    hasContent: csvContent.length > 0,
+    firstRow: csvContent[0],
+    lastRow: csvContent[csvContent.length - 1]
   });
 
   return csvContent.map(row => row.join(',')).join('\n');
