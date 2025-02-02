@@ -1,6 +1,7 @@
 import { RawLicense, CSVSection } from '../types';
 
 export const createLicenseSection = (title: string, licenses: RawLicense[]): CSVSection => {
+  console.log('=== CREATE LICENSE SECTION START ===');
   console.log(`createLicenseSection [${title}] - Input:`, {
     licensesCount: licenses?.length,
     firstLicense: licenses?.[0],
@@ -65,6 +66,7 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
     allRows: section.rows,
     timestamp: new Date().toISOString()
   });
+  console.log('=== CREATE LICENSE SECTION END ===');
 
   return section;
 };
