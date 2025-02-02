@@ -18,16 +18,16 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
     });
 
     // Handle Salesforce's capitalized property names
-    const name = license.name || 
+    const name = license.Name || 
                  license.NamespacePrefix || 
                  license.DeveloperName || 
                  'Unknown';
                  
-    const total = license.total || 
+    const total = license.TotalLicenses || 
                   license.AllowedLicenses || 
                   0;
                   
-    const used = license.used || 0;
+    const used = license.UsedLicenses || 0;
     
     const available = total === -1 ? 'Unlimited' : (total - used).toString();
     const usagePercentage = total === -1 ? 'N/A' : 
@@ -49,7 +49,7 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
       used.toString(),
       available,
       usagePercentage,
-      license.status || 'Active'
+      license.Status || 'Active'
     ];
   });
 
