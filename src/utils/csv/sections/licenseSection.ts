@@ -1,7 +1,7 @@
 import { RawLicense, CSVSection } from '../types';
 
 export const createLicenseSection = (title: string, licenses: RawLicense[]): CSVSection => {
-  console.log(`Creating ${title} section with raw license data:`, {
+  console.log(`createLicenseSection [${title}] - Input:`, {
     licensesCount: licenses?.length,
     firstLicense: licenses?.[0],
     allLicenses: licenses,
@@ -9,15 +9,13 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
   });
   
   const rows = licenses.map((license, index) => {
-    // Log the raw license data
-    console.log(`Processing license ${index}:`, {
+    console.log(`createLicenseSection [${title}] - Processing license ${index}:`, {
       rawLicense: license,
       properties: Object.keys(license),
       values: Object.values(license),
       timestamp: new Date().toISOString()
     });
 
-    // Handle Salesforce's capitalized property names
     const name = license.Name || 
                  license.NamespacePrefix || 
                  license.DeveloperName || 
@@ -33,7 +31,7 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
     const usagePercentage = total === -1 ? 'N/A' : 
                            (total > 0 ? ((used / total) * 100).toFixed(1) + '%' : '0.0%');
 
-    console.log('Transformed license data:', {
+    console.log(`createLicenseSection [${title}] - Transformed license ${index}:`, {
       name,
       total,
       used,
@@ -53,7 +51,7 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
     ];
   });
 
-  console.log(`${title} section final output:`, {
+  console.log(`createLicenseSection [${title}] - Final output:`, {
     rowCount: rows.length,
     sampleRows: rows.slice(0, 2),
     timestamp: new Date().toISOString()
