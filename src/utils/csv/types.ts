@@ -11,6 +11,15 @@ export interface RawLicense {
   attributes?: any;
 }
 
+export interface FormattedLicense {
+  id: string;
+  name: string;
+  total: number;
+  used: number;
+  type: 'user' | 'package' | 'permissionSet';
+  status?: string;
+}
+
 export interface SavingsBreakdown {
   title: string;
   amount: number;
@@ -20,33 +29,22 @@ export interface SavingsBreakdown {
   potentialGBSavings?: number;
 }
 
+export interface CSVSection {
+  title: string;
+  headers: string[];
+  rows: string[][];
+}
+
 export interface ExportData {
   licensePrice: number;
   standardUsers: any[];
   savingsBreakdown: SavingsBreakdown[];
-  userLicenses: RawLicense[];
-  packageLicenses: RawLicense[];
-  permissionSetLicenses: RawLicense[];
+  userLicenses: RawLicense[] | FormattedLicense[];
+  packageLicenses: RawLicense[] | FormattedLicense[];
+  permissionSetLicenses: RawLicense[] | FormattedLicense[];
   sandboxes: any[];
   limits: any;
   users: any[];
   oauthTokens: any[];
   storageUsage?: number;
-  // Savings data
-  inactiveUserSavings?: number;
-  inactiveUserCount?: number;
-  integrationUserSavings?: number;
-  integrationUserCount?: number;
-  platformLicenseSavings?: number;
-  platformLicenseCount?: number;
-  sandboxSavings?: number;
-  excessSandboxCount?: number;
-  storageSavings?: number;
-  potentialStorageReduction?: number;
-}
-
-export interface CSVSection {
-  title: string;
-  headers: string[];
-  rows: string[][];
 }
