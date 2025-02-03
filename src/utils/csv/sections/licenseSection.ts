@@ -5,9 +5,11 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
   console.log('Input licenses:', licenses);
   
   const rows = licenses.map(license => {
-    const name = license.NamespacePrefix || license.Name || 'Unknown';
-    const total = license.AllowedLicenses || license.TotalLicenses || 0;
-    const used = license.UsedLicenses || 0;
+    // Use the existing name property from the formatted license data
+    const name = license.name || license.NamespacePrefix || license.Name || 'Unknown';
+    // Use the existing total and used values
+    const total = license.total || license.TotalLicenses || license.AllowedLicenses || 0;
+    const used = license.used || license.UsedLicenses || 0;
     const available = total === -1 ? 'Unlimited' : (total - used).toString();
     const usagePercentage = total === -1 ? 
       '0.0' : 
@@ -21,7 +23,7 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
       used.toString(),
       available,
       `${usagePercentage}%`,
-      license.Status || 'Active'
+      license.status || 'Active'
     ];
   });
 
