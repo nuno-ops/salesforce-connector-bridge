@@ -2,6 +2,7 @@ export interface RawLicense {
   Id: string;
   Name?: string;
   NamespacePrefix?: string;
+  DeveloperName?: string;
   TotalLicenses?: number;
   AllowedLicenses?: number;
   UsedLicenses?: number;
@@ -17,31 +18,6 @@ export interface SavingsBreakdown {
   viewAction?: () => void;
   count?: number;
   potentialGBSavings?: number;
-}
-
-export interface ExportData {
-  licensePrice: number;
-  standardUsers: any[];
-  savingsBreakdown: SavingsBreakdown[];
-  userLicenses: RawLicense[];
-  packageLicenses: RawLicense[];
-  permissionSetLicenses: RawLicense[];
-  sandboxes: any[];
-  limits: any;
-  users: any[];
-  oauthTokens: any[];
-  storageUsage?: number;
-  // Savings data
-  inactiveUserSavings?: number;
-  inactiveUserCount?: number;
-  integrationUserSavings?: number;
-  integrationUserCount?: number;
-  platformLicenseSavings?: number;
-  platformLicenseCount?: number;
-  sandboxSavings?: number;
-  excessSandboxCount?: number;
-  storageSavings?: number;
-  potentialStorageReduction?: number;
 }
 
 export interface CSVSection {
