@@ -1,12 +1,13 @@
 export interface RawLicense {
   Id: string;
   Name?: string;
-  TotalLicenses?: number;
-  UsedLicenses?: number;
   NamespacePrefix?: string;
-  DeveloperName?: string;
+  TotalLicenses?: number;
   AllowedLicenses?: number;
+  UsedLicenses?: number;
   Status?: string;
+  IsProvisioned?: boolean;
+  attributes?: any;
 }
 
 export interface SavingsBreakdown {

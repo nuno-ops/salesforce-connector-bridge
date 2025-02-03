@@ -5,11 +5,11 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
   console.log('Input licenses:', licenses);
   
   const rows = licenses.map(license => {
-    const name = license.Name || 'Unknown';
-    const total = license.TotalLicenses === -1 ? 'Unlimited' : license.TotalLicenses;
+    const name = license.NamespacePrefix || license.Name || 'Unknown';
+    const total = license.AllowedLicenses || license.TotalLicenses || 0;
     const used = license.UsedLicenses || 0;
-    const available = total === 'Unlimited' ? 'Unlimited' : (Number(total) - used).toString();
-    const usagePercentage = total === 'Unlimited' ? 
+    const available = total === -1 ? 'Unlimited' : (total - used).toString();
+    const usagePercentage = total === -1 ? 
       '0.0' : 
       ((used / (Number(total) || 1)) * 100).toFixed(1);
 
@@ -17,7 +17,7 @@ export const createLicenseSection = (title: string, licenses: RawLicense[]): CSV
 
     return [
       name,
-      total.toString(),
+      total === -1 ? 'Unlimited' : total.toString(),
       used.toString(),
       available,
       `${usagePercentage}%`,

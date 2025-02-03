@@ -78,33 +78,17 @@ export const generateSavingsReportContent = ({
     ]);
   });
 
-  // Add License sections with proper data transformation
+  // Add License sections
   if (userLicenses?.length > 0) {
     console.log('Creating User License section with:', userLicenses.length, 'licenses');
-    const formattedUserLicenses = userLicenses.map(license => ({
-      Id: license.Id,
-      Name: license.Name || license.NamespacePrefix || license.DeveloperName || 'Unknown',
-      TotalLicenses: license.TotalLicenses || license.AllowedLicenses || 0,
-      UsedLicenses: license.UsedLicenses || 0,
-      Status: license.Status || 'Active'
-    }));
-    
-    const userLicenseSection = createLicenseSection('User License Details', formattedUserLicenses);
+    const userLicenseSection = createLicenseSection('User License Details', userLicenses);
     csvContent.push([''], [userLicenseSection.title], userLicenseSection.headers);
     csvContent.push(...userLicenseSection.rows);
   }
 
   if (packageLicenses?.length > 0) {
     console.log('Creating Package License section with:', packageLicenses.length, 'licenses');
-    const formattedPackageLicenses = packageLicenses.map(license => ({
-      Id: license.Id,
-      Name: license.NamespacePrefix || license.Name || 'Unknown',
-      TotalLicenses: license.AllowedLicenses || license.TotalLicenses || -1,
-      UsedLicenses: license.UsedLicenses || 0,
-      Status: license.Status || 'Active'
-    }));
-
-    const packageLicenseSection = createLicenseSection('Package License Details', formattedPackageLicenses);
+    const packageLicenseSection = createLicenseSection('Package License Details', packageLicenses);
     csvContent.push([''], [packageLicenseSection.title], packageLicenseSection.headers);
     csvContent.push(...packageLicenseSection.rows);
   }
