@@ -6,6 +6,7 @@ import { DetailedAnalysisSection } from "./sections/DetailedAnalysisSection";
 import { UserManagementSection } from "./sections/UserManagementSection";
 import { OrganizationHealthSection } from "./sections/OrganizationHealthSection";
 import { ReportAccessTimer } from "./ReportAccessTimer";
+import { DashboardSidebar } from "./DashboardSidebar";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -15,6 +16,8 @@ interface DashboardContentProps {
   limits: any;
   users?: any[];
   oauthTokens?: any[];
+  savingsBreakdown?: any[];
+  totalSavings?: number;
   onDisconnect?: () => void;
 }
 
@@ -26,11 +29,26 @@ export const DashboardContent = ({
   limits,
   users = [],
   oauthTokens = [],
+  savingsBreakdown = [],
+  totalSavings = 0,
   onDisconnect
 }: DashboardContentProps) => {
   return (
-    <div className="min-h-screen bg-sf-bg">
-      <ScrollArea className="h-screen">
+    <div className="min-h-screen bg-sf-bg flex">
+      <DashboardSidebar 
+        userLicenses={userLicenses}
+        packageLicenses={packageLicenses}
+        permissionSetLicenses={permissionSetLicenses}
+        sandboxes={sandboxes}
+        limits={limits}
+        users={users}
+        oauthTokens={oauthTokens}
+        savingsBreakdown={savingsBreakdown}
+        totalSavings={totalSavings}
+        onDisconnect={onDisconnect}
+      />
+      
+      <ScrollArea className="h-screen flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <DashboardHeader onDisconnect={onDisconnect} />
           <ReportAccessTimer />

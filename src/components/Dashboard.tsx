@@ -10,6 +10,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { SalesforceLogin } from "./SalesforceLogin";
 import { SavingsPreview } from "./dashboard/SavingsPreview";
+import { useSavingsCalculations } from "./cost-savings/SavingsCalculator";
 
 interface MainDashboardProps {
   showSavingsPreview?: boolean;
@@ -45,6 +46,16 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
     firstUser: users?.[0],
     firstOAuthToken: oauthTokens?.[0],
     timestamp: new Date().toISOString()
+  });
+
+  // Calculate savings data
+  const { totalSavings, savingsBreakdown } = useSavingsCalculations({
+    users,
+    oauthTokens,
+    licensePrice: 100, // Default value, should be fetched from settings
+    sandboxes,
+    storageUsage: limits?.StorageUsed || 0,
+    userLicenses
   });
 
   // Check for session expiration before doing anything else
@@ -140,6 +151,8 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
         limits={limits}
         users={users}
         oauthTokens={oauthTokens}
+        savingsBreakdown={savingsBreakdown}
+        totalSavings={totalSavings}
       />
     </MainLayout>
   );

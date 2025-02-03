@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { generateReportCSV, downloadCSV } from "@/utils/csvExport";
+import { generateSavingsReportContent } from "@/utils/csv/generators/savingsReportContent";
+import { downloadCSV } from "@/utils/csv/download/csvDownload";
 import { filterStandardSalesforceUsers } from "@/components/users/utils/userFilters";
 
 interface ExportReportProps {
@@ -11,11 +12,9 @@ interface ExportReportProps {
   limits: any;
   users: any[];
   oauthTokens: any[];
-  inactiveUsers: any[];
-  integrationUsers: any[];
-  platformUsers: any[];
   savingsBreakdown: any[];
   licensePrice: number;
+  storageUsage?: number;
 }
 
 export const useExportReport = () => {
@@ -24,14 +23,11 @@ export const useExportReport = () => {
 
   const handleExport = async (data: ExportReportProps) => {
     try {
-      console.log('Export Report - Step 1: Initial data received:', {
+      console.log('Export Report - Initial data:', {
         userLicensesCount: data.userLicenses?.length,
         packageLicensesCount: data.packageLicenses?.length,
         rawUsersCount: data.users?.length,
         oauthTokensCount: data.oauthTokens?.length,
-        inactiveUsersCount: data.inactiveUsers?.length,
-        integrationUsersCount: data.integrationUsers?.length,
-        platformUsersCount: data.platformUsers?.length,
         licensePrice: data.licensePrice,
         savingsBreakdown: data.savingsBreakdown
       });
@@ -41,45 +37,22 @@ export const useExportReport = () => {
       // Filter standard users
       const standardUsers = filterStandardSalesforceUsers(data.users);
       
-      console.log('Export Report - Step 2: Calculating savings:', {
-        inactiveUsers: {
-          count: data.inactiveUsers?.length,
-          savings: data.inactiveUsers?.length * data.licensePrice * 12
-        },
-        integrationUsers: {
-          count: data.integrationUsers?.length,
-          savings: data.integrationUsers?.length * data.licensePrice * 12
-        },
-        platformUsers: {
-          count: data.platformUsers?.length,
-          savings: data.platformUsers?.length * (data.licensePrice - 25) * 12
-        }
-      });
+      console.log('Export Report - Filtered standard users:', standardUsers.length);
 
-      const csvContent = await generateReportCSV({
+      // Generate CSV content
+      const csvContent = generateSavingsReportContent({
         ...data,
         standardUsers,
-        inactiveUserSavings: data.inactiveUsers?.length * data.licensePrice * 12,
-        integrationUserSavings: data.integrationUsers?.length * data.licensePrice * 12,
-        platformLicenseSavings: data.platformUsers?.length * (data.licensePrice - 25) * 12,
-        inactiveUserCount: data.inactiveUsers?.length || 0,
-        integrationUserCount: data.integrationUsers?.length || 0,
-        platformLicenseCount: data.platformUsers?.length || 0,
-        sandboxSavings: 0, // Will implement later
-        excessSandboxCount: 0,
-        storageSavings: 0,
-        potentialStorageReduction: 0
+        storageUsage: data.storageUsage
       });
 
-      console.log('Export Report - Step 3: Final data sent to CSV generation:', {
-        standardUsersCount: standardUsers.length,
-        licensePrice: data.licensePrice,
-        inactiveUserSavings: data.inactiveUsers?.length * data.licensePrice * 12,
-        integrationUserSavings: data.integrationUsers?.length * data.licensePrice * 12,
-        platformLicenseSavings: data.platformUsers?.length * (data.licensePrice - 25) * 12
-      });
+      console.log('Export Report - CSV content generated with rows:', csvContent.length);
       
-      downloadCSV(csvContent, 'salesforce-optimization-report.csv');
+      // Convert array to CSV string
+      const csvString = csvContent.map(row => row.join(',')).join('\n');
+      
+      // Download the file
+      downloadCSV(csvString, 'salesforce-optimization-report.csv');
       
       toast({
         title: "Success",

@@ -15,11 +15,8 @@ interface DashboardSidebarProps {
   limits?: any;
   users?: any[];
   oauthTokens?: any[];
-  inactiveUsers?: any[];
-  integrationUsers?: any[];
-  platformUsers?: any[];
   savingsBreakdown?: any[];
-  licensePrice?: number;
+  totalSavings?: number;
   showSavingsFeatures?: boolean;
 }
 
@@ -32,11 +29,8 @@ export function DashboardSidebar({
   limits = {},
   users = [],
   oauthTokens = [],
-  inactiveUsers = [],
-  integrationUsers = [],
-  platformUsers = [],
   savingsBreakdown = [],
-  licensePrice = 0,
+  totalSavings = 0,
   showSavingsFeatures = true,
 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
@@ -61,7 +55,22 @@ export function DashboardSidebar({
   };
 
   const handleExportClick = () => {
-    handleExport({
+    console.log('Export clicked with raw license data:', {
+      userLicenses: {
+        count: userLicenses.length,
+        samples: userLicenses.slice(0, 2),
+        properties: userLicenses[0] ? Object.keys(userLicenses[0]) : [],
+        firstLicenseFullData: userLicenses[0]
+      },
+      packageLicenses: {
+        count: packageLicenses.length,
+        samples: packageLicenses.slice(0, 2),
+        properties: packageLicenses[0] ? Object.keys(packageLicenses[0]) : [],
+        firstLicenseFullData: packageLicenses[0]
+      }
+    });
+
+    const exportData = {
       userLicenses,
       packageLicenses,
       permissionSetLicenses,
@@ -69,12 +78,13 @@ export function DashboardSidebar({
       limits,
       users,
       oauthTokens,
-      inactiveUsers,
-      integrationUsers,
-      platformUsers,
       savingsBreakdown,
-      licensePrice,
-    });
+      standardUsers: users,
+      storageUsage: limits?.StorageUsed || 0,
+      licensePrice: 100, // Default value, should be fetched from settings
+    };
+    
+    handleExport(exportData);
   };
   
   return (
@@ -91,6 +101,7 @@ export function DashboardSidebar({
             <ActionLinks 
               onDisconnect={onDisconnect}
               onExport={handleExportClick}
+              isExporting={isExporting}
             />
           </div>
         </div>
