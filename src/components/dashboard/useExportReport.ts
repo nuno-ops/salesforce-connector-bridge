@@ -14,6 +14,7 @@ interface ExportReportProps {
   oauthTokens: any[];
   savingsBreakdown: any[];
   licensePrice: number;
+  storageUsage?: number;
 }
 
 export const useExportReport = () => {
@@ -41,7 +42,8 @@ export const useExportReport = () => {
       // Generate CSV content
       const csvContent = generateSavingsReportContent({
         ...data,
-        standardUsers
+        standardUsers,
+        storageUsage: data.storageUsage
       });
 
       console.log('Export Report - CSV content generated with rows:', csvContent.length);

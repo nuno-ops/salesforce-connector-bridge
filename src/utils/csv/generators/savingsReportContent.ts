@@ -1,6 +1,7 @@
 import { RawLicense, CSVSection } from "@/utils/csv/types";
 import { createLicenseSection } from "../sections/licenseSection";
 import { createSandboxSection } from "../sections/sandboxSection";
+import { createLimitsSection } from "../sections/limitsSection";
 
 export const generateSavingsReportContent = ({
   userLicenses,
@@ -8,7 +9,9 @@ export const generateSavingsReportContent = ({
   sandboxes,
   standardUsers,
   licensePrice,
-  savingsBreakdown
+  savingsBreakdown,
+  limits,
+  storageUsage,
 }: {
   userLicenses: RawLicense[];
   packageLicenses: RawLicense[];
@@ -16,62 +19,76 @@ export const generateSavingsReportContent = ({
   standardUsers: any[];
   licensePrice: number;
   savingsBreakdown: any[];
+  limits: any;
+  storageUsage?: number;
 }): string[][] => {
   console.log('=== CSV Generation Started ===');
-  console.log('Input data:', {
-    licensePrice,
-    standardUsersCount: standardUsers?.length,
-    breakdownItems: savingsBreakdown?.length,
-    userLicensesCount: userLicenses?.length,
-    packageLicensesCount: packageLicenses?.length,
-  });
-
+  
   // Calculate totals
-  const totalSavings = savingsBreakdown.reduce((acc, item) => acc + (item.savings || 0), 0);
+  const totalSavings = savingsBreakdown.reduce((acc, item) => acc + (item.amount || 0), 0);
   const totalMonthlyLicenseCost = standardUsers.length * licensePrice;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
 
-  console.log('Calculated values:', {
-    totalSavings,
-    totalMonthlyLicenseCost,
-    totalAnnualLicenseCost
-  });
-
-  // Create sections
-  console.log('Creating User License section with:', userLicenses?.length, 'licenses');
-  const userLicenseSection = createLicenseSection('User License Details', userLicenses);
-
-  console.log('Creating Package License section with:', packageLicenses?.length, 'licenses');
-  const packageLicenseSection = createLicenseSection('Package License Details', packageLicenses);
-
-  console.log('Creating sandbox section with data:', sandboxes);
-  const sandboxSection = createSandboxSection(sandboxes);
-
-  // Convert sections to CSV rows
+  // Create CSV rows array
   const csvRows: string[][] = [];
-  
-  // Add user license section
+
+  // 1. Report Header Section
+  csvRows.push(
+    ['Salesforce Organization Cost Optimization Report'],
+    ['Generated on:', new Date().toLocaleString()],
+    ['Total Users:', standardUsers.length.toString()],
+    ['Monthly License Cost:', `$${licensePrice.toFixed(2)}`],
+    ['Annual License Cost:', `$${totalAnnualLicenseCost.toFixed(2)}`],
+    ['']  // Empty row for spacing
+  );
+
+  // 2. Cost Savings Summary Section
+  csvRows.push(
+    ['Cost Savings Summary'],
+    ['Category', 'Annual Savings', 'Details'],
+    ...savingsBreakdown.map(item => [
+      item.title,
+      `$${item.amount.toFixed(2)}`,
+      item.details
+    ]),
+    ['Total Potential Annual Savings:', `$${totalSavings.toFixed(2)}`, ''],
+    ['']  // Empty row for spacing
+  );
+
+  // 3. Organization Limits Section
+  const limitsSection = createLimitsSection(limits);
+  csvRows.push(
+    [limitsSection.title],
+    limitsSection.headers,
+    ...limitsSection.rows,
+    ['']  // Empty row for spacing
+  );
+
+  // 4. User License Section (existing)
+  const userLicenseSection = createLicenseSection('User License Details', userLicenses);
   csvRows.push(
     [userLicenseSection.title],
     userLicenseSection.headers,
     ...userLicenseSection.rows,
-    [''] // Empty row for spacing
+    ['']  // Empty row for spacing
   );
 
-  // Add package license section
+  // 5. Package License Section (existing)
+  const packageLicenseSection = createLicenseSection('Package License Details', packageLicenses);
   csvRows.push(
     [packageLicenseSection.title],
     packageLicenseSection.headers,
     ...packageLicenseSection.rows,
-    [''] // Empty row for spacing
+    ['']  // Empty row for spacing
   );
 
-  // Add sandbox section
+  // 6. Sandbox Section (existing)
+  const sandboxSection = createSandboxSection(sandboxes);
   csvRows.push(
     [sandboxSection.title],
     sandboxSection.headers,
     ...sandboxSection.rows,
-    [''] // Empty row for spacing
+    ['']  // Empty row for spacing
   );
 
   console.log('=== CSV Generation Completed ===');
