@@ -1,37 +1,35 @@
-import { RawLicense, CSVSection } from '../types';
+import { RawLicense } from "@/utils/csv/types";
 
-export const createLicenseSection = (title: string, licenses: RawLicense[]): CSVSection => {
+export const createLicenseSection = (title: string, licenses: RawLicense[]): string[][] => {
   console.log(`=== CREATE LICENSE SECTION START: ${title} ===`);
   console.log('Input licenses:', licenses);
-  
-  const rows = licenses.map(license => {
-    // Use the correct property names from RawLicense interface
-    const name = license.NamespacePrefix || license.Name || license.DeveloperName || 'Unknown';
-    const total = license.AllowedLicenses || license.TotalLicenses || 0;
-    const used = license.UsedLicenses || 0;
-    const available = total === -1 ? 'Unlimited' : (total - used).toString();
-    const usagePercentage = total === -1 ? 
-      '0.0' : 
-      ((used / (Number(total) || 1)) * 100).toFixed(1);
 
-    console.log('Processing license:', { name, total, used, available, usagePercentage });
+  const header = [
+    [''],
+    [title],
+    ['Name', 'Total Licenses', 'Used Licenses', 'Available', 'Usage %']
+  ];
+
+  const rows = licenses.map(license => {
+    console.log('Processing license:', license);
+    
+    const name = license.Name || license.NamespacePrefix || 'Unknown';
+    const total = Number(license.TotalLicenses || license.AllowedLicenses || 0);
+    const used = Number(license.UsedLicenses || 0);
+    const available = String(total - used);
+    const usagePercentage = total > 0 ? ((used / total) * 100).toFixed(1) : '0.0';
 
     return [
       name,
-      total === -1 ? 'Unlimited' : total.toString(),
-      used.toString(),
+      String(total),
+      String(used),
       available,
-      `${usagePercentage}%`,
-      license.Status || 'Active'
+      `${usagePercentage}%`
     ];
   });
 
   console.log(`=== CREATE LICENSE SECTION END: ${title} ===`);
   console.log('Generated rows:', rows.length);
 
-  return {
-    title,
-    headers: ['Name', 'Total', 'Used', 'Available', 'Usage %', 'Status'],
-    rows
-  };
+  return [...header, ...rows, ['']];
 };
