@@ -1,4 +1,6 @@
-export const createSandboxSection = (sandboxes: any[]) => {
+import { CSVSection } from '../types';
+
+export const createSandboxSection = (sandboxes: any[]): CSVSection => {
   console.log('Creating sandbox section with data:', sandboxes);
   
   return {

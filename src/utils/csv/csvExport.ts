@@ -1,4 +1,4 @@
-import { ExportData } from './types';
+import { ExportData, CSVSection } from './types';
 import { createLicenseSection } from './sections/licenseSection';
 import { createSandboxSection } from './sections/sandboxSection';
 import { createLimitsSection } from './sections/limitsSection';
@@ -6,7 +6,7 @@ import { createLimitsSection } from './sections/limitsSection';
 export const generateReportCSV = (data: ExportData) => {
   console.log('Generating CSV with raw data:', data);
 
-  const sections = [
+  const sections: CSVSection[] = [
     createLicenseSection('User Licenses', data.userLicenses),
     createLicenseSection('Package Licenses', data.packageLicenses),
     createLicenseSection('Permission Set Licenses', data.permissionSetLicenses),
@@ -21,12 +21,13 @@ export const generateReportCSV = (data: ExportData) => {
   ];
 
   sections.forEach(section => {
-    csvContent.push(
+    const sectionRows = [
       [section.title],
       section.headers,
       ...section.rows,
-      ['']
-    );
+      ['']  // Empty row for spacing
+    ];
+    csvContent.push(...sectionRows);
   });
 
   return csvContent.map(row => row.join(',')).join('\n');

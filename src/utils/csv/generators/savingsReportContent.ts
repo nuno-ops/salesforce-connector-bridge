@@ -1,4 +1,4 @@
-import { RawLicense } from "@/utils/csv/types";
+import { RawLicense, CSVSection } from "@/utils/csv/types";
 import { createLicenseSection } from "../sections/licenseSection";
 import { createSandboxSection } from "../sections/sandboxSection";
 
@@ -47,16 +47,35 @@ export const generateSavingsReportContent = ({
   console.log('Creating sandbox section with data:', sandboxes);
   const sandboxSection = createSandboxSection(sandboxes);
 
-  console.log('=== CSV Generation Completed ===');
-  console.log('Final CSV content rows:', [
-    ...userLicenseSection,
-    ...packageLicenseSection,
-    ...sandboxSection
-  ].length);
+  // Convert sections to CSV rows
+  const csvRows: string[][] = [];
+  
+  // Add user license section
+  csvRows.push(
+    [userLicenseSection.title],
+    userLicenseSection.headers,
+    ...userLicenseSection.rows,
+    [''] // Empty row for spacing
+  );
 
-  return [
-    ...userLicenseSection,
-    ...packageLicenseSection,
-    ...sandboxSection
-  ];
+  // Add package license section
+  csvRows.push(
+    [packageLicenseSection.title],
+    packageLicenseSection.headers,
+    ...packageLicenseSection.rows,
+    [''] // Empty row for spacing
+  );
+
+  // Add sandbox section
+  csvRows.push(
+    [sandboxSection.title],
+    sandboxSection.headers,
+    ...sandboxSection.rows,
+    [''] // Empty row for spacing
+  );
+
+  console.log('=== CSV Generation Completed ===');
+  console.log('Final CSV content rows:', csvRows.length);
+
+  return csvRows;
 };
