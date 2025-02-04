@@ -28,7 +28,7 @@ export const useExportReport = () => {
         packageLicensesCount: data.packageLicenses?.length,
         rawUsersCount: data.users?.length,
         oauthTokensCount: data.oauthTokens?.length,
-        licensePrice: data.licensePrice,
+        licensePrice: data.licensePrice, // Log the actual license price being used
         savingsBreakdown: data.savingsBreakdown
       });
 
@@ -37,12 +37,13 @@ export const useExportReport = () => {
       // Filter standard users
       const standardUsers = filterStandardSalesforceUsers(data.users);
       
-      console.log('Export Report - Filtered standard users:', standardUsers.length);
+      console.log('Export Report - Using license price:', data.licensePrice);
 
-      // Generate CSV content
+      // Generate CSV content with actual license price
       const csvContent = generateSavingsReportContent({
         ...data,
         standardUsers,
+        licensePrice: data.licensePrice, // Ensure we're passing the actual license price
         storageUsage: data.storageUsage
       });
 

@@ -31,18 +31,19 @@ export const useSavingsCalculations = ({
     licensePrice,
     sandboxes: sandboxes?.length,
     storageUsage,
-    userLicenses: userLicenses?.length
+    userLicenses: userLicenses?.length,
+    timestamp: new Date().toISOString()
   });
 
   // Filter standard Salesforce users first
   const standardUsers = filterStandardSalesforceUsers(users);
   console.log('Dashboard - Filtered standard users:', standardUsers.length);
   
-  // Calculate static savings using filtered users
+  // Calculate static savings using filtered users and actual license price
   const inactiveUserSavings = calculateInactiveUserSavings(standardUsers, licensePrice);
   console.log('Dashboard - Inactive user savings:', inactiveUserSavings);
 
-  // Use the new hooks for platform and integration savings
+  // Use the new hooks for platform and integration savings with actual license price
   const platformLicenseSavings = usePlatformLicenseSavings(licensePrice);
   console.log('Dashboard - Platform license savings:', platformLicenseSavings);
 
@@ -73,7 +74,8 @@ export const useSavingsCalculations = ({
     platformLicenseSavings: platformLicenseSavings.savings,
     sandboxSavings: sandboxSavingsCalc.savings,
     storageSavings: storageSavingsCalc.savings,
-    totalSavings
+    totalSavings,
+    actualLicensePrice: licensePrice
   });
 
   const savingsBreakdown = [
@@ -112,6 +114,7 @@ export const useSavingsCalculations = ({
     savingsBreakdown,
     platformUsers: platformLicenseSavings.users,
     integrationUsers: integrationUserSavings.users,
-    inactiveUsers: inactiveUserSavings.users
+    inactiveUsers: inactiveUserSavings.users,
+    actualLicensePrice: licensePrice // Ensure we're passing the actual license price
   };
 };

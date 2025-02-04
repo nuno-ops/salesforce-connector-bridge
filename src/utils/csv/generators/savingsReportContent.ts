@@ -23,8 +23,9 @@ export const generateSavingsReportContent = ({
   storageUsage?: number;
 }): string[][] => {
   console.log('=== CSV Generation Started ===');
+  console.log('Using license price:', licensePrice);
   
-  // Calculate totals
+  // Calculate totals using actual license price
   const totalSavings = savingsBreakdown.reduce((acc, item) => acc + (item.amount || 0), 0);
   const totalMonthlyLicenseCost = standardUsers.length * licensePrice;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
@@ -64,7 +65,7 @@ export const generateSavingsReportContent = ({
     ['']  // Empty row for spacing
   );
 
-  // 4. User License Section (existing)
+  // 4. User License Section
   const userLicenseSection = createLicenseSection('User License Details', userLicenses);
   csvRows.push(
     [userLicenseSection.title],
@@ -73,7 +74,7 @@ export const generateSavingsReportContent = ({
     ['']  // Empty row for spacing
   );
 
-  // 5. Package License Section (existing)
+  // 5. Package License Section
   const packageLicenseSection = createLicenseSection('Package License Details', packageLicenses);
   csvRows.push(
     [packageLicenseSection.title],
@@ -82,7 +83,7 @@ export const generateSavingsReportContent = ({
     ['']  // Empty row for spacing
   );
 
-  // 6. Sandbox Section (existing)
+  // 6. Sandbox Section
   const sandboxSection = createSandboxSection(sandboxes);
   csvRows.push(
     [sandboxSection.title],
@@ -93,6 +94,7 @@ export const generateSavingsReportContent = ({
 
   console.log('=== CSV Generation Completed ===');
   console.log('Final CSV content rows:', csvRows.length);
+  console.log('License price used in report:', licensePrice);
 
   return csvRows;
 };
