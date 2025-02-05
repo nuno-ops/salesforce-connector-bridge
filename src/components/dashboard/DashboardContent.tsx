@@ -32,6 +32,22 @@ export const DashboardContent = ({
 }: DashboardContentProps) => {
   const { isExporting, handleExport } = useExportReport();
 
+  // Create a wrapper function that calls handleExport with the required data
+  const handleExportClick = () => {
+    handleExport({
+      userLicenses,
+      packageLicenses,
+      permissionSetLicenses,
+      sandboxes,
+      limits,
+      users,
+      oauthTokens,
+      savingsBreakdown,
+      licensePrice,
+      storageUsage: limits?.StorageUsed || 0,
+    });
+  };
+
   return (
     <div className="flex">
       <DashboardSidebar
@@ -47,7 +63,7 @@ export const DashboardContent = ({
         licensePrice={licensePrice}
       />
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <DashboardHeader isExporting={isExporting} onExport={handleExport} />
+        <DashboardHeader isExporting={isExporting} onExport={handleExportClick} />
         <ScrollArea className="h-[calc(100vh-10rem)]">
           <div className="space-y-4">
             <DashboardCards
