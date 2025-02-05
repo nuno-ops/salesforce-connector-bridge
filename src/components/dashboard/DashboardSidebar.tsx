@@ -18,6 +18,7 @@ interface DashboardSidebarProps {
   savingsBreakdown?: any[];
   totalSavings?: number;
   showSavingsFeatures?: boolean;
+  licensePrice?: number;
 }
 
 export function DashboardSidebar({ 
@@ -32,6 +33,7 @@ export function DashboardSidebar({
   savingsBreakdown = [],
   totalSavings = 0,
   showSavingsFeatures = true,
+  licensePrice = 0,
 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
   const { isExporting, handleExport } = useExportReport();
@@ -55,20 +57,7 @@ export function DashboardSidebar({
   };
 
   const handleExportClick = () => {
-    console.log('Export clicked with raw license data:', {
-      userLicenses: {
-        count: userLicenses.length,
-        samples: userLicenses.slice(0, 2),
-        properties: userLicenses[0] ? Object.keys(userLicenses[0]) : [],
-        firstLicenseFullData: userLicenses[0]
-      },
-      packageLicenses: {
-        count: packageLicenses.length,
-        samples: packageLicenses.slice(0, 2),
-        properties: packageLicenses[0] ? Object.keys(packageLicenses[0]) : [],
-        firstLicenseFullData: packageLicenses[0]
-      }
-    });
+    console.log('Export clicked with license price:', licensePrice);
 
     const exportData = {
       userLicenses,
@@ -81,7 +70,7 @@ export function DashboardSidebar({
       savingsBreakdown,
       standardUsers: users,
       storageUsage: limits?.StorageUsed || 0,
-      licensePrice: 100, // Default value, should be fetched from settings
+      licensePrice, // Use the actual license price passed from props
     };
     
     handleExport(exportData);
