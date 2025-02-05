@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { SalesforceLogin } from "./SalesforceLogin";
 import { SavingsPreview } from "./dashboard/SavingsPreview";
 import { useSavingsCalculations } from "./cost-savings/SavingsCalculator";
-import { useOrganizationData } from "./cost-savings/hooks/useOrganizationData";
 
 interface MainDashboardProps {
   showSavingsPreview?: boolean;
@@ -36,14 +35,24 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
     error: healthDataError
   } = useOrgHealthData();
 
-  // Get the actual license price from organization settings
-  const { licensePrice } = useOrganizationData();
+  console.log('Dashboard - Data received from useOrgHealthData:', {
+    userLicensesCount: userLicenses?.length,
+    packageLicensesCount: packageLicenses?.length,
+    permissionSetLicensesCount: permissionSetLicenses?.length,
+    sandboxesCount: sandboxes?.length,
+    hasLimits: !!limits,
+    usersCount: users?.length,
+    oauthTokensCount: oauthTokens?.length,
+    firstUser: users?.[0],
+    firstOAuthToken: oauthTokens?.[0],
+    timestamp: new Date().toISOString()
+  });
 
-  // Calculate savings data with actual license price
+  // Calculate savings data
   const { totalSavings, savingsBreakdown } = useSavingsCalculations({
     users,
     oauthTokens,
-    licensePrice, // Use the actual license price
+    licensePrice: 100, // Default value, should be fetched from settings
     sandboxes,
     storageUsage: limits?.StorageUsed || 0,
     userLicenses
@@ -109,6 +118,7 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
   const formattedPermissionSetLicenses = formatPermissionSetLicenseData(permissionSetLicenses || []);
 
   // Only show preview if explicitly requested AND user doesn't have access
+  // Never show preview after successful payment
   const shouldShowPreview = !hasAccess && 
                           showSavingsPreview && 
                           searchParams.get('success') !== 'true';
@@ -143,7 +153,6 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
         oauthTokens={oauthTokens}
         savingsBreakdown={savingsBreakdown}
         totalSavings={totalSavings}
-        licensePrice={licensePrice}
       />
     </MainLayout>
   );

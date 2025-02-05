@@ -1,9 +1,12 @@
-import { DashboardSidebar } from "./DashboardSidebar";
-import { DashboardHeader } from "./DashboardHeader";
-import { DashboardCards } from "./DashboardCards";
-import { DashboardTabs } from "./DashboardTabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useExportReport } from "./useExportReport";
+import { DashboardHeader } from "./sections/DashboardHeader";
+import { CostOptimizationSection } from "./sections/CostOptimizationSection";
+import { ToolAnalysisSection } from "./sections/ToolAnalysisSection";
+import { DetailedAnalysisSection } from "./sections/DetailedAnalysisSection";
+import { UserManagementSection } from "./sections/UserManagementSection";
+import { OrganizationHealthSection } from "./sections/OrganizationHealthSection";
+import { ReportAccessTimer } from "./ReportAccessTimer";
+import { DashboardSidebar } from "./DashboardSidebar";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -11,11 +14,11 @@ interface DashboardContentProps {
   permissionSetLicenses: any[];
   sandboxes: any[];
   limits: any;
-  users: any[];
-  oauthTokens: any[];
-  savingsBreakdown: any[];
-  totalSavings: number;
-  licensePrice: number;
+  users?: any[];
+  oauthTokens?: any[];
+  savingsBreakdown?: any[];
+  totalSavings?: number;
+  onDisconnect?: () => void;
 }
 
 export const DashboardContent = ({
@@ -24,33 +27,15 @@ export const DashboardContent = ({
   permissionSetLicenses,
   sandboxes,
   limits,
-  users,
-  oauthTokens,
-  savingsBreakdown,
-  totalSavings,
-  licensePrice,
+  users = [],
+  oauthTokens = [],
+  savingsBreakdown = [],
+  totalSavings = 0,
+  onDisconnect
 }: DashboardContentProps) => {
-  const { isExporting, handleExport } = useExportReport();
-
-  // Create a wrapper function that calls handleExport with the required data
-  const handleExportClick = () => {
-    handleExport({
-      userLicenses,
-      packageLicenses,
-      permissionSetLicenses,
-      sandboxes,
-      limits,
-      users,
-      oauthTokens,
-      savingsBreakdown,
-      licensePrice,
-      storageUsage: limits?.StorageUsed || 0,
-    });
-  };
-
   return (
-    <div className="flex">
-      <DashboardSidebar
+    <div className="min-h-screen bg-sf-bg flex">
+      <DashboardSidebar 
         userLicenses={userLicenses}
         packageLicenses={packageLicenses}
         permissionSetLicenses={permissionSetLicenses}
@@ -60,37 +45,38 @@ export const DashboardContent = ({
         oauthTokens={oauthTokens}
         savingsBreakdown={savingsBreakdown}
         totalSavings={totalSavings}
-        licensePrice={licensePrice}
+        onDisconnect={onDisconnect}
       />
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <DashboardHeader isExporting={isExporting} onExport={handleExportClick} />
-        <ScrollArea className="h-[calc(100vh-10rem)]">
-          <div className="space-y-4">
-            <DashboardCards
+      
+      <ScrollArea className="h-screen flex-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <DashboardHeader onDisconnect={onDisconnect} />
+          <ReportAccessTimer />
+          
+          <div className="space-y-8 mt-8">
+            <CostOptimizationSection
+              userLicenses={userLicenses}
+              packageLicenses={packageLicenses}
+              sandboxes={sandboxes}
+              storageUsage={limits?.StorageUsed || 0}
+            />
+
+            <ToolAnalysisSection oauthTokens={oauthTokens} />
+
+            <DetailedAnalysisSection
               userLicenses={userLicenses}
               packageLicenses={packageLicenses}
               permissionSetLicenses={permissionSetLicenses}
               sandboxes={sandboxes}
               limits={limits}
-              users={users}
-              oauthTokens={oauthTokens}
-              savingsBreakdown={savingsBreakdown}
-              totalSavings={totalSavings}
             />
-            <DashboardTabs
-              userLicenses={userLicenses}
-              packageLicenses={packageLicenses}
-              permissionSetLicenses={permissionSetLicenses}
-              sandboxes={sandboxes}
-              limits={limits}
-              users={users}
-              oauthTokens={oauthTokens}
-              savingsBreakdown={savingsBreakdown}
-              totalSavings={totalSavings}
-            />
+
+            <UserManagementSection />
+
+            <OrganizationHealthSection />
           </div>
-        </ScrollArea>
-      </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };
