@@ -28,7 +28,7 @@ export const useSavingsCalculations = ({
   console.log('Dashboard - Initial data:', {
     users: users?.length,
     oauthTokens: oauthTokens?.length,
-    licensePrice,
+    actualLicensePrice: licensePrice, // Log actual license price
     sandboxes: sandboxes?.length,
     storageUsage,
     userLicenses: userLicenses?.length,
@@ -115,6 +115,6 @@ export const useSavingsCalculations = ({
     platformUsers: platformLicenseSavings.users,
     integrationUsers: integrationUserSavings.users,
     inactiveUsers: inactiveUserSavings.users,
-    actualLicensePrice: licensePrice // Ensure we're passing the actual license price
+    actualLicensePrice: licensePrice
   };
 };
