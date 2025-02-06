@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateSavingsReportContent } from "@/utils/csv/generators/savingsReportContent";
 import { downloadCSV } from "@/utils/csv/download/csvDownload";
 import { filterStandardSalesforceUsers } from "@/components/users/utils/userFilters";
+import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
 
 interface ExportReportProps {
   userLicenses: any[];
@@ -13,13 +14,14 @@ interface ExportReportProps {
   users: any[];
   oauthTokens: any[];
   savingsBreakdown: any[];
-  licensePrice: number;
+  standardUsers: any[];
   storageUsage?: number;
 }
 
 export const useExportReport = () => {
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
+  const { licensePrice } = useOrganizationData();
 
   const handleExport = async (data: ExportReportProps) => {
     try {
@@ -28,7 +30,7 @@ export const useExportReport = () => {
         packageLicensesCount: data.packageLicenses?.length,
         rawUsersCount: data.users?.length,
         oauthTokensCount: data.oauthTokens?.length,
-        licensePrice: data.licensePrice, // Log the actual license price being used
+        licensePrice, // Log the actual license price being used
         savingsBreakdown: data.savingsBreakdown
       });
 
@@ -37,13 +39,13 @@ export const useExportReport = () => {
       // Filter standard users
       const standardUsers = filterStandardSalesforceUsers(data.users);
       
-      console.log('Export Report - Using license price:', data.licensePrice);
+      console.log('Export Report - Using license price:', licensePrice);
 
       // Generate CSV content with actual license price
       const csvContent = generateSavingsReportContent({
         ...data,
         standardUsers,
-        licensePrice: data.licensePrice, // Ensure we're passing the actual license price
+        licensePrice, // Pass the actual license price from organization settings
         storageUsage: data.storageUsage
       });
 
