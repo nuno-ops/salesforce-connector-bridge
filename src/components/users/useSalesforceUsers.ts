@@ -45,7 +45,7 @@ export const useSalesforceUsers = () => {
     
     if (!users.length) {
       console.log('No users available for calculation');
-      return { inactiveUsers: [], integrationUsers: [] };
+      return { inactiveUsers: [], integrationUsers: { count: 0 } };
     }
     
     const result = calculateSavings({
@@ -59,7 +59,7 @@ export const useSalesforceUsers = () => {
 
     console.log('Calculation results:', {
       inactiveUsersCount: result.inactiveUsers?.length,
-      integrationUsersCount: result.integrationUsers?.length
+      integrationUsersCount: result.integrationUsers?.count
     });
 
     return result;
@@ -69,19 +69,19 @@ export const useSalesforceUsers = () => {
   useEffect(() => {
     console.log('Toast effect triggered with:', {
       inactiveUsers: Array.isArray(inactiveUsers) ? inactiveUsers.length : 'not an array',
-      integrationUsers: Array.isArray(integrationUsers) ? integrationUsers.length : 'not an array'
+      integrationUsersCount: integrationUsers?.count
     });
 
-    if (Array.isArray(inactiveUsers) && inactiveUsers.length > 0 || 
-        Array.isArray(integrationUsers) && integrationUsers.length > 0) {
+    if ((Array.isArray(inactiveUsers) && inactiveUsers.length > 0) || 
+        (integrationUsers?.count > 0)) {
       console.log('Showing toast with:', {
         inactiveCount: Array.isArray(inactiveUsers) ? inactiveUsers.length : 0,
-        integrationCount: Array.isArray(integrationUsers) ? integrationUsers.length : 0
+        integrationCount: integrationUsers?.count || 0
       });
       
       toast({
         title: "License Optimization Opportunities Found",
-        description: `Found ${Array.isArray(inactiveUsers) ? inactiveUsers.length : 0} inactive users and ${Array.isArray(integrationUsers) ? integrationUsers.length : 0} potential integration user conversions.`,
+        description: `Found ${Array.isArray(inactiveUsers) ? inactiveUsers.length : 0} inactive users and ${integrationUsers?.count || 0} potential integration user conversions.`,
       });
     }
   }, [inactiveUsers, integrationUsers, toast]);
