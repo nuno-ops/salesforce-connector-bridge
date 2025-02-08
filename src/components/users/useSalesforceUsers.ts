@@ -32,7 +32,7 @@ interface IntegrationUsers {
 
 export const useSalesforceUsers = () => {
   const [users, setUsers] = useState<SalesforceUser[]>([]);
-  const [oauthTokens, setOauthTokens] = useState<OAuthToken[]>([]);
+  const [oauthTokens, setOAuthTokens] = useState<OAuthToken[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [instanceUrl, setInstanceUrl] = useState('');
@@ -69,9 +69,14 @@ export const useSalesforceUsers = () => {
       integrationUsersCount: result.integrationUsers?.count
     });
 
+    // Ensure we're explicitly handling the type of integrationUsers
+    const integrationUsersResult = typeof result.integrationUsers === 'number' 
+      ? { count: result.integrationUsers } 
+      : result.integrationUsers as IntegrationUsers;
+
     return {
       inactiveUsers: result.inactiveUsers,
-      integrationUsers: result.integrationUsers as IntegrationUsers
+      integrationUsers: integrationUsersResult
     };
   }, [users, oauthTokens, licensePrice]);
 
@@ -145,7 +150,7 @@ export const useSalesforceUsers = () => {
         });
 
         setUsers(data.users);
-        setOauthTokens(data.oauthTokens);
+        setOAuthTokens(data.oauthTokens);
 
       } catch (error: any) {
         console.error('Error fetching users:', error);
