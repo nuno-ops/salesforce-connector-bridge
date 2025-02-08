@@ -58,6 +58,11 @@ export const generateSavingsReportContent = ({
 
   // Add all savings categories from savingsBreakdown with detailed logging
   savingsBreakdown.forEach(item => {
+    if (!item) {
+      console.log('Skipping undefined savings item');
+      return;
+    }
+
     const amount = parseFloat(String(item.amount));
     console.log('Processing savings category:', {
       title: item.title,
@@ -66,16 +71,14 @@ export const generateSavingsReportContent = ({
       details: item.details
     });
     
-    // Include categories with any savings amount
-    if (!isNaN(amount) && amount > 0) {
+    // Include all categories with non-zero savings amount
+    if (!isNaN(amount)) {
       csvRows.push([
         item.title,
         `$${amount.toFixed(2)}`,
         item.details || ''
       ]);
       console.log(`Added savings row for ${item.title} with amount $${amount.toFixed(2)}`);
-    } else {
-      console.log(`Skipped savings row for ${item.title} due to invalid or zero amount`);
     }
   });
 
@@ -124,10 +127,10 @@ export const generateSavingsReportContent = ({
   console.log('=== CSV Generation Completed ===');
   console.log('Final CSV content rows:', csvRows.length);
   console.log('Total savings included:', totalSavings);
-  console.log('All savings categories that were processed:', savingsBreakdown.map(item => ({
-    title: item.title,
-    amount: item.amount,
-    wasIncluded: parseFloat(String(item.amount)) > 0
+  console.log('All savings categories processed:', savingsBreakdown.map(item => ({
+    title: item?.title,
+    amount: item?.amount,
+    wasIncluded: parseFloat(String(item?.amount)) > 0
   })));
 
   return csvRows;
