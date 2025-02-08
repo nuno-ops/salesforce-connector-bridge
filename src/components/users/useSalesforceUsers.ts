@@ -64,15 +64,15 @@ export const useSalesforceUsers = () => {
       userLicenses: []
     });
 
-    console.log('Calculation results:', {
-      inactiveUsersCount: result.inactiveUsers?.length,
-      integrationUsersCount: result.integrationUsers?.count
-    });
-
-    // Ensure we're explicitly handling the type of integrationUsers
-    const integrationUsersResult = typeof result.integrationUsers === 'number' 
+    // First convert result.integrationUsers to IntegrationUsers type
+    const integrationUsersResult: IntegrationUsers = typeof result.integrationUsers === 'number' 
       ? { count: result.integrationUsers } 
       : result.integrationUsers as IntegrationUsers;
+
+    console.log('Calculation results:', {
+      inactiveUsersCount: result.inactiveUsers?.length,
+      integrationUsersCount: integrationUsersResult.count
+    });
 
     return {
       inactiveUsers: result.inactiveUsers,
