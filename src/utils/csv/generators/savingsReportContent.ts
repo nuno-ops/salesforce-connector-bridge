@@ -1,3 +1,4 @@
+
 import { RawLicense, CSVSection } from "@/utils/csv/types";
 import { createLicenseSection } from "../sections/licenseSection";
 import { createSandboxSection } from "../sections/sandboxSection";
@@ -46,12 +47,22 @@ export const generateSavingsReportContent = ({
   // 2. Cost Savings Summary Section
   csvRows.push(
     ['Cost Savings Summary'],
-    ['Category', 'Annual Savings', 'Details'],
-    ...savingsBreakdown.map(item => [
-      item.title,
-      `$${item.amount.toFixed(2)}`,
-      item.details
-    ]),
+    ['Category', 'Annual Savings', 'Details']
+  );
+
+  // Add all savings categories from savingsBreakdown
+  savingsBreakdown.forEach(item => {
+    if (item.amount > 0) {  // Only include categories with savings
+      csvRows.push([
+        item.title,
+        `$${item.amount.toFixed(2)}`,
+        item.details
+      ]);
+    }
+  });
+
+  // Add total savings row
+  csvRows.push(
     ['Total Potential Annual Savings:', `$${totalSavings.toFixed(2)}`, ''],
     ['']  // Empty row for spacing
   );
