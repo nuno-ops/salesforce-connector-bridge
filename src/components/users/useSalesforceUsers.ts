@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationData } from '../cost-savings/hooks/useOrganizationData';
-import { useSavingsCalculations } from '../cost-savings/SavingsCalculator';
+import { calculateSavings } from '../cost-savings/utils/savingsCalculations';
 
 interface SalesforceUser {
   Id: string;
@@ -35,6 +35,20 @@ export const useSalesforceUsers = () => {
   const { toast } = useToast();
   const { licensePrice } = useOrganizationData();
 
+  // Calculate savings using memoization to avoid recalculation on every render
+  const { inactiveUsers, integrationUsers } = useMemo(() => {
+    if (!users.length) return { inactiveUsers: [], integrationUsers: [] };
+    
+    return calculateSavings({
+      users,
+      oauthTokens,
+      licensePrice,
+      sandboxes: [],
+      storageUsage: 0,
+      userLicenses: []
+    });
+  }, [users, oauthTokens, licensePrice]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       const access_token = localStorage.getItem('sf_access_token');
@@ -60,8 +74,7 @@ export const useSalesforceUsers = () => {
 
         if (error) throw error;
 
-        // Check if the response indicates a session error
-        if (data?.error?.includes('Session expired or invalid') || data?.error?.includes('INVALID_SESSION_ID')) {
+        if (data?.error?.includes('Session expired') || data?.error?.includes('INVALID_SESSION_ID')) {
           console.log('Salesforce session expired, clearing local storage');
           localStorage.removeItem('sf_access_token');
           localStorage.removeItem('sf_instance_url');
@@ -81,16 +94,7 @@ export const useSalesforceUsers = () => {
         setUsers(data.users);
         setOauthTokens(data.oauthTokens);
 
-        // Calculate savings using the same logic as the dashboard
-        const { inactiveUsers, integrationUsers } = useSavingsCalculations({
-          users: data.users,
-          oauthTokens: data.oauthTokens,
-          licensePrice,
-          sandboxes: [],  // Not needed for user calculations
-          storageUsage: 0,  // Not needed for user calculations
-          userLicenses: []  // This will be handled within the calculations
-        });
-
+        // Show toast if opportunities are found
         if (inactiveUsers?.length > 0 || integrationUsers?.length > 0) {
           toast({
             title: "License Optimization Opportunities Found",
