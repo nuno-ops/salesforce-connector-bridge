@@ -25,12 +25,13 @@ export const generateSavingsReportContent = ({
 }): string[][] => {
   console.log('=== CSV Generation Started ===');
   console.log('Using license price:', licensePrice);
-  console.log('Savings breakdown items:', savingsBreakdown);
+  console.log('Raw savings breakdown:', JSON.stringify(savingsBreakdown, null, 2));
   
   // Calculate totals using actual license price and all savings categories
   const totalSavings = savingsBreakdown.reduce((acc, item) => {
-    console.log('Processing savings item:', item.title, 'Amount:', item.amount);
-    return acc + (Number(item.amount) || 0);
+    const amount = parseFloat(String(item.amount));
+    console.log(`Processing savings item: ${item.title}, Raw amount: ${item.amount}, Parsed amount: ${amount}`);
+    return acc + (isNaN(amount) ? 0 : amount);
   }, 0);
   
   const totalMonthlyLicenseCost = standardUsers.length * licensePrice;
@@ -56,23 +57,27 @@ export const generateSavingsReportContent = ({
   );
 
   // Add all savings categories from savingsBreakdown with detailed logging
-  savingsBreakdown.forEach(item => {
-    const amount = Number(item.amount);
+  for (const item of savingsBreakdown) {
+    const amount = parseFloat(String(item.amount));
     console.log('Processing savings category:', {
       title: item.title,
-      amount: amount,
+      rawAmount: item.amount,
+      parsedAmount: amount,
       details: item.details
     });
     
     // Include categories with any savings amount
-    if (amount > 0) {
+    if (!isNaN(amount) && amount > 0) {
       csvRows.push([
         item.title,
         `$${amount.toFixed(2)}`,
         item.details || ''
       ]);
+      console.log(`Added savings row for ${item.title} with amount $${amount.toFixed(2)}`);
+    } else {
+      console.log(`Skipped savings row for ${item.title} due to invalid or zero amount`);
     }
-  });
+  }
 
   // Add total savings row with proper formatting
   csvRows.push(
@@ -119,7 +124,11 @@ export const generateSavingsReportContent = ({
   console.log('=== CSV Generation Completed ===');
   console.log('Final CSV content rows:', csvRows.length);
   console.log('Total savings included:', totalSavings);
-  console.log('All savings categories processed:', savingsBreakdown.map(item => item.title));
+  console.log('All savings categories that were processed:', savingsBreakdown.map(item => ({
+    title: item.title,
+    amount: item.amount,
+    wasIncluded: parseFloat(String(item.amount)) > 0
+  })));
 
   return csvRows;
 };
