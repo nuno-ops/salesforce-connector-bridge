@@ -49,7 +49,10 @@ export const useSalesforceUsers = () => {
     
     if (!users.length) {
       console.log('No users available for calculation');
-      return { inactiveUsers: [], integrationUsers: { count: 0 } as IntegrationUsers };
+      return { 
+        inactiveUsers: [], 
+        integrationUsers: { count: 0 } as IntegrationUsers 
+      };
     }
     
     const result = calculateSavings({
@@ -66,7 +69,10 @@ export const useSalesforceUsers = () => {
       integrationUsersCount: result.integrationUsers?.count
     });
 
-    return result;
+    return {
+      inactiveUsers: result.inactiveUsers,
+      integrationUsers: result.integrationUsers as IntegrationUsers
+    };
   }, [users, oauthTokens, licensePrice]);
 
   // Separate useEffect for showing the toast notification
