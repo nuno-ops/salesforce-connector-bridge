@@ -37,9 +37,18 @@ export const useSalesforceUsers = () => {
 
   // Calculate savings using memoization to avoid recalculation on every render
   const { inactiveUsers, integrationUsers } = useMemo(() => {
-    if (!users.length) return { inactiveUsers: [], integrationUsers: [] };
+    console.log('useMemo calculation running with:', {
+      usersCount: users.length,
+      oauthTokensCount: oauthTokens.length,
+      licensePrice
+    });
     
-    return calculateSavings({
+    if (!users.length) {
+      console.log('No users available for calculation');
+      return { inactiveUsers: [], integrationUsers: [] };
+    }
+    
+    const result = calculateSavings({
       users,
       oauthTokens,
       licensePrice,
@@ -47,12 +56,29 @@ export const useSalesforceUsers = () => {
       storageUsage: 0,
       userLicenses: []
     });
+
+    console.log('Calculation results:', {
+      inactiveUsersCount: result.inactiveUsers?.length,
+      integrationUsersCount: result.integrationUsers?.length
+    });
+
+    return result;
   }, [users, oauthTokens, licensePrice]);
 
   // Separate useEffect for showing the toast notification
   useEffect(() => {
+    console.log('Toast effect triggered with:', {
+      inactiveUsers: Array.isArray(inactiveUsers) ? inactiveUsers.length : 'not an array',
+      integrationUsers: Array.isArray(integrationUsers) ? integrationUsers.length : 'not an array'
+    });
+
     if (Array.isArray(inactiveUsers) && inactiveUsers.length > 0 || 
         Array.isArray(integrationUsers) && integrationUsers.length > 0) {
+      console.log('Showing toast with:', {
+        inactiveCount: Array.isArray(inactiveUsers) ? inactiveUsers.length : 0,
+        integrationCount: Array.isArray(integrationUsers) ? integrationUsers.length : 0
+      });
+      
       toast({
         title: "License Optimization Opportunities Found",
         description: `Found ${Array.isArray(inactiveUsers) ? inactiveUsers.length : 0} inactive users and ${Array.isArray(integrationUsers) ? integrationUsers.length : 0} potential integration user conversions.`,
@@ -79,6 +105,7 @@ export const useSalesforceUsers = () => {
       setInstanceUrl(instance_url);
 
       try {
+        console.log('Fetching users from Salesforce...');
         const { data, error } = await supabase.functions.invoke('salesforce-users', {
           body: { access_token, instance_url }
         });
@@ -101,6 +128,11 @@ export const useSalesforceUsers = () => {
           window.location.reload();
           return;
         }
+
+        console.log('Received data from Salesforce:', {
+          usersCount: data.users?.length,
+          oauthTokensCount: data.oauthTokens?.length
+        });
 
         setUsers(data.users);
         setOauthTokens(data.oauthTokens);
@@ -147,4 +179,3 @@ export const useSalesforceUsers = () => {
     instanceUrl
   };
 };
-
