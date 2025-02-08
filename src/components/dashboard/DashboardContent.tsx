@@ -1,3 +1,4 @@
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DashboardHeader } from "./sections/DashboardHeader";
 import { CostOptimizationSection } from "./sections/CostOptimizationSection";
@@ -7,6 +8,8 @@ import { UserManagementSection } from "./sections/UserManagementSection";
 import { OrganizationHealthSection } from "./sections/OrganizationHealthSection";
 import { ReportAccessTimer } from "./ReportAccessTimer";
 import { DashboardSidebar } from "./DashboardSidebar";
+import { useSavingsCalculations } from "../cost-savings/SavingsCalculator";
+import { filterStandardSalesforceUsers } from "../users/utils/userFilters";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -29,10 +32,20 @@ export const DashboardContent = ({
   limits,
   users = [],
   oauthTokens = [],
-  savingsBreakdown = [],
-  totalSavings = 0,
   onDisconnect
 }: DashboardContentProps) => {
+  // Calculate fresh savings data
+  const standardUsers = filterStandardSalesforceUsers(users);
+  const { totalSavings, savingsBreakdown } = useSavingsCalculations({
+    users: standardUsers,
+    oauthTokens,
+    sandboxes,
+    storageUsage: limits?.StorageUsed || 0,
+    userLicenses
+  });
+
+  console.log('DashboardContent - Fresh savings breakdown:', savingsBreakdown);
+
   return (
     <div className="min-h-screen bg-sf-bg flex">
       <DashboardSidebar 
@@ -41,7 +54,7 @@ export const DashboardContent = ({
         permissionSetLicenses={permissionSetLicenses}
         sandboxes={sandboxes}
         limits={limits}
-        users={users}
+        users={standardUsers}
         oauthTokens={oauthTokens}
         savingsBreakdown={savingsBreakdown}
         totalSavings={totalSavings}
