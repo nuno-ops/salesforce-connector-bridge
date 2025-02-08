@@ -23,7 +23,7 @@ export const calculateSavings = ({
   userLicenses
 }: SavingsCalculationParams) => {
   const { users: inactiveUsers } = calculateInactiveUserSavings(users, licensePrice);
-  const { count: integrationUsers } = calculateIntegrationUserSavings(users, oauthTokens, licensePrice, userLicenses);
+  const { count: integrationUsers } = calculateIntegrationUserSavings(users, oauthTokens, licensePrice);
 
   return {
     inactiveUsers,
