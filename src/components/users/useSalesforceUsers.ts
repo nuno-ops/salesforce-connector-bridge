@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationData } from '../cost-savings/hooks/useOrganizationData';
 import { calculateSavings } from '../cost-savings/utils/savingsCalculations';
+import { filterStandardSalesforceUsers } from './utils/userFilters';
 
 interface SalesforceUser {
   Id: string;
@@ -39,16 +40,25 @@ export const useSalesforceUsers = () => {
   const { toast } = useToast();
   const { licensePrice } = useOrganizationData();
 
+  // Filter standard users once when the users array changes
+  const standardUsers = useMemo(() => {
+    console.log('[useSalesforceUsers] Filtering standard users from:', {
+      totalUsers: users.length,
+      timestamp: new Date().toISOString()
+    });
+    return filterStandardSalesforceUsers(users);
+  }, [users]);
+
   // Calculate savings using memoization to avoid recalculation on every render
   const { inactiveUsers, integrationUsers } = useMemo(() => {
     console.log('[useMemo] Starting calculation with:', {
-      usersCount: users.length,
+      standardUsersCount: standardUsers.length,
       oauthTokensCount: oauthTokens.length,
       licensePrice,
       timestamp: new Date().toISOString()
     });
     
-    if (!users.length) {
+    if (!standardUsers.length) {
       console.log('[useMemo] No users available for calculation');
       return { 
         inactiveUsers: [], 
@@ -57,7 +67,7 @@ export const useSalesforceUsers = () => {
     }
     
     const result = calculateSavings({
-      users,
+      users: standardUsers,  // Use filtered standard users
       oauthTokens,
       licensePrice,
       sandboxes: [],
@@ -82,7 +92,7 @@ export const useSalesforceUsers = () => {
       inactiveUsers: result.inactiveUsers,
       integrationUsers: integrationUsersResult
     };
-  }, [users, oauthTokens, licensePrice]);
+  }, [standardUsers, oauthTokens, licensePrice]);
 
   // Separate useEffect for showing the toast notification
   useEffect(() => {
@@ -194,7 +204,7 @@ export const useSalesforceUsers = () => {
   }, [toast, licensePrice]);
 
   return {
-    users,
+    users: standardUsers, // Return filtered users instead of all users
     oauthTokens,
     isLoading,
     error,
