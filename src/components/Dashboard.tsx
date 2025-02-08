@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { useOrgHealthData } from "@/components/org-health/useOrgHealthData";
@@ -152,7 +151,8 @@ export const MainDashboard = ({ showSavingsPreview = false }: MainDashboardProps
         limits={limits}
         users={users}
         oauthTokens={oauthTokens}
-        onDisconnect={handleDisconnect}
+        savingsBreakdown={savingsBreakdown}
+        totalSavings={totalSavings}
       />
     </MainLayout>
   );

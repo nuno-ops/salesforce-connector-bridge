@@ -1,4 +1,3 @@
-
 import { OptimizationDashboard } from "@/components/cost-savings/OptimizationDashboard";
 import { Card } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
@@ -17,15 +16,13 @@ interface CostOptimizationSectionProps {
   }>;
   sandboxes: any[];
   storageUsage: number;
-  onSavingsCalculated?: (savings: { totalSavings: number; savingsBreakdown: any[] }) => void;
 }
 
 export const CostOptimizationSection = ({
   userLicenses,
   packageLicenses,
   sandboxes,
-  storageUsage,
-  onSavingsCalculated
+  storageUsage
 }: CostOptimizationSectionProps) => {
   return (
     <section id="cost-savings" className="bg-gradient-to-r from-sf-blue/5 to-sf-hover/5 rounded-xl shadow-lg border border-sf-blue/10 p-8">
@@ -43,7 +40,6 @@ export const CostOptimizationSection = ({
         packageLicenses={packageLicenses}
         sandboxes={sandboxes}
         storageUsage={storageUsage}
-        onSavingsCalculated={onSavingsCalculated}
       />
     </section>
   );

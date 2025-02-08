@@ -1,4 +1,3 @@
-
 import { useOrganizationData } from "./hooks/useOrganizationData";
 import { useSavingsCalculations } from "./SavingsCalculator";
 import { SavingsSummaryCard } from "./SavingsSummaryCard";
@@ -6,7 +5,6 @@ import { LicenseCostInput } from "./LicenseCostInput";
 import { RecommendationsSection } from "./RecommendationsSection";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { useEffect } from "react";
 
 interface OptimizationDashboardProps {
   userLicenses: Array<{
@@ -23,7 +21,6 @@ interface OptimizationDashboardProps {
   sandboxes: any[];
   storageUsage: number;
   onDisconnect?: () => void;
-  onSavingsCalculated?: (savings: { totalSavings: number; savingsBreakdown: any[] }) => void;
 }
 
 export const OptimizationDashboard = ({
@@ -31,8 +28,7 @@ export const OptimizationDashboard = ({
   packageLicenses,
   sandboxes,
   storageUsage,
-  onDisconnect,
-  onSavingsCalculated
+  onDisconnect
 }: OptimizationDashboardProps) => {
   const {
     licensePrice,
@@ -49,13 +45,6 @@ export const OptimizationDashboard = ({
     storageUsage,
     userLicenses
   });
-
-  // Notify parent components when savings are calculated
-  useEffect(() => {
-    if (onSavingsCalculated) {
-      onSavingsCalculated({ totalSavings, savingsBreakdown });
-    }
-  }, [totalSavings, savingsBreakdown, onSavingsCalculated]);
 
   return (
     <div>

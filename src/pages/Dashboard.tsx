@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { MainDashboard } from "@/components/Dashboard";
 import { PaymentPlans } from "@/components/dashboard/PaymentPlans";

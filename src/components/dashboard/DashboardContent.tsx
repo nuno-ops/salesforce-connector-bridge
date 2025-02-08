@@ -1,4 +1,3 @@
-
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DashboardHeader } from "./sections/DashboardHeader";
 import { CostOptimizationSection } from "./sections/CostOptimizationSection";
@@ -8,7 +7,6 @@ import { UserManagementSection } from "./sections/UserManagementSection";
 import { OrganizationHealthSection } from "./sections/OrganizationHealthSection";
 import { ReportAccessTimer } from "./ReportAccessTimer";
 import { DashboardSidebar } from "./DashboardSidebar";
-import { useState } from "react";
 
 interface DashboardContentProps {
   userLicenses: any[];
@@ -18,6 +16,8 @@ interface DashboardContentProps {
   limits: any;
   users?: any[];
   oauthTokens?: any[];
+  savingsBreakdown?: any[];
+  totalSavings?: number;
   onDisconnect?: () => void;
 }
 
@@ -29,17 +29,10 @@ export const DashboardContent = ({
   limits,
   users = [],
   oauthTokens = [],
+  savingsBreakdown = [],
+  totalSavings = 0,
   onDisconnect
 }: DashboardContentProps) => {
-  const [savingsData, setSavingsData] = useState<{
-    totalSavings: number;
-    savingsBreakdown: any[];
-  }>({ totalSavings: 0, savingsBreakdown: [] });
-
-  const handleSavingsCalculated = (savings: { totalSavings: number; savingsBreakdown: any[] }) => {
-    setSavingsData(savings);
-  };
-
   return (
     <div className="min-h-screen bg-sf-bg flex">
       <DashboardSidebar 
@@ -50,8 +43,8 @@ export const DashboardContent = ({
         limits={limits}
         users={users}
         oauthTokens={oauthTokens}
-        savingsBreakdown={savingsData.savingsBreakdown}
-        totalSavings={savingsData.totalSavings}
+        savingsBreakdown={savingsBreakdown}
+        totalSavings={totalSavings}
         onDisconnect={onDisconnect}
       />
       
@@ -66,7 +59,6 @@ export const DashboardContent = ({
               packageLicenses={packageLicenses}
               sandboxes={sandboxes}
               storageUsage={limits?.StorageUsed || 0}
-              onSavingsCalculated={handleSavingsCalculated}
             />
 
             <ToolAnalysisSection oauthTokens={oauthTokens} />
