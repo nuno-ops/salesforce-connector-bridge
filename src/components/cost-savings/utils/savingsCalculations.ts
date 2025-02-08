@@ -22,8 +22,8 @@ export const calculateSavings = ({
   storageUsage,
   userLicenses
 }: SavingsCalculationParams) => {
-  const { inactiveUsers } = calculateInactiveUserSavings(users);
-  const { integrationUsers } = calculateIntegrationUserSavings(users, oauthTokens);
+  const { users: inactiveUsers } = calculateInactiveUserSavings(users, licensePrice);
+  const { count: integrationUsers } = calculateIntegrationUserSavings(users, oauthTokens, licensePrice, userLicenses);
 
   return {
     inactiveUsers,
