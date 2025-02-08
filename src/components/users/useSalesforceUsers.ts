@@ -1,10 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  calculateInactiveUsers, 
-  analyzeIntegrationOpportunities 
-} from '../cost-savings/utils/licenseCalculations';
+import { useOrganizationData } from '../cost-savings/hooks/useOrganizationData';
+import { useSavingsCalculations } from '../cost-savings/SavingsCalculator';
 
 interface SalesforceUser {
   Id: string;
@@ -34,6 +33,7 @@ export const useSalesforceUsers = () => {
   const [error, setError] = useState<string | null>(null);
   const [instanceUrl, setInstanceUrl] = useState('');
   const { toast } = useToast();
+  const { licensePrice } = useOrganizationData();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -74,31 +74,33 @@ export const useSalesforceUsers = () => {
             description: "Your Salesforce session has expired. Please reconnect.",
           });
           
-          // Force page reload to return to landing page
           window.location.reload();
           return;
         }
 
-        const inactiveUsers = calculateInactiveUsers(data.users);
-        const potentialIntegrationUsers = analyzeIntegrationOpportunities(
-          data.users,
-          data.oauthTokens,
-          inactiveUsers
-        );
-
         setUsers(data.users);
         setOauthTokens(data.oauthTokens);
 
-        if (inactiveUsers.length > 0 || potentialIntegrationUsers.length > 0) {
+        // Calculate savings using the same logic as the dashboard
+        const { inactiveUsers, integrationUsers } = useSavingsCalculations({
+          users: data.users,
+          oauthTokens: data.oauthTokens,
+          licensePrice,
+          sandboxes: [],  // Not needed for user calculations
+          storageUsage: 0,  // Not needed for user calculations
+          userLicenses: []  // This will be handled within the calculations
+        });
+
+        if (inactiveUsers?.length > 0 || integrationUsers?.length > 0) {
           toast({
             title: "License Optimization Opportunities Found",
-            description: `Found ${inactiveUsers.length} inactive users and ${potentialIntegrationUsers.length} potential integration user conversions.`,
+            description: `Found ${inactiveUsers?.length || 0} inactive users and ${integrationUsers?.length || 0} potential integration user conversions.`,
           });
         }
-      } catch (error) {
+
+      } catch (error: any) {
         console.error('Error fetching users:', error);
         
-        // Check if the error is related to session expiration
         if (error.message?.includes('Session expired') || error.message?.includes('INVALID_SESSION_ID')) {
           console.log('Salesforce session expired, clearing local storage');
           localStorage.removeItem('sf_access_token');
@@ -112,7 +114,6 @@ export const useSalesforceUsers = () => {
             description: "Your Salesforce session has expired. Please reconnect.",
           });
           
-          // Force page reload to return to landing page
           window.location.reload();
           return;
         }
@@ -129,7 +130,7 @@ export const useSalesforceUsers = () => {
     };
 
     fetchUsers();
-  }, [toast]);
+  }, [toast, licensePrice]);
 
   return {
     users,
