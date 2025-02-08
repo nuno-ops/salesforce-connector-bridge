@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Sidebar, SidebarBody } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -5,6 +6,7 @@ import { useExportReport } from "./useExportReport";
 import { NavigationLinks } from "./sidebar/NavigationLinks";
 import { ActionLinks } from "./sidebar/ActionLinks";
 import { scrollToSection } from "../cost-savings/utils/scrollUtils";
+import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
 
 interface DashboardSidebarProps {
   onDisconnect?: () => void;
@@ -35,6 +37,7 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
   const { isExporting, handleExport } = useExportReport();
+  const { licensePrice } = useOrganizationData();
   
   const handleLinkClick = (href: string) => {
     console.log('Sidebar link clicked:', href);
@@ -55,19 +58,11 @@ export function DashboardSidebar({
   };
 
   const handleExportClick = () => {
-    console.log('Export clicked with raw license data:', {
-      userLicenses: {
-        count: userLicenses.length,
-        samples: userLicenses.slice(0, 2),
-        properties: userLicenses[0] ? Object.keys(userLicenses[0]) : [],
-        firstLicenseFullData: userLicenses[0]
-      },
-      packageLicenses: {
-        count: packageLicenses.length,
-        samples: packageLicenses.slice(0, 2),
-        properties: packageLicenses[0] ? Object.keys(packageLicenses[0]) : [],
-        firstLicenseFullData: packageLicenses[0]
-      }
+    console.log('Export clicked with data:', {
+      savingsBreakdown,
+      licensePrice,
+      userLicenses: userLicenses.length,
+      users: users.length
     });
 
     const exportData = {
@@ -81,7 +76,6 @@ export function DashboardSidebar({
       savingsBreakdown,
       standardUsers: users,
       storageUsage: limits?.StorageUsed || 0,
-      licensePrice: 100, // Default value, should be fetched from settings
     };
     
     handleExport(exportData);
