@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { generateSavingsReportContent } from "@/utils/csv/generators/savingsReportContent";
@@ -30,7 +31,7 @@ export const useExportReport = () => {
         packageLicensesCount: data.packageLicenses?.length,
         rawUsersCount: data.users?.length,
         oauthTokensCount: data.oauthTokens?.length,
-        licensePrice, // Log the actual license price being used
+        actualLicensePrice: licensePrice,
         savingsBreakdown: data.savingsBreakdown
       });
 
@@ -39,13 +40,13 @@ export const useExportReport = () => {
       // Filter standard users
       const standardUsers = filterStandardSalesforceUsers(data.users);
       
-      console.log('Export Report - Using license price:', licensePrice);
+      console.log('Export Report - Using organization license price:', licensePrice);
 
-      // Generate CSV content with actual license price
+      // Generate CSV content with actual license price from organization settings
       const csvContent = generateSavingsReportContent({
         ...data,
         standardUsers,
-        licensePrice, // Pass the actual license price from organization settings
+        licensePrice: licensePrice, // Use the actual license price from organization settings
         storageUsage: data.storageUsage
       });
 

@@ -1,3 +1,4 @@
+
 import { subDays } from 'date-fns';
 import { User } from './types';
 
@@ -19,7 +20,8 @@ export const calculateInactiveUserSavings = (
     return new Date(user.LastLoginDate) < thirtyDaysAgo;
   });
 
-  const annualSavings = inactiveUsers.length * licensePrice * 12; // Using actual license price
+  // Always use the provided license price for calculations
+  const annualSavings = inactiveUsers.length * licensePrice * 12;
   
   console.log('Inactive users calculation:', {
     inactiveCount: inactiveUsers.length,

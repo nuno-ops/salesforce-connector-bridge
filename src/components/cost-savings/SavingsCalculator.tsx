@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { calculateInactiveUserSavings } from "./utils/inactiveUserSavings";
 import { calculateSandboxSavings } from "./utils/sandboxSavings";
@@ -7,11 +8,12 @@ import { filterStandardSalesforceUsers } from "../users/utils/userFilters";
 import { useToast } from "@/hooks/use-toast";
 import { usePlatformLicenseSavings } from "./hooks/usePlatformLicenseSavings";
 import { useIntegrationUserSavings } from "./hooks/useIntegrationUserSavings";
+import { useOrganizationData } from "./hooks/useOrganizationData";
 
 interface SavingsCalculatorProps {
   users: any[];
   oauthTokens: any[];
-  licensePrice: number;
+  licensePrice?: number; // Make optional since we'll use org settings
   sandboxes: any[];
   storageUsage: number;
   userLicenses: any[];
@@ -20,15 +22,16 @@ interface SavingsCalculatorProps {
 export const useSavingsCalculations = ({
   users,
   oauthTokens,
-  licensePrice,
   sandboxes,
   storageUsage,
   userLicenses
 }: SavingsCalculatorProps) => {
+  const { licensePrice } = useOrganizationData();
+
   console.log('Dashboard - Initial data:', {
     users: users?.length,
     oauthTokens: oauthTokens?.length,
-    actualLicensePrice: licensePrice, // Log actual license price
+    actualLicensePrice: licensePrice,
     sandboxes: sandboxes?.length,
     storageUsage,
     userLicenses: userLicenses?.length,
