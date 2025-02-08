@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Update redirect URI to match production bridge URL without trailing slash
@@ -87,23 +86,38 @@ export const handleOAuthCallback = async (code: string) => {
     });
 
     if (error) {
-      console.error('Supabase function error:', error);
-      throw error;
+      const errorObj = {
+        message: error.message || 'Supabase function error',
+        details: error,
+        timestamp: new Date().toISOString()
+      };
+      console.error('Supabase function error:', errorObj);
+      throw errorObj;
     }
 
     if (!data) {
-      throw new Error('No data received from Salesforce authentication');
+      const errorObj = {
+        message: 'No data received from Salesforce authentication',
+        details: null,
+        timestamp: new Date().toISOString()
+      };
+      console.error('Authentication error:', errorObj);
+      throw errorObj;
     }
 
     console.log('Token exchange response:', data);
     return data;
   } catch (error) {
-    console.error('OAuth callback error details:', {
-      error,
-      message: error.message,
-      stack: error.stack
-    });
-    throw error;
+    // Create a structured error object
+    const errorObj = {
+      message: error instanceof Error ? error.message : 
+               (error && typeof error === 'object' && 'message' in error) ? error.message : 
+               'Unknown error occurred during OAuth callback',
+      details: error,
+      timestamp: new Date().toISOString()
+    };
+    console.error('OAuth callback error details:', errorObj);
+    throw errorObj;
   }
 };
 

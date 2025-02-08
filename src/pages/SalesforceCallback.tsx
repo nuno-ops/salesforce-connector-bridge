@@ -43,7 +43,7 @@ const SalesforceCallback = () => {
         const data = await handleOAuthCallback(code);
         
         if (!data?.access_token || !data?.instance_url) {
-          throw new Error('Invalid response from Salesforce');
+          throw { message: 'Invalid response from Salesforce' };
         }
 
         // Store all token information
@@ -67,23 +67,14 @@ const SalesforceCallback = () => {
           description: "You are now connected to Salesforce.",
         });
 
-        // Redirect to dashboard instead of home page
         navigate('/dashboard', { replace: true });
 
       } catch (error) {
         console.error('OAuth callback error:', error);
         let errorMessage = "Failed to connect to Salesforce.";
         
-        if (error instanceof Error) {
+        if (error && typeof error === 'object' && 'message' in error) {
           errorMessage = error.message;
-        } else if (error && typeof error === 'object') {
-          try {
-            // Try to get a string representation if possible
-            const stringified = JSON.stringify(error);
-            errorMessage = stringified !== '{}' ? stringified : errorMessage;
-          } catch (e) {
-            console.error('Error stringifying error object:', e);
-          }
         }
 
         toast({
@@ -98,7 +89,6 @@ const SalesforceCallback = () => {
     processOAuthCallback();
   }, [navigate, searchParams, toast]);
 
-  // Show loading state while processing
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center space-y-4">
@@ -110,4 +100,3 @@ const SalesforceCallback = () => {
 };
 
 export default SalesforceCallback;
-
