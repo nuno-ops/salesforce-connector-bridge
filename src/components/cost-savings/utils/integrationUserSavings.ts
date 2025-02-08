@@ -1,5 +1,5 @@
 
-import { User, OAuthToken, License } from './types';
+import { User, OAuthToken } from './types';
 
 export const calculateIntegrationUserSavings = (
   users: User[],
@@ -13,30 +13,6 @@ export const calculateIntegrationUserSavings = (
     licensePrice,
     timestamp: new Date().toISOString()
   });
-
-  // Find Integration User license info
-  const integrationLicense = userLicenses.find(license => 
-    license.name === 'Salesforce Integration'
-  );
-
-  if (!integrationLicense) {
-    console.log('[calculateIntegrationUserSavings] No Integration User License found');
-    return { savings: 0, count: 0 };
-  }
-
-  // Calculate available integration user licenses
-  const availableIntegrationLicenses = integrationLicense.total - integrationLicense.used;
-  console.log('[calculateIntegrationUserSavings] License availability:', {
-    total: integrationLicense.total,
-    used: integrationLicense.used,
-    available: availableIntegrationLicenses,
-    timestamp: new Date().toISOString()
-  });
-
-  if (availableIntegrationLicenses <= 0) {
-    console.log('[calculateIntegrationUserSavings] No available Integration User Licenses');
-    return { savings: 0, count: 0 };
-  }
 
   // Group OAuth tokens by user
   const userOAuthUsage = new Map<string, OAuthToken[]>();
@@ -79,20 +55,17 @@ export const calculateIntegrationUserSavings = (
     timestamp: new Date().toISOString()
   });
 
-  // Limit the number of suggested conversions to available licenses
-  const recommendedCount = Math.min(
-    potentialIntegrationUsers.length,
-    availableIntegrationLicenses
-  );
+  // Calculate savings based on license price
+  const annualSavings = potentialIntegrationUsers.length * licensePrice * 12;
 
   console.log('[calculateIntegrationUserSavings] Final results:', {
-    recommendedCount,
-    annualSavings: recommendedCount * licensePrice * 12,
+    recommendedCount: potentialIntegrationUsers.length,
+    annualSavings,
     timestamp: new Date().toISOString()
   });
 
   return {
-    savings: recommendedCount * licensePrice * 12, // Annual savings
-    count: recommendedCount
+    savings: annualSavings,
+    count: potentialIntegrationUsers.length
   };
 };
