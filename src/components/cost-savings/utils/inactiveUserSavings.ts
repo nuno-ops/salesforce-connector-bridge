@@ -12,21 +12,32 @@ export const calculateInactiveUserSavings = (
   users: User[],
   licensePrice: number
 ): InactiveUserResult => {
-  console.log('Calculating inactive user savings with license price:', licensePrice);
+  console.log('[calculateInactiveUserSavings] Starting calculation with:', {
+    totalUsers: users.length,
+    licensePrice,
+    timestamp: new Date().toISOString()
+  });
   
   const thirtyDaysAgo = subDays(new Date(), 30);
   const inactiveUsers = users.filter(user => {
-    if (!user.LastLoginDate) return true;
-    return new Date(user.LastLoginDate) < thirtyDaysAgo;
+    const isInactive = !user.LastLoginDate || new Date(user.LastLoginDate) < thirtyDaysAgo;
+    if (isInactive) {
+      console.log('[calculateInactiveUserSavings] Found inactive user:', {
+        id: user.Id,
+        lastLogin: user.LastLoginDate,
+        timestamp: new Date().toISOString()
+      });
+    }
+    return isInactive;
   });
 
-  // Always use the provided license price for calculations
   const annualSavings = inactiveUsers.length * licensePrice * 12;
   
-  console.log('Inactive users calculation:', {
+  console.log('[calculateInactiveUserSavings] Calculation results:', {
     inactiveCount: inactiveUsers.length,
     licensePrice,
-    annualSavings
+    annualSavings,
+    timestamp: new Date().toISOString()
   });
 
   return {

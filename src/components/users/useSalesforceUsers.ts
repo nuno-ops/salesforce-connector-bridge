@@ -41,14 +41,15 @@ export const useSalesforceUsers = () => {
 
   // Calculate savings using memoization to avoid recalculation on every render
   const { inactiveUsers, integrationUsers } = useMemo(() => {
-    console.log('useMemo calculation running with:', {
+    console.log('[useMemo] Starting calculation with:', {
       usersCount: users.length,
       oauthTokensCount: oauthTokens.length,
-      licensePrice
+      licensePrice,
+      timestamp: new Date().toISOString()
     });
     
     if (!users.length) {
-      console.log('No users available for calculation');
+      console.log('[useMemo] No users available for calculation');
       return { 
         inactiveUsers: [], 
         integrationUsers: { count: 0 } as IntegrationUsers 
@@ -64,14 +65,17 @@ export const useSalesforceUsers = () => {
       userLicenses: []
     });
 
+    console.log('[useMemo] Raw calculation results:', result);
+
     // First convert result.integrationUsers to IntegrationUsers type
     const integrationUsersResult: IntegrationUsers = typeof result.integrationUsers === 'number' 
       ? { count: result.integrationUsers } 
       : result.integrationUsers as IntegrationUsers;
 
-    console.log('Calculation results:', {
+    console.log('[useMemo] Processed calculation results:', {
       inactiveUsersCount: result.inactiveUsers?.length,
-      integrationUsersCount: integrationUsersResult.count
+      integrationUsersCount: integrationUsersResult.count,
+      timestamp: new Date().toISOString()
     });
 
     return {
@@ -82,16 +86,18 @@ export const useSalesforceUsers = () => {
 
   // Separate useEffect for showing the toast notification
   useEffect(() => {
-    console.log('Toast effect triggered with:', {
+    console.log('[Toast Effect] Triggered with:', {
       inactiveUsers: Array.isArray(inactiveUsers) ? inactiveUsers.length : 'not an array',
-      integrationUsersCount: integrationUsers?.count
+      integrationUsersCount: integrationUsers?.count,
+      timestamp: new Date().toISOString()
     });
 
     if ((Array.isArray(inactiveUsers) && inactiveUsers.length > 0) || 
         (integrationUsers?.count > 0)) {
-      console.log('Showing toast with:', {
+      console.log('[Toast Effect] Showing toast with:', {
         inactiveCount: Array.isArray(inactiveUsers) ? inactiveUsers.length : 0,
-        integrationCount: integrationUsers?.count || 0
+        integrationCount: integrationUsers?.count || 0,
+        timestamp: new Date().toISOString()
       });
       
       toast({
@@ -120,7 +126,7 @@ export const useSalesforceUsers = () => {
       setInstanceUrl(instance_url);
 
       try {
-        console.log('Fetching users from Salesforce...');
+        console.log('[fetchUsers] Starting Salesforce data fetch...');
         const { data, error } = await supabase.functions.invoke('salesforce-users', {
           body: { access_token, instance_url }
         });
@@ -128,7 +134,7 @@ export const useSalesforceUsers = () => {
         if (error) throw error;
 
         if (data?.error?.includes('Session expired') || data?.error?.includes('INVALID_SESSION_ID')) {
-          console.log('Salesforce session expired, clearing local storage');
+          console.log('[fetchUsers] Salesforce session expired, clearing local storage');
           localStorage.removeItem('sf_access_token');
           localStorage.removeItem('sf_instance_url');
           localStorage.removeItem('sf_token_timestamp');
@@ -144,19 +150,20 @@ export const useSalesforceUsers = () => {
           return;
         }
 
-        console.log('Received data from Salesforce:', {
+        console.log('[fetchUsers] Received data from Salesforce:', {
           usersCount: data.users?.length,
-          oauthTokensCount: data.oauthTokens?.length
+          oauthTokensCount: data.oauthTokens?.length,
+          timestamp: new Date().toISOString()
         });
 
         setUsers(data.users);
         setOAuthTokens(data.oauthTokens);
 
       } catch (error: any) {
-        console.error('Error fetching users:', error);
+        console.error('[fetchUsers] Error:', error);
         
         if (error.message?.includes('Session expired') || error.message?.includes('INVALID_SESSION_ID')) {
-          console.log('Salesforce session expired, clearing local storage');
+          console.log('[fetchUsers] Session expired, clearing local storage');
           localStorage.removeItem('sf_access_token');
           localStorage.removeItem('sf_instance_url');
           localStorage.removeItem('sf_token_timestamp');

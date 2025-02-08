@@ -1,3 +1,4 @@
+
 import { User, OAuthToken, License } from './types';
 
 export const calculateIntegrationUserSavings = (
@@ -6,22 +7,34 @@ export const calculateIntegrationUserSavings = (
   licensePrice: number,
   userLicenses: License[]
 ): { savings: number; count: number } => {
+  console.log('[calculateIntegrationUserSavings] Starting calculation with:', {
+    totalUsers: users.length,
+    totalOAuthTokens: oauthTokens.length,
+    licensePrice,
+    timestamp: new Date().toISOString()
+  });
+
   // Find Integration User license info
   const integrationLicense = userLicenses.find(license => 
     license.name === 'Salesforce Integration'
   );
 
   if (!integrationLicense) {
-    console.log('No Integration User License found');
+    console.log('[calculateIntegrationUserSavings] No Integration User License found');
     return { savings: 0, count: 0 };
   }
 
   // Calculate available integration user licenses
   const availableIntegrationLicenses = integrationLicense.total - integrationLicense.used;
-  console.log('Available Integration Licenses:', availableIntegrationLicenses);
+  console.log('[calculateIntegrationUserSavings] License availability:', {
+    total: integrationLicense.total,
+    used: integrationLicense.used,
+    available: availableIntegrationLicenses,
+    timestamp: new Date().toISOString()
+  });
 
   if (availableIntegrationLicenses <= 0) {
-    console.log('No available Integration User Licenses');
+    console.log('[calculateIntegrationUserSavings] No available Integration User Licenses');
     return { savings: 0, count: 0 };
   }
 
@@ -33,18 +46,38 @@ export const calculateIntegrationUserSavings = (
     userOAuthUsage.set(token.UserId, userTokens);
   });
 
-  // Find users who primarily use OAuth and could be converted
-  const potentialIntegrationUsers = users.filter(user => {
-    // Skip if user is already an integration user
-    if (user.UserType === 'Integration User') return false;
-    
-    const userTokens = userOAuthUsage.get(user.Id) || [];
-    // If user has multiple OAuth tokens with high usage
-    return userTokens.length >= 2 && 
-           userTokens.some(token => token.UseCount > 1000);
+  console.log('[calculateIntegrationUserSavings] OAuth usage mapping complete:', {
+    uniqueUsersWithTokens: userOAuthUsage.size,
+    timestamp: new Date().toISOString()
   });
 
-  console.log('Potential Integration Users found:', potentialIntegrationUsers.length);
+  // Find users who primarily use OAuth and could be converted
+  const potentialIntegrationUsers = users.filter(user => {
+    if (user.UserType === 'Integration User') {
+      console.log('[calculateIntegrationUserSavings] Skipping existing integration user:', user.Id);
+      return false;
+    }
+    
+    const userTokens = userOAuthUsage.get(user.Id) || [];
+    const isEligible = userTokens.length >= 2 && 
+           userTokens.some(token => token.UseCount > 1000);
+
+    if (isEligible) {
+      console.log('[calculateIntegrationUserSavings] Found eligible user:', {
+        userId: user.Id,
+        tokenCount: userTokens.length,
+        highestUseCount: Math.max(...userTokens.map(t => t.UseCount)),
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    return isEligible;
+  });
+
+  console.log('[calculateIntegrationUserSavings] Potential users found:', {
+    count: potentialIntegrationUsers.length,
+    timestamp: new Date().toISOString()
+  });
 
   // Limit the number of suggested conversions to available licenses
   const recommendedCount = Math.min(
@@ -52,7 +85,11 @@ export const calculateIntegrationUserSavings = (
     availableIntegrationLicenses
   );
 
-  console.log('Recommended conversions after license availability check:', recommendedCount);
+  console.log('[calculateIntegrationUserSavings] Final results:', {
+    recommendedCount,
+    annualSavings: recommendedCount * licensePrice * 12,
+    timestamp: new Date().toISOString()
+  });
 
   return {
     savings: recommendedCount * licensePrice * 12, // Annual savings
