@@ -1,6 +1,10 @@
+
 import { HelpCircle, LogOut, Download, Mail } from "lucide-react";
 import { SidebarLink } from "@/components/ui/sidebar";
 import { useConsultation } from "./useConsultation";
+import { handleLogout } from "@/components/salesforce/useSalesforceAuth";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface ActionLinksProps {
   onDisconnect?: () => void;
@@ -10,6 +14,30 @@ interface ActionLinksProps {
 
 export const ActionLinks = ({ onDisconnect, onExport, isExporting = false }: ActionLinksProps) => {
   const { handleConsultation } = useConsultation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleDisconnect = async () => {
+    try {
+      await handleLogout();
+      toast({
+        title: "Disconnected",
+        description: "Successfully logged out of Salesforce.",
+      });
+      // Navigate to home page after successful logout
+      navigate('/');
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to disconnect properly. Please try again.",
+      });
+      // Force disconnect anyway by clearing storage and reloading
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
 
   const actionLinks = [
     {
@@ -31,7 +59,7 @@ export const ActionLinks = ({ onDisconnect, onExport, isExporting = false }: Act
       label: "Disconnect",
       href: "#disconnect",
       icon: <LogOut className="text-neutral-700 dark:text-neutral-200 h-4 w-4 flex-shrink-0" />,
-      onClick: onDisconnect
+      onClick: handleDisconnect
     }
   ];
 
