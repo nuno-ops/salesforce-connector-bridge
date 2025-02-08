@@ -4,8 +4,7 @@ import { User, OAuthToken } from './types';
 export const calculateIntegrationUserSavings = (
   users: User[],
   oauthTokens: OAuthToken[],
-  licensePrice: number,
-  userLicenses: License[]
+  licensePrice: number
 ): { savings: number; count: number } => {
   console.log('[calculateIntegrationUserSavings] Starting calculation with:', {
     totalUsers: users.length,
