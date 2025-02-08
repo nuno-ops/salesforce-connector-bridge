@@ -26,6 +26,10 @@ interface OAuthToken {
   UserId: string;
 }
 
+interface IntegrationUsers {
+  count: number;
+}
+
 export const useSalesforceUsers = () => {
   const [users, setUsers] = useState<SalesforceUser[]>([]);
   const [oauthTokens, setOauthTokens] = useState<OAuthToken[]>([]);
@@ -45,7 +49,7 @@ export const useSalesforceUsers = () => {
     
     if (!users.length) {
       console.log('No users available for calculation');
-      return { inactiveUsers: [], integrationUsers: { count: 0 } };
+      return { inactiveUsers: [], integrationUsers: { count: 0 } as IntegrationUsers };
     }
     
     const result = calculateSavings({
