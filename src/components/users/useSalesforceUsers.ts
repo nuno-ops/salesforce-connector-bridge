@@ -95,10 +95,11 @@ export const useSalesforceUsers = () => {
         setOauthTokens(data.oauthTokens);
 
         // Show toast if opportunities are found
-        if (inactiveUsers?.length > 0 || integrationUsers?.length > 0) {
+        if (Array.isArray(inactiveUsers) && inactiveUsers.length > 0 || 
+            Array.isArray(integrationUsers) && integrationUsers.length > 0) {
           toast({
             title: "License Optimization Opportunities Found",
-            description: `Found ${inactiveUsers?.length || 0} inactive users and ${integrationUsers?.length || 0} potential integration user conversions.`,
+            description: `Found ${Array.isArray(inactiveUsers) ? inactiveUsers.length : 0} inactive users and ${Array.isArray(integrationUsers) ? integrationUsers.length : 0} potential integration user conversions.`,
           });
         }
 
