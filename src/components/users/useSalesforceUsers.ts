@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganizationData } from '../cost-savings/hooks/useOrganizationData';
 import { calculateSavings } from '../cost-savings/utils/savingsCalculations';
@@ -49,6 +49,17 @@ export const useSalesforceUsers = () => {
     });
   }, [users, oauthTokens, licensePrice]);
 
+  // Separate useEffect for showing the toast notification
+  useEffect(() => {
+    if (Array.isArray(inactiveUsers) && inactiveUsers.length > 0 || 
+        Array.isArray(integrationUsers) && integrationUsers.length > 0) {
+      toast({
+        title: "License Optimization Opportunities Found",
+        description: `Found ${Array.isArray(inactiveUsers) ? inactiveUsers.length : 0} inactive users and ${Array.isArray(integrationUsers) ? integrationUsers.length : 0} potential integration user conversions.`,
+      });
+    }
+  }, [inactiveUsers, integrationUsers, toast]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       const access_token = localStorage.getItem('sf_access_token');
@@ -94,15 +105,6 @@ export const useSalesforceUsers = () => {
         setUsers(data.users);
         setOauthTokens(data.oauthTokens);
 
-        // Show toast if opportunities are found
-        if (Array.isArray(inactiveUsers) && inactiveUsers.length > 0 || 
-            Array.isArray(integrationUsers) && integrationUsers.length > 0) {
-          toast({
-            title: "License Optimization Opportunities Found",
-            description: `Found ${Array.isArray(inactiveUsers) ? inactiveUsers.length : 0} inactive users and ${Array.isArray(integrationUsers) ? integrationUsers.length : 0} potential integration user conversions.`,
-          });
-        }
-
       } catch (error: any) {
         console.error('Error fetching users:', error);
         
@@ -145,3 +147,4 @@ export const useSalesforceUsers = () => {
     instanceUrl
   };
 };
+
