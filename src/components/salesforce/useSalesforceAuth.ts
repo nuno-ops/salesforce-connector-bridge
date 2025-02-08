@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Update redirect URI to match production bridge URL without trailing slash
@@ -18,7 +17,7 @@ export const initiateOAuthFlow = () => {
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
   authUrl.searchParams.append('scope', 'api refresh_token offline_access');
   authUrl.searchParams.append('state', crypto.randomUUID()); // For CSRF protection
-  authUrl.searchParams.append('prompt', 'login consent'); // Force login screen and consent
+  // Removed 'prompt' parameter to avoid forcing consent screen every time
 
   // Debug logging
   console.log('=== OAuth Flow Initialization ===');
