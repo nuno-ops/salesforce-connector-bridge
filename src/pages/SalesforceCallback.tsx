@@ -74,12 +74,13 @@ const SalesforceCallback = () => {
         console.error('OAuth callback error:', error);
         let errorMessage = "Failed to connect to Salesforce.";
         
-        // Safely handle error message
         if (error instanceof Error) {
           errorMessage = error.message;
-        } else if (error && typeof error === 'object' && 'toString' in error) {
+        } else if (error && typeof error === 'object') {
           try {
-            errorMessage = error.toString();
+            // Try to get a string representation if possible
+            const stringified = JSON.stringify(error);
+            errorMessage = stringified !== '{}' ? stringified : errorMessage;
           } catch (e) {
             console.error('Error stringifying error object:', e);
           }
@@ -109,3 +110,4 @@ const SalesforceCallback = () => {
 };
 
 export default SalesforceCallback;
+
