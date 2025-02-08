@@ -25,9 +25,14 @@ export const generateSavingsReportContent = ({
 }): string[][] => {
   console.log('=== CSV Generation Started ===');
   console.log('Using license price:', licensePrice);
+  console.log('Savings breakdown items:', savingsBreakdown);
   
-  // Calculate totals using actual license price
-  const totalSavings = savingsBreakdown.reduce((acc, item) => acc + (item.amount || 0), 0);
+  // Calculate totals using actual license price and all savings categories
+  const totalSavings = savingsBreakdown.reduce((acc, item) => {
+    console.log('Processing savings item:', item.title, 'Amount:', item.amount);
+    return acc + (Number(item.amount) || 0);
+  }, 0);
+  
   const totalMonthlyLicenseCost = standardUsers.length * licensePrice;
   const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
 
@@ -50,18 +55,26 @@ export const generateSavingsReportContent = ({
     ['Category', 'Annual Savings', 'Details']
   );
 
-  // Add all savings categories from savingsBreakdown
+  // Add all savings categories from savingsBreakdown with detailed logging
   savingsBreakdown.forEach(item => {
-    if (item.amount > 0) {  // Only include categories with savings
+    const amount = Number(item.amount);
+    console.log('Processing savings category:', {
+      title: item.title,
+      amount: amount,
+      details: item.details
+    });
+    
+    // Include categories with any savings amount
+    if (amount > 0) {
       csvRows.push([
         item.title,
-        `$${item.amount.toFixed(2)}`,
-        item.details
+        `$${amount.toFixed(2)}`,
+        item.details || ''
       ]);
     }
   });
 
-  // Add total savings row
+  // Add total savings row with proper formatting
   csvRows.push(
     ['Total Potential Annual Savings:', `$${totalSavings.toFixed(2)}`, ''],
     ['']  // Empty row for spacing
@@ -105,7 +118,8 @@ export const generateSavingsReportContent = ({
 
   console.log('=== CSV Generation Completed ===');
   console.log('Final CSV content rows:', csvRows.length);
-  console.log('License price used in report:', licensePrice);
+  console.log('Total savings included:', totalSavings);
+  console.log('All savings categories processed:', savingsBreakdown.map(item => item.title));
 
   return csvRows;
 };
