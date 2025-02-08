@@ -21,7 +21,6 @@ Deno.serve(async (req) => {
     const clientSecret = Deno.env.get('MY_CONNECTED_APP_CLIENT_SECRET')
 
     if (!clientId || !clientSecret) {
-      console.error('Missing connected app credentials in environment variables')
       throw new Error('Server configuration error: Missing connected app credentials')
     }
 
@@ -113,8 +112,9 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in salesforce-auth function:', error)
     return new Response(JSON.stringify({ 
-      error: error.message,
-      details: error.stack
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      details: error,
+      timestamp: new Date().toISOString()
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

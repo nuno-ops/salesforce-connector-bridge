@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -42,47 +42,50 @@ const SalesforceCallback = () => {
         console.log('Processing OAuth callback with code:', code);
         const data = await handleOAuthCallback(code);
         
-        if (!data?.access_token || !data?.instance_url) {
-          throw { message: 'Invalid response from Salesforce' };
+        if (data?.access_token && data?.instance_url) {
+          // Success case - store tokens
+          localStorage.setItem('sf_access_token', data.access_token);
+          localStorage.setItem('sf_instance_url', data.instance_url);
+          localStorage.setItem('sf_token_timestamp', Date.now().toString());
+          localStorage.setItem('sf_token_expires_in', data.expires_in.toString());
+          
+          // Store refresh token if provided
+          if (data.refresh_token) {
+            localStorage.setItem('sf_refresh_token', data.refresh_token);
+          }
+
+          // Clear temporary storage
+          localStorage.removeItem('sf_temp_client_id');
+          localStorage.removeItem('sf_temp_client_secret');
+
+          console.log('Successfully processed OAuth callback');
+          toast({
+            title: "Success",
+            description: "You are now connected to Salesforce.",
+          });
+
+          navigate('/dashboard', { replace: true });
+        } else {
+          throw new Error('Invalid response from Salesforce');
         }
-
-        // Store all token information
-        localStorage.setItem('sf_access_token', data.access_token);
-        localStorage.setItem('sf_instance_url', data.instance_url);
-        localStorage.setItem('sf_token_timestamp', Date.now().toString());
-        localStorage.setItem('sf_token_expires_in', data.expires_in.toString());
-        
-        // Store refresh token if provided
-        if (data.refresh_token) {
-          localStorage.setItem('sf_refresh_token', data.refresh_token);
-        }
-
-        // Clear temporary storage
-        localStorage.removeItem('sf_temp_client_id');
-        localStorage.removeItem('sf_temp_client_secret');
-
-        console.log('Successfully processed OAuth callback');
-        toast({
-          title: "Success",
-          description: "You are now connected to Salesforce.",
-        });
-
-        navigate('/dashboard', { replace: true });
-
       } catch (error) {
         console.error('OAuth callback error:', error);
-        let errorMessage = "Failed to connect to Salesforce.";
-        
-        if (error && typeof error === 'object' && 'message' in error) {
-          errorMessage = error.message;
-        }
+        // Only show error toast if we don't have valid tokens
+        if (!localStorage.getItem('sf_access_token')) {
+          const errorMessage = error && typeof error === 'object' && 'message' in error
+            ? error.message
+            : "Failed to connect to Salesforce.";
 
-        toast({
-          variant: "destructive",
-          title: "Connection failed",
-          description: errorMessage,
-        });
-        navigate('/', { replace: true });
+          toast({
+            variant: "destructive",
+            title: "Connection failed",
+            description: errorMessage,
+          });
+          navigate('/', { replace: true });
+        } else {
+          // If we have tokens, the authentication actually succeeded
+          navigate('/dashboard', { replace: true });
+        }
       }
     };
 
