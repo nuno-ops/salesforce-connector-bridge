@@ -6,7 +6,6 @@ import { useExportReport } from "./useExportReport";
 import { NavigationLinks } from "./sidebar/NavigationLinks";
 import { ActionLinks } from "./sidebar/ActionLinks";
 import { scrollToSection } from "../cost-savings/utils/scrollUtils";
-import { useOrganizationData } from "@/components/cost-savings/hooks/useOrganizationData";
 
 interface DashboardSidebarProps {
   onDisconnect?: () => void;
@@ -37,7 +36,6 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false);
   const { isExporting, handleExport } = useExportReport();
-  const { licensePrice } = useOrganizationData();
   
   const handleLinkClick = (href: string) => {
     console.log('Sidebar link clicked:', href);
@@ -58,12 +56,7 @@ export function DashboardSidebar({
   };
 
   const handleExportClick = () => {
-    console.log('Export clicked with data:', {
-      savingsBreakdown,
-      licensePrice,
-      userLicenses: userLicenses.length,
-      users: users.length
-    });
+    console.log('Export clicked with fresh savings breakdown:', savingsBreakdown);
 
     const exportData = {
       userLicenses,

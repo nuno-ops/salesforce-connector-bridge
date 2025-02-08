@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { calculateInactiveUserSavings } from "./utils/inactiveUserSavings";
 import { calculateSandboxSavings } from "./utils/sandboxSavings";
@@ -71,16 +70,7 @@ export const useSavingsCalculations = ({
     sandboxSavingsCalc.savings +
     storageSavingsCalc.savings;
 
-  console.log('Dashboard - Final savings breakdown:', {
-    inactiveUserSavings: inactiveUserSavings.savings,
-    integrationUserSavings: integrationUserSavings.savings,
-    platformLicenseSavings: platformLicenseSavings.savings,
-    sandboxSavings: sandboxSavingsCalc.savings,
-    storageSavings: storageSavingsCalc.savings,
-    totalSavings,
-    actualLicensePrice: licensePrice
-  });
-
+  // Include all categories in savingsBreakdown, even with zero amounts
   const savingsBreakdown = [
     {
       title: "Inactive User Licenses",
@@ -97,20 +87,22 @@ export const useSavingsCalculations = ({
     {
       title: "Platform License Optimization",
       amount: platformLicenseSavings.savings,
-      details: `${platformLicenseSavings.count} ${platformLicenseSavings.count === 1 ? 'user' : 'users'} could be converted to platform licenses ($${licensePrice - 25} monthly savings per user)`,
+      details: platformLicenseSavings.count > 0 
+        ? `${platformLicenseSavings.count} ${platformLicenseSavings.count === 1 ? 'user' : 'users'} could be converted to platform licenses ($${licensePrice - 25} monthly savings per user)`
+        : 'No platform license conversion opportunities identified',
       viewAction: () => scrollToLicenseOptimization('platform')
-    },
-    {
-      title: "Sandbox Optimization",
-      amount: sandboxSavingsCalc.savings,
-      details: `${sandboxSavingsCalc.count} excess full sandboxes could be converted`
-    },
-    {
-      title: "Storage Optimization",
-      amount: storageSavingsCalc.savings,
-      details: `Potential ${storageSavingsCalc.potentialGBSavings}GB reduction in storage`
     }
-  ].filter(item => item.amount > 0);
+  ];
+
+  console.log('Dashboard - Final savings breakdown:', {
+    inactiveUserSavings: inactiveUserSavings.savings,
+    integrationUserSavings: integrationUserSavings.savings,
+    platformLicenseSavings: platformLicenseSavings.savings,
+    sandboxSavings: sandboxSavingsCalc.savings,
+    storageSavings: storageSavingsCalc.savings,
+    totalSavings,
+    actualLicensePrice: licensePrice
+  });
 
   return {
     totalSavings,

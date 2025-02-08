@@ -27,16 +27,6 @@ export const generateSavingsReportContent = ({
   console.log('Using license price:', licensePrice);
   console.log('Raw savings breakdown:', JSON.stringify(savingsBreakdown, null, 2));
   
-  // Calculate totals using actual license price and all savings categories
-  const totalSavings = savingsBreakdown.reduce((acc, item) => {
-    const amount = parseFloat(String(item.amount));
-    console.log(`Processing savings item: ${item.title}, Raw amount: ${item.amount}, Parsed amount: ${amount}`);
-    return acc + (isNaN(amount) ? 0 : amount);
-  }, 0);
-  
-  const totalMonthlyLicenseCost = standardUsers.length * licensePrice;
-  const totalAnnualLicenseCost = totalMonthlyLicenseCost * 12;
-
   // Create CSV rows array
   const csvRows: string[][] = [];
 
@@ -46,7 +36,7 @@ export const generateSavingsReportContent = ({
     ['Generated on:', new Date().toLocaleString()],
     ['Total Users:', standardUsers.length.toString()],
     ['Monthly License Cost:', `$${licensePrice.toFixed(2)}`],
-    ['Annual License Cost:', `$${totalAnnualLicenseCost.toFixed(2)}`],
+    ['Annual License Cost:', `$${(standardUsers.length * licensePrice * 12).toFixed(2)}`],
     ['']  // Empty row for spacing
   );
 
@@ -56,30 +46,46 @@ export const generateSavingsReportContent = ({
     ['Category', 'Annual Savings', 'Details']
   );
 
-  // Add all savings categories from savingsBreakdown with detailed logging
-  savingsBreakdown.forEach(item => {
-    const amount = parseFloat(String(item.amount));
-    console.log('Processing savings category:', {
-      title: item.title,
-      rawAmount: item.amount,
-      parsedAmount: amount,
-      details: item.details
-    });
-    
-    // Include categories with any savings amount
-    if (!isNaN(amount) && amount > 0) {
-      csvRows.push([
-        item.title,
-        `$${amount.toFixed(2)}`,
-        item.details || ''
-      ]);
-      console.log(`Added savings row for ${item.title} with amount $${amount.toFixed(2)}`);
-    } else {
-      console.log(`Skipped savings row for ${item.title} due to invalid or zero amount`);
+  // Define all possible savings categories to ensure consistent order
+  const allCategories = [
+    {
+      key: 'Inactive User Licenses',
+      match: (item: any) => item.title.includes('Inactive User')
+    },
+    {
+      key: 'Integration User',
+      match: (item: any) => item.title.includes('Integration User')
+    },
+    {
+      key: 'Platform License User',
+      match: (item: any) => item.title.includes('Platform License')
     }
+  ];
+
+  // Calculate total savings and add rows for each category
+  let totalSavings = 0;
+
+  // Add each category, even if amount is 0
+  allCategories.forEach(category => {
+    const item = savingsBreakdown.find(s => category.match(s));
+    const amount = item ? parseFloat(String(item.amount)) : 0;
+    
+    console.log(`Processing category ${category.key}:`, {
+      found: !!item,
+      amount,
+      details: item?.details || 'No savings identified'
+    });
+
+    totalSavings += isNaN(amount) ? 0 : amount;
+
+    csvRows.push([
+      category.key,
+      `$${amount.toFixed(2)}`,
+      item?.details || ''
+    ]);
   });
 
-  // Add total savings row with proper formatting
+  // Add total savings row
   csvRows.push(
     ['Total Potential Annual Savings:', `$${totalSavings.toFixed(2)}`, ''],
     ['']  // Empty row for spacing
@@ -124,10 +130,9 @@ export const generateSavingsReportContent = ({
   console.log('=== CSV Generation Completed ===');
   console.log('Final CSV content rows:', csvRows.length);
   console.log('Total savings included:', totalSavings);
-  console.log('All savings categories that were processed:', savingsBreakdown.map(item => ({
-    title: item.title,
-    amount: item.amount,
-    wasIncluded: parseFloat(String(item.amount)) > 0
+  console.log('All categories processed:', allCategories.map(cat => ({
+    category: cat.key,
+    included: savingsBreakdown.some(s => cat.match(s))
   })));
 
   return csvRows;
