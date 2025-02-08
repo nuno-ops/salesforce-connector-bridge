@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -12,7 +13,20 @@ const SalesforceCallback = () => {
   useEffect(() => {
     const processOAuthCallback = async () => {
       const code = searchParams.get('code');
+      const error = searchParams.get('error');
+      const errorDescription = searchParams.get('error_description');
       
+      if (error) {
+        console.error('OAuth error:', error, errorDescription);
+        toast({
+          variant: "destructive",
+          title: "Connection failed",
+          description: errorDescription || "Failed to connect to Salesforce.",
+        });
+        navigate('/', { replace: true });
+        return;
+      }
+
       if (!code) {
         console.error('No authorization code found in URL');
         toast({
@@ -32,10 +46,16 @@ const SalesforceCallback = () => {
           throw new Error('Invalid response from Salesforce');
         }
 
-        // Store the tokens
+        // Store all token information
         localStorage.setItem('sf_access_token', data.access_token);
         localStorage.setItem('sf_instance_url', data.instance_url);
         localStorage.setItem('sf_token_timestamp', Date.now().toString());
+        localStorage.setItem('sf_token_expires_in', data.expires_in.toString());
+        
+        // Store refresh token if provided
+        if (data.refresh_token) {
+          localStorage.setItem('sf_refresh_token', data.refresh_token);
+        }
 
         // Clear temporary storage
         localStorage.removeItem('sf_temp_client_id');
