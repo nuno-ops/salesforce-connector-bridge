@@ -57,7 +57,7 @@ export const generateSavingsReportContent = ({
   );
 
   // Add all savings categories from savingsBreakdown with detailed logging
-  for (const item of savingsBreakdown) {
+  savingsBreakdown.forEach(item => {
     const amount = parseFloat(String(item.amount));
     console.log('Processing savings category:', {
       title: item.title,
@@ -77,7 +77,7 @@ export const generateSavingsReportContent = ({
     } else {
       console.log(`Skipped savings row for ${item.title} due to invalid or zero amount`);
     }
-  }
+  });
 
   // Add total savings row with proper formatting
   csvRows.push(

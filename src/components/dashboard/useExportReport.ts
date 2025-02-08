@@ -46,7 +46,7 @@ export const useExportReport = () => {
       const csvContent = generateSavingsReportContent({
         ...data,
         standardUsers,
-        licensePrice: licensePrice, // Use the actual license price from organization settings
+        licensePrice,
         storageUsage: data.storageUsage
       });
 
