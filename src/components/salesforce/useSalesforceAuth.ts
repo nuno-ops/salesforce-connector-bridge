@@ -6,6 +6,9 @@ const REDIRECT_URI = 'https://salesforce-connector-bridge.lovable.app/salesforce
 // This client ID is public and safe to expose in frontend code
 const CLIENT_ID = '3MVG9_kZcLde7U5pGPOR23oKIAODQZfn4NiF8DrNW3VuR6GmO18rvB74SLk902qeva8AH8aAJZTyl1kslzRib';
 
+// Token expiration buffer (5 minutes)
+const TOKEN_EXPIRY_BUFFER = 5 * 60 * 1000;
+
 export const initiateOAuthFlow = () => {
   // Construct the authorization URL for production Salesforce
   const authUrl = new URL('https://login.salesforce.com/services/oauth2/authorize');
@@ -14,7 +17,7 @@ export const initiateOAuthFlow = () => {
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
   authUrl.searchParams.append('scope', 'api refresh_token offline_access');
   authUrl.searchParams.append('state', crypto.randomUUID()); // For CSRF protection
-  authUrl.searchParams.append('prompt', 'login'); // Force login screen
+  // Removed 'prompt' parameter to avoid forcing consent screen every time
 
   // Debug logging
   console.log('=== OAuth Flow Initialization ===');
@@ -52,10 +55,12 @@ export const handleLogout = async () => {
     }
   }
 
-  // Clear local storage regardless of revocation success
+  // Clear all Salesforce-related items from local storage
   localStorage.removeItem('sf_access_token');
+  localStorage.removeItem('sf_refresh_token');
   localStorage.removeItem('sf_instance_url');
   localStorage.removeItem('sf_token_timestamp');
+  localStorage.removeItem('sf_token_expires_in');
   localStorage.removeItem('sf_subscription_status');
   
   // Force page reload
@@ -81,8 +86,15 @@ export const handleOAuthCallback = async (code: string) => {
     });
 
     if (error) {
-      console.error('Supabase function error:', error);
-      throw error;
+      const errorObj = {
+        message: typeof error === 'string' ? error :
+                 error instanceof Error ? error.message :
+                 error?.message || 'Supabase function error',
+        details: error,
+        timestamp: new Date().toISOString()
+      };
+      console.error('Supabase function error:', errorObj);
+      throw errorObj;
     }
 
     if (!data) {
@@ -92,23 +104,83 @@ export const handleOAuthCallback = async (code: string) => {
     console.log('Token exchange response:', data);
     return data;
   } catch (error) {
-    console.error('OAuth callback error details:', {
-      error,
-      message: error.message,
-      stack: error.stack
+    const errorObj = {
+      message: error instanceof Error ? error.message :
+               typeof error === 'string' ? error :
+               error && typeof error === 'object' && 'message' in error ? error.message :
+               'Unknown error occurred during OAuth callback',
+      details: error,
+      timestamp: new Date().toISOString()
+    };
+    console.error('OAuth callback error details:', errorObj);
+    throw errorObj;
+  }
+};
+
+export const refreshAccessToken = async () => {
+  const refresh_token = localStorage.getItem('sf_refresh_token');
+  
+  if (!refresh_token) {
+    throw new Error('No refresh token available');
+  }
+
+  try {
+    console.log('Attempting to refresh access token');
+    const { data, error } = await supabase.functions.invoke('salesforce-auth', {
+      body: {
+        refreshToken: refresh_token,
+        grantType: 'refresh_token'
+      }
     });
+
+    if (error) {
+      console.error('Token refresh error:', error);
+      throw error;
+    }
+
+    if (!data?.access_token) {
+      throw new Error('No access token received from refresh');
+    }
+
+    // Update stored tokens
+    localStorage.setItem('sf_access_token', data.access_token);
+    if (data.refresh_token) {
+      localStorage.setItem('sf_refresh_token', data.refresh_token);
+    }
+    localStorage.setItem('sf_token_timestamp', Date.now().toString());
+    localStorage.setItem('sf_token_expires_in', data.expires_in.toString());
+
+    console.log('Access token refreshed successfully');
+    return data;
+  } catch (error) {
+    console.error('Token refresh failed:', error);
     throw error;
   }
 };
 
 export const validateToken = async (access_token: string, instance_url: string) => {
   console.log('=== Token Validation ===');
-  console.log('Access Token exists:', !!access_token);
-  console.log('Instance URL:', instance_url);
-
-  if (!access_token || !instance_url) {
-    console.error('Missing token or instance URL');
-    return false;
+  
+  // Check if token is near expiration
+  const tokenTimestamp = parseInt(localStorage.getItem('sf_token_timestamp') || '0');
+  const expiresIn = parseInt(localStorage.getItem('sf_token_expires_in') || '0');
+  const now = Date.now();
+  
+  if (tokenTimestamp && expiresIn) {
+    const expirationTime = tokenTimestamp + (expiresIn * 1000);
+    const timeUntilExpiry = expirationTime - now;
+    
+    // If token is close to expiring, try to refresh it
+    if (timeUntilExpiry < TOKEN_EXPIRY_BUFFER) {
+      console.log('Token is near expiration, attempting refresh');
+      try {
+        const newTokenData = await refreshAccessToken();
+        return { isValid: true, newToken: newTokenData.access_token };
+      } catch (error) {
+        console.error('Token refresh failed during validation:', error);
+        return { isValid: false };
+      }
+    }
   }
 
   try {
@@ -122,13 +194,12 @@ export const validateToken = async (access_token: string, instance_url: string) 
     }
 
     console.log('Token validation response:', data);
-    return data.isValid;
+    return { isValid: data.isValid };
   } catch (error) {
     console.error('Token validation error details:', {
-      error,
-      message: error.message,
-      stack: error.stack
+      message: error instanceof Error ? error.message : 'Unknown error',
+      details: error
     });
-    return false;
+    return { isValid: false };
   }
 };
