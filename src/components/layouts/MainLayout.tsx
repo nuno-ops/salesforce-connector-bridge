@@ -1,3 +1,4 @@
+
 import { useLocation } from "react-router-dom";
 import { DashboardSidebar } from "../dashboard/DashboardSidebar";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,7 @@ export const MainLayout = ({
       <main className={cn(
         "flex-1 overflow-y-auto bg-sf-bg",
         {
-          "pl-[60px]": !isSavingsPreview, // Only add left padding if sidebar is shown
+          "pl-[48px]": !isSavingsPreview, // Updated padding to match new sidebar width
           "pb-20": showSavingsFeatures || 
                    location.pathname === "/dashboard" || 
                    location.pathname === "/dashboard/"

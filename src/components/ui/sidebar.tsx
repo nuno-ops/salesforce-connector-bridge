@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -98,7 +99,7 @@ export const DesktopSidebar = ({
   return (
     <motion.div
       className={cn(
-        "fixed top-0 left-0 h-screen w-[60px] hover:w-[300px] px-4 py-4 hidden md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 z-50 transition-[width] duration-300",
+        "fixed top-0 left-0 h-screen w-[48px] hover:w-[240px] px-3 py-3 hidden md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 flex-shrink-0 z-50 transition-[width] duration-300 shadow-sm dark:shadow-neutral-900/20",
         className
       )}
       onMouseEnter={() => setOpen(true)}
@@ -193,4 +194,3 @@ export const SidebarLink = ({
   );
 };
 
-// ... keep existing code (rest of the file)
