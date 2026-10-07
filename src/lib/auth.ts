@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { db, schema } from "@/lib/db";
+import { supabaseConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface CurrentUser {
@@ -13,6 +14,7 @@ export interface CurrentUser {
 
 /** The signed-in user, verified from the session JWT. `null` when signed out. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  if (!supabaseConfig()) return null;
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;

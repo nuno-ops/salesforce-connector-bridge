@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { safeNext } from "@/lib/safe-redirect";
+import { SUPABASE_MISSING, supabaseConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface LoginState {
@@ -18,6 +19,7 @@ function callbackUrl(next: string) {
 export async function sendMagicLink(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const email = z.email().safeParse(formData.get("email"));
   if (!email.success) return { status: "error", message: "Enter a valid email address." };
+  if (!supabaseConfig()) return { status: "error", message: SUPABASE_MISSING };
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
@@ -28,6 +30,7 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
 }
 
 export async function signInWithGoogle(formData: FormData) {
+  if (!supabaseConfig()) redirect(`/login?error=${encodeURIComponent(SUPABASE_MISSING)}`);
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

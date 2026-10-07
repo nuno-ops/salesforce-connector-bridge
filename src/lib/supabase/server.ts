@@ -1,13 +1,14 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { env } from "@/lib/env";
+import { SUPABASE_MISSING, supabaseConfig } from "./config";
 
 /** Supabase client bound to the current request's auth cookies. Create one per request. */
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
-  const e = env();
-  return createServerClient(e.NEXT_PUBLIC_SUPABASE_URL, e.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
+  const config = supabaseConfig();
+  if (!config) throw new Error(SUPABASE_MISSING);
+  return createServerClient(config.url, config.key, {
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll(cookiesToSet) {

@@ -1,15 +1,28 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SUPABASE_MISSING, supabaseConfig } from "@/lib/supabase/config";
 
 const PROTECTED = ["/dashboard", "/orgs", "/settings"];
 
 /** Refreshes the Supabase session cookie and keeps signed-out visitors out of the app. */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const { pathname, search } = request.nextUrl;
+  const isProtected = PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
+  const config = supabaseConfig();
+  if (!config) {
+    // Keep public pages up; send app pages to /login, which explains what's missing.
+    if (!isProtected) return response;
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?error=${encodeURIComponent(SUPABASE_MISSING)}`;
+    return NextResponse.redirect(url);
+  }
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    config.url,
+    config.key,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -28,8 +41,7 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims);
 
-  const { pathname, search } = request.nextUrl;
-  if (!signedIn && PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  if (!signedIn && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
