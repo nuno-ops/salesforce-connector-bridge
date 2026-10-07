@@ -32,7 +32,7 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
 
       <section>
         <p className="text-sm text-muted-foreground">Potential yearly savings</p>
-        <p className="text-4xl font-bold text-primary">{formatCurrency(r.annualSavings)}</p>
+        <p className="text-4xl font-bold text-positive">{formatCurrency(r.annualSavings)}</p>
         <p className="text-sm text-muted-foreground">
           Priced at ${r.prices.fullMonthly}/user/month for full licenses and ${r.prices.platformMonthly} for Platform (
           {r.prices.source === "edition_default" ? "list prices" : "customer prices"}).

@@ -21,9 +21,9 @@ export function MetricsChart({ metrics }: { metrics: OrgSnapshot["metrics"] }) {
           <YAxis fontSize={12} allowDecimals={false} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="Leads" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="Opportunities" fill="#14b8a6" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="Won" fill="#0f766e" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Leads" fill="#d6d3d1" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Opportunities" fill="#78716c" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Won" fill="#047857" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -99,7 +99,7 @@ export function PriceForm({ connectionId, prices, aiEnabled }: { connectionId: s
             {saving ? "Saving…" : "Save and recalculate"}
           </Button>
           {saveState.message && (
-            <p className={saveState.status === "error" ? "text-sm text-danger" : "text-sm text-primary"}>{saveState.message}</p>
+            <p className={saveState.status === "error" ? "text-sm text-danger" : "text-sm text-positive"}>{saveState.message}</p>
           )}
         </div>
       </form>

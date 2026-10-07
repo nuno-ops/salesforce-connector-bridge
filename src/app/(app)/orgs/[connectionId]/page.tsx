@@ -125,7 +125,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         <Card className="md:col-span-1">
           <CardHeader>
             <CardDescription>Potential yearly savings</CardDescription>
-            <p className="text-4xl font-bold text-primary">{formatCurrency(result.annualSavings)}</p>
+            <p className="text-4xl font-bold text-positive">{formatCurrency(result.annualSavings)}</p>
             <p className="text-sm text-muted-foreground">{formatCurrency(result.monthlySavings)} per month</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">

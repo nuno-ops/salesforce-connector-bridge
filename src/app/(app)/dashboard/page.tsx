@@ -75,7 +75,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                 </CardHeader>
                 <CardContent className="flex items-end justify-between">
                   <div>
-                    <p className="text-2xl font-semibold text-primary">
+                    <p className="text-2xl font-semibold text-positive">
                       {c.annualSavings !== null ? formatCurrency(c.annualSavings) : "—"}
                     </p>
                     <p className="text-xs text-muted-foreground">

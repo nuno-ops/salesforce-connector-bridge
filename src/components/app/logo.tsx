@@ -1,11 +1,10 @@
-import { PiggyBank } from "lucide-react";
 import Link from "next/link";
 
 export function Logo({ href = "/" }: { href?: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2 font-semibold">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <PiggyBank className="size-5" />
+    <Link href={href} className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
+      <span aria-hidden className="flex size-6 items-center justify-center rounded-md bg-foreground text-[13px] font-bold text-background">
+        S
       </span>
       Salesforce Saver
     </Link>
