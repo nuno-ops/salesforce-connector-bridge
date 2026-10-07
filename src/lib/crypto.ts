@@ -1,13 +1,23 @@
 import "server-only";
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { env } from "@/lib/env";
 
 const VERSION = "v1";
 
+/**
+ * 32 random bytes in base64 (`openssl rand -base64 32`) are used as-is. Any other
+ * secret of 32+ characters, such as a password-manager password, is hashed to 32 bytes.
+ */
+export function deriveKey(secret: string): Buffer {
+  const trimmed = secret.trim();
+  const raw = Buffer.from(trimmed, "base64");
+  if (raw.length === 32 && /^[A-Za-z0-9+/]{43}=$/.test(trimmed)) return raw;
+  if (trimmed.length >= 32) return createHash("sha256").update(trimmed).digest();
+  throw new Error("TOKEN_ENCRYPTION_KEY must be at least 32 random characters (e.g. the output of `openssl rand -base64 32`)");
+}
+
 function key(): Buffer {
-  const k = Buffer.from(env().TOKEN_ENCRYPTION_KEY, "base64");
-  if (k.length !== 32) throw new Error("TOKEN_ENCRYPTION_KEY must be 32 bytes, base64 encoded");
-  return k;
+  return deriveKey(env().TOKEN_ENCRYPTION_KEY);
 }
 
 /** AES-256-GCM. Output: `v1.<iv>.<tag>.<ciphertext>`, each part base64url. */

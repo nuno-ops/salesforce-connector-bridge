@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { env } from "@/lib/env";
 import * as schema from "./schema";
+import { normalizeDatabaseUrl } from "./url";
 
 type Db = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -10,7 +11,7 @@ const globalForDb = globalThis as unknown as { db?: Db };
 
 function create(): Db {
   // `prepare: false` keeps us compatible with Supabase's transaction pooler.
-  const client = postgres(env().DATABASE_URL, { prepare: false, max: 5 });
+  const client = postgres(normalizeDatabaseUrl(env().DATABASE_URL), { prepare: false, max: 5 });
   return drizzle(client, { schema, casing: "snake_case" });
 }
 

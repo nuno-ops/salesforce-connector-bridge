@@ -30,3 +30,17 @@ describe("token encryption", () => {
     expect(() => decrypt(parts.join("."))).toThrow();
   });
 });
+
+describe("deriveKey", () => {
+  it("uses base64 keys as-is and hashes long passphrases", async () => {
+    const { deriveKey } = await import("./crypto");
+    const b64 = randomBytes(32).toString("base64");
+    expect(deriveKey(b64).equals(Buffer.from(b64, "base64"))).toBe(true);
+    expect(deriveKey("correct horse battery staple, but longer!")).toHaveLength(32);
+  });
+
+  it("rejects short or placeholder values", async () => {
+    const { deriveKey } = await import("./crypto");
+    expect(() => deriveKey("openssl rand -base64 32")).toThrow(/at least 32/);
+  });
+});
