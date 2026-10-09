@@ -36,7 +36,10 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
         detail: a.seats ? (a.seats.allowed < 0 ? "Site license" : `${formatNumber(a.seats.used)} of ${formatNumber(a.seats.allowed)} seats used`) : "No seat count",
         unit: perSeat ? "per seat / mo" : "per month",
         value: prices.apps?.packages[a.namespace] ?? null,
-        lookupUrl: appExchangeSearchUrl(a.name),
+        lookupUrl: a.listPrice ? undefined : appExchangeSearchUrl(a.name),
+        hint: a.listPrice
+          ? `List price $${a.listPrice.price} ${a.listPrice.unit === "user" ? "per user" : "for the org"} a month (${a.listPrice.tier}, checked ${a.listPrice.checked}), used until you enter yours`
+          : undefined,
       });
     }
     for (const l of scan.snapshot.packageLicenses) {

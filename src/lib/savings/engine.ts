@@ -1,4 +1,5 @@
 import type { OrgSnapshot, SnapshotUser } from "@/lib/salesforce/types";
+import { LIST_PRICES, type ListPrice } from "@/lib/apps/list-prices";
 import { reviewApps, type AppReviewItem } from "@/lib/apps/review";
 import { priceForLicense, type PriceBook } from "./prices";
 
@@ -89,6 +90,10 @@ export interface AppUsage {
   objectCount: number;
   /** Monthly price the customer entered for this app, or `null`. */
   monthlyPrice?: number | null;
+  /** The vendor's public list price, when we know it. */
+  listPrice?: ListPrice | null;
+  /** Which price the saving uses: the customer's, the list price, or none. */
+  priceSource?: "customer" | "list" | null;
   /** Yearly saving if the recommendation is acted on; 0 when unpriced or nothing to save. */
   annualSavings?: number;
 }
@@ -107,6 +112,8 @@ export interface EngineOptions {
   integrationUseCount?: number;
   /** An installed app with no record created or edited for this many days counts as unused. */
   idleAppDays?: number;
+  /** Public list prices by package namespace; defaults to the built-in catalog. */
+  listPrices?: Record<string, ListPrice>;
   now?: Date;
 }
 
@@ -337,6 +344,18 @@ export function computeSavings(
 
   // 6. Installed apps nobody uses, and package seats nobody holds.
   const packagePrices = prices.apps?.packages ?? {};
+  const listPrices = options.listPrices ?? LIST_PRICES;
+  /** The customer's price wins; the list price fills in until they enter one. */
+  const packagePrice = (namespace: string | null, seats: AppUsage["seats"]) => {
+    const own = namespace ? packagePrices[namespace] : undefined;
+    const list = namespace ? (listPrices[namespace] ?? null) : null;
+    const seated = seats !== null && seats.allowed > 0;
+    if (own !== undefined) return { source: "customer" as const, list, perSeat: seated ? own : null, flat: seated ? null : own };
+    if (list) return { source: "list" as const, list, perSeat: list.unit === "user" ? list.price : null, flat: list.unit === "org" ? list.price : null };
+    return { source: null, list, perSeat: null, flat: null };
+  };
+  const monthlyCost = (price: ReturnType<typeof packagePrice>, seats: AppUsage["seats"]) =>
+    price.perSeat !== null && seats && seats.allowed > 0 ? price.perSeat * seats.allowed : price.flat;
   let apps: AppUsage[] | null = null;
   if (snapshot.installedPackages === null) {
     notes.push("Installed apps need the Tooling API and weren't readable for the connected user.");
@@ -353,7 +372,8 @@ export function computeSavings(
         readable.length === 0 ? "unknown" : since !== null && since < idleAppDays ? "active" : "idle";
       const lic = p.namespace ? seatsByNamespace.get(p.namespace) : undefined;
       const seats = lic ? { allowed: lic.allowed, used: lic.used } : null;
-      const monthlyPrice = p.namespace ? (packagePrices[p.namespace] ?? null) : null;
+      const price = packagePrice(p.namespace, seats);
+      const cost = monthlyCost(price, seats);
       return {
         name: p.name,
         namespace: p.namespace,
@@ -361,8 +381,10 @@ export function computeSavings(
         lastActivity,
         status,
         objectCount: p.objects.length,
-        monthlyPrice,
-        annualSavings: status === "idle" && monthlyPrice !== null ? packageMonthlyCost(seats, monthlyPrice) * 12 : 0,
+        monthlyPrice: p.namespace ? (packagePrices[p.namespace] ?? null) : null,
+        listPrice: price.list,
+        priceSource: cost !== null ? price.source : null,
+        annualSavings: status === "idle" && cost !== null ? cost * 12 : 0,
       };
     });
     apps.sort(
@@ -373,14 +395,15 @@ export function computeSavings(
       if (app.status !== "idle") continue;
       const paid = app.seats !== null;
       const saving = app.annualSavings ?? 0;
+      const fromList = app.priceSource === "list" && app.listPrice;
       recommendations.push({
         id: `unused_apps:${app.namespace ?? app.name}`,
         category: "unused_apps",
         title: saving > 0 ? `Cancel ${app.name}: no activity for ${idleAppDays}+ days` : `Review ${app.name}: no activity for ${idleAppDays}+ days`,
-        detail: `${app.lastActivity ? `Its ${app.objectCount} ${plural(app.objectCount, "object")} last saw a record created or edited on ${app.lastActivity.slice(0, 10)}` : `Its ${app.objectCount} ${plural(app.objectCount, "object")} hold no records`}. ${saving > 0 ? "Cancel it with the vendor before it renews." : paid ? "It's a licensed app, so check the vendor contract and cancel before it renews. Add its price to see the saving." : "If you pay for it, add its price to see the saving; if not, uninstalling it tidies the org."}`,
+        detail: `${app.lastActivity ? `Its ${app.objectCount} ${plural(app.objectCount, "object")} last saw a record created or edited on ${app.lastActivity.slice(0, 10)}` : `Its ${app.objectCount} ${plural(app.objectCount, "object")} hold no records`}. ${fromList ? `Cancel it with the vendor before it renews. The saving uses ${app.listPrice!.name}'s list price (${app.listPrice!.tier}, checked ${app.listPrice!.checked}); add what you pay for an exact figure.` : saving > 0 ? "Cancel it with the vendor before it renews." : paid ? "It's a licensed app, so check the vendor contract and cancel before it renews. Add its price to see the saving." : "If you pay for it, add its price to see the saving; if not, uninstalling it tidies the org."}`,
         count: 1,
         annualSavings: saving,
-        confidence: paid ? "medium" : "low",
+        confidence: paid && !fromList ? "medium" : "low",
         advisory: saving === 0,
       });
     }
@@ -390,16 +413,17 @@ export function computeSavings(
   for (const p of snapshot.packageLicenses) {
     if (p.allowed < 0 || p.status !== "Active" || p.allowed <= p.used || idleNamespaces.has(p.namespace)) continue;
     const unused = p.allowed - p.used;
-    const price = packagePrices[p.namespace] ?? null;
-    const saving = price !== null ? unused * price * 12 : 0;
+    const seatPrice = packagePrice(p.namespace, { allowed: p.allowed, used: p.used });
+    const saving = seatPrice.perSeat !== null ? unused * seatPrice.perSeat * 12 : 0;
+    const fromList = saving > 0 && seatPrice.source === "list";
     recommendations.push({
       id: `package_licenses:${p.namespace}`,
       category: "package_licenses",
       title: `${saving > 0 ? "Drop" : "Review"} ${unused} unused ${p.namespace} package ${plural(unused, "seat")}`,
-      detail: `${p.used} of ${p.allowed} seats are assigned. ${saving > 0 ? "Reduce the seat count at renewal." : "Add the seat price to see the saving, and check the vendor contract before renewal."}`,
+      detail: `${p.used} of ${p.allowed} seats are assigned. ${fromList ? `Reduce the seat count at renewal. The saving uses the list price (${seatPrice.list!.tier}, checked ${seatPrice.list!.checked}); add what you pay for an exact figure.` : saving > 0 ? "Reduce the seat count at renewal." : "Add the seat price to see the saving, and check the vendor contract before renewal."}`,
       count: unused,
       annualSavings: saving,
-      confidence: saving > 0 ? "medium" : "low",
+      confidence: saving > 0 && !fromList ? "medium" : "low",
       advisory: saving === 0,
     });
   }
@@ -562,11 +586,6 @@ function licenseRow(name: string, kind: LicenseRow["kind"], total: number, used:
 }
 
 const sum = (users: FlaggedUser[]) => users.reduce((a, u) => a + u.annualSavings, 0);
-/** Monthly cost of a package: per seat when it has a seat count, otherwise the price is the monthly total. */
-function packageMonthlyCost(seats: AppUsage["seats"], price: number) {
-  return seats && seats.allowed > 0 ? seats.allowed * price : price;
-}
-
 const rankStatus = (s: AppUsage["status"]) => ({ idle: 0, unknown: 1, active: 2 })[s];
 const rank = (c: Confidence) => ({ high: 0, medium: 1, low: 2 })[c];
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);

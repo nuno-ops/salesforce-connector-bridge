@@ -14,6 +14,8 @@ export interface AppPriceRow {
   value: number | null;
   /** Where to look the price up, e.g. the AppExchange listing search. */
   lookupUrl?: string;
+  /** Extra line under the app, e.g. the list price used until the customer enters theirs. */
+  hint?: string;
 }
 
 export function AppPriceForm({ connectionId, groups }: { connectionId: string; groups: { title: string; rows: AppPriceRow[] }[] }) {
@@ -41,6 +43,7 @@ export function AppPriceForm({ connectionId, groups }: { connectionId: string; g
                       </>
                     )}
                   </div>
+                  {r.hint && <div className="text-xs text-cobalt">{r.hint}</div>}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <div className="relative w-28">

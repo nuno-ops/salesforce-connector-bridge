@@ -274,7 +274,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                 <CardTitle>Installed apps</CardTitle>
                 <CardDescription>
                   AppExchange packages and the last time anyone created or edited a record in their objects. Apps idle for 90+ days are
-                  worth cancelling at renewal.
+                  worth cancelling at renewal. Savings use the vendor&apos;s list price where we know it, until you enter your own.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
@@ -308,7 +308,18 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                             flagged={a.status === "idle"}
                             href={a.namespace ? appPricesHref : null}
                           />
-                          {a.status === "idle" && a.namespace && a.monthlyPrice == null && (
+                          {a.priceSource === "list" && (a.annualSavings ?? 0) > 0 && a.listPrice && (
+                            <a
+                              href={a.listPrice.source}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block text-xs text-muted-foreground hover:text-cobalt"
+                              title={`${a.listPrice.tier}, checked ${a.listPrice.checked}`}
+                            >
+                              List price ↗
+                            </a>
+                          )}
+                          {a.status === "idle" && a.namespace && a.monthlyPrice == null && !a.listPrice && (
                             <a
                               href={appExchangeSearchUrl(a.name)}
                               target="_blank"

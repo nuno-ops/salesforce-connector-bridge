@@ -4,7 +4,8 @@ import { computeSavings } from "./engine";
 import { defaultPriceBook, type PriceBook } from "./prices";
 
 const NOW = new Date("2026-10-01T00:00:00Z");
-const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString();
+const daysAgo = (n: number) =>
+  new Date(NOW.getTime() - n * 86_400_000).toISOString();
 
 function user(id: string, overrides: Partial<SnapshotUser> = {}): SnapshotUser {
   return {
@@ -36,16 +37,45 @@ function snapshot(overrides: Partial<OrgSnapshot> = {}): OrgSnapshot {
     users: [],
     objectPermissions: [
       // The "SALES" profile can read Opportunities; "SUPPORT_LITE" has nothing on CRM objects.
-      { parentId: "PS_SALES_PROFILE", profileId: "SALES", sobjectType: "Opportunity", read: true, create: true, edit: true, delete: false },
-      { parentId: "PS_LITE_PROFILE", profileId: "SUPPORT_LITE", sobjectType: "Case", read: false, create: false, edit: false, delete: false },
-      { parentId: "PS_CASE_ACCESS", profileId: null, sobjectType: "Case", read: true, create: false, edit: false, delete: false },
+      {
+        parentId: "PS_SALES_PROFILE",
+        profileId: "SALES",
+        sobjectType: "Opportunity",
+        read: true,
+        create: true,
+        edit: true,
+        delete: false,
+      },
+      {
+        parentId: "PS_LITE_PROFILE",
+        profileId: "SUPPORT_LITE",
+        sobjectType: "Case",
+        read: false,
+        create: false,
+        edit: false,
+        delete: false,
+      },
+      {
+        parentId: "PS_CASE_ACCESS",
+        profileId: null,
+        sobjectType: "Case",
+        read: true,
+        create: false,
+        edit: false,
+        delete: false,
+      },
     ],
     permissionSetAssignments: [],
     oauthTokens: [],
     userLicenses: [],
     packageLicenses: [],
     permissionSetLicenses: [],
-    storage: { dataMaxMB: 1000, dataRemainingMB: 900, fileMaxMB: 1000, fileRemainingMB: 900 },
+    storage: {
+      dataMaxMB: 1000,
+      dataRemainingMB: 900,
+      fileMaxMB: 1000,
+      fileRemainingMB: 900,
+    },
     sandboxes: [],
     metrics: { leadsByMonth: [], opportunitiesByMonth: [] },
     warnings: [],
@@ -67,7 +97,11 @@ describe("defaultPriceBook", () => {
 
 describe("computeSavings", () => {
   it("returns zero for a healthy org", () => {
-    const result = computeSavings(snapshot({ users: [user("a"), user("b")] }), prices, { now: NOW });
+    const result = computeSavings(
+      snapshot({ users: [user("a"), user("b")] }),
+      prices,
+      { now: NOW },
+    );
     expect(result.annualSavings).toBe(0);
     expect(result.recommendations).toEqual([]);
   });
@@ -85,15 +119,25 @@ describe("computeSavings", () => {
       prices,
       { now: NOW },
     );
-    expect(result.users.inactive.map((u) => u.id)).toEqual(["never", "stale", "old"]);
-    expect(result.users.inactive.find((u) => u.id === "stale")?.confidence).toBe("medium");
-    expect(result.users.inactive.find((u) => u.id === "old")?.confidence).toBe("high");
+    expect(result.users.inactive.map((u) => u.id)).toEqual([
+      "never",
+      "stale",
+      "old",
+    ]);
+    expect(
+      result.users.inactive.find((u) => u.id === "stale")?.confidence,
+    ).toBe("medium");
+    expect(result.users.inactive.find((u) => u.id === "old")?.confidence).toBe(
+      "high",
+    );
     expect(result.byCategory.inactive_users).toBe(3 * 165 * 12);
   });
 
   it("does not flag brand-new users who haven't logged in yet", () => {
     const result = computeSavings(
-      snapshot({ users: [user("new", { lastLoginDate: null, createdDate: daysAgo(5) })] }),
+      snapshot({
+        users: [user("new", { lastLoginDate: null, createdDate: daysAgo(5) })],
+      }),
       prices,
       { now: NOW },
     );
@@ -102,7 +146,11 @@ describe("computeSavings", () => {
 
   it("ignores users on licenses it can't price", () => {
     const result = computeSavings(
-      snapshot({ users: [user("chatter", { licenseName: "Chatter Free", lastLoginDate: null })] }),
+      snapshot({
+        users: [
+          user("chatter", { licenseName: "Chatter Free", lastLoginDate: null }),
+        ],
+      }),
       prices,
       { now: NOW },
     );
@@ -111,7 +159,14 @@ describe("computeSavings", () => {
 
   it("prices inactive Platform users at the Platform price", () => {
     const result = computeSavings(
-      snapshot({ users: [user("p", { licenseName: "Salesforce Platform", lastLoginDate: null })] }),
+      snapshot({
+        users: [
+          user("p", {
+            licenseName: "Salesforce Platform",
+            lastLoginDate: null,
+          }),
+        ],
+      }),
       prices,
       { now: NOW },
     );
@@ -120,20 +175,39 @@ describe("computeSavings", () => {
 
   it("finds integration users and caps savings at the free Integration licenses", () => {
     const tokens = (userId: string) => [
-      { id: `${userId}-1`, appName: "MuleSoft", userId, useCount: 5000, lastUsedDate: daysAgo(1) },
-      { id: `${userId}-2`, appName: "Zapier", userId, useCount: 10, lastUsedDate: daysAgo(1) },
+      {
+        id: `${userId}-1`,
+        appName: "MuleSoft",
+        userId,
+        useCount: 5000,
+        lastUsedDate: daysAgo(1),
+      },
+      {
+        id: `${userId}-2`,
+        appName: "Zapier",
+        userId,
+        useCount: 10,
+        lastUsedDate: daysAgo(1),
+      },
     ];
     const result = computeSavings(
       snapshot({
         users: [user("i1"), user("i2"), user("human")],
         oauthTokens: [...tokens("i1"), ...tokens("i2"), tokens("human")[0]],
-        userLicenses: [{ id: "L1", name: "Salesforce Integration", total: 5, used: 4 }],
+        userLicenses: [
+          { id: "L1", name: "Salesforce Integration", total: 5, used: 4 },
+        ],
       }),
       prices,
       { now: NOW },
     );
-    expect(result.users.integration.map((u) => u.id).sort()).toEqual(["i1", "i2"]);
-    expect(result.users.integration.filter((u) => u.annualSavings > 0)).toHaveLength(1);
+    expect(result.users.integration.map((u) => u.id).sort()).toEqual([
+      "i1",
+      "i2",
+    ]);
+    expect(
+      result.users.integration.filter((u) => u.annualSavings > 0),
+    ).toHaveLength(1);
     expect(result.byCategory.integration_users).toBe(165 * 12);
   });
 
@@ -143,7 +217,9 @@ describe("computeSavings", () => {
       prices,
       { now: NOW },
     );
-    const rec = result.recommendations.find((r) => r.category === "integration_users");
+    const rec = result.recommendations.find(
+      (r) => r.category === "integration_users",
+    );
     expect(rec?.advisory).toBe(true);
     expect(result.annualSavings).toBe(0);
   });
@@ -156,7 +232,9 @@ describe("computeSavings", () => {
           user("lite", { profileId: "SUPPORT_LITE" }),
           user("lite-with-ps", { profileId: "SUPPORT_LITE" }),
         ],
-        permissionSetAssignments: [{ assigneeId: "lite-with-ps", permissionSetId: "PS_CASE_ACCESS" }],
+        permissionSetAssignments: [
+          { assigneeId: "lite-with-ps", permissionSetId: "PS_CASE_ACCESS" },
+        ],
       }),
       prices,
       { now: NOW },
@@ -167,19 +245,32 @@ describe("computeSavings", () => {
 
   it("skips platform eligibility when permissions couldn't be read", () => {
     const result = computeSavings(
-      snapshot({ users: [user("lite", { profileId: "SUPPORT_LITE" })], objectPermissions: [] }),
+      snapshot({
+        users: [user("lite", { profileId: "SUPPORT_LITE" })],
+        objectPermissions: [],
+      }),
       prices,
       { now: NOW },
     );
     expect(result.users.platform).toEqual([]);
-    expect(result.notes.join(" ")).toMatch(/Platform license eligibility was skipped/);
+    expect(result.notes.join(" ")).toMatch(
+      /Platform license eligibility was skipped/,
+    );
   });
 
   it("puts each user in only one bucket", () => {
     const result = computeSavings(
       snapshot({
-        users: [user("dup", { profileId: "SUPPORT_LITE", lastLoginDate: null, username: "integration@acme.com" })],
-        userLicenses: [{ id: "L1", name: "Salesforce Integration", total: 5, used: 0 }],
+        users: [
+          user("dup", {
+            profileId: "SUPPORT_LITE",
+            lastLoginDate: null,
+            username: "integration@acme.com",
+          }),
+        ],
+        userLicenses: [
+          { id: "L1", name: "Salesforce Integration", total: 5, used: 0 },
+        ],
       }),
       prices,
       { now: NOW },
@@ -192,7 +283,9 @@ describe("computeSavings", () => {
 
   it("counts unassigned seats", () => {
     const result = computeSavings(
-      snapshot({ userLicenses: [{ id: "L", name: "Salesforce", total: 50, used: 45 }] }),
+      snapshot({
+        userLicenses: [{ id: "L", name: "Salesforce", total: 50, used: 45 }],
+      }),
       prices,
       { now: NOW },
     );
@@ -205,17 +298,39 @@ describe("computeSavings", () => {
       { name: "perf", licenseType: "FULL", description: null },
       { name: "dev", licenseType: "DEVELOPER", description: null },
     ];
-    const advisory = computeSavings(snapshot({ sandboxes }), prices, { now: NOW });
-    expect(advisory.sandboxes).toEqual({ full: 2, partial: 0, developer: 1, total: 3 });
-    expect(advisory.recommendations[0]).toMatchObject({ category: "sandboxes", advisory: true, annualSavings: 0 });
+    const advisory = computeSavings(snapshot({ sandboxes }), prices, {
+      now: NOW,
+    });
+    expect(advisory.sandboxes).toEqual({
+      full: 2,
+      partial: 0,
+      developer: 1,
+      total: 3,
+    });
+    expect(advisory.recommendations[0]).toMatchObject({
+      category: "sandboxes",
+      advisory: true,
+      annualSavings: 0,
+    });
 
-    const priced = computeSavings(snapshot({ sandboxes }), { ...prices, fullSandboxMonthly: 4000 }, { now: NOW });
+    const priced = computeSavings(
+      snapshot({ sandboxes }),
+      { ...prices, fullSandboxMonthly: 4000 },
+      { now: NOW },
+    );
     expect(priced.byCategory.sandboxes).toBe(4000 * 12);
   });
 
   it("warns about storage above 75% without inventing a dollar figure", () => {
     const result = computeSavings(
-      snapshot({ storage: { dataMaxMB: 1000, dataRemainingMB: 50, fileMaxMB: 1000, fileRemainingMB: 900 } }),
+      snapshot({
+        storage: {
+          dataMaxMB: 1000,
+          dataRemainingMB: 50,
+          fileMaxMB: 1000,
+          fileRemainingMB: 900,
+        },
+      }),
       prices,
       { now: NOW },
     );
@@ -243,10 +358,19 @@ describe("computeSavings", () => {
       snapshot({
         users: [user("never", { lastLoginDate: null })],
         userLicenses: [{ id: "L", name: "Salesforce", total: 20, used: 10 }],
-        packageLicenses: [{ id: "P", namespace: "dsfs", status: "Active", allowed: 10, used: 2 }],
+        packageLicenses: [
+          {
+            id: "P",
+            namespace: "dsfs",
+            status: "Active",
+            allowed: 10,
+            used: 2,
+          },
+        ],
       }),
       prices,
-      { now: NOW },
+      // No list prices, so the package seats stay as unpriced advice.
+      { now: NOW, listPrices: {} },
     );
     expect(result.recommendations.map((r) => r.category)).toEqual([
       "unused_seats",
@@ -257,7 +381,11 @@ describe("computeSavings", () => {
 });
 
 describe("view-only users", () => {
-  const activity = (byUser: Record<string, number>) => ({ objects: ["Account", "Opportunity"], byUser, windowDays: 90 });
+  const activity = (byUser: Record<string, number>) => ({
+    objects: ["Account", "Opportunity"],
+    byUser,
+    windowDays: 90,
+  });
 
   it("flags full-license users who log in but never create or edit records", () => {
     const result = computeSavings(
@@ -278,22 +406,38 @@ describe("view-only users", () => {
     expect(result.users.viewOnly.map((u) => u.id)).toEqual(["viewer"]);
     expect(result.users.inactive.map((u) => u.id)).toEqual(["gone"]);
     expect(result.byCategory.view_only_users).toBe((165 - 25) * 12);
-    expect(result.recommendations.find((r) => r.category === "view_only_users")).toMatchObject({ confidence: "low", advisory: false });
+    expect(
+      result.recommendations.find((r) => r.category === "view_only_users"),
+    ).toMatchObject({ confidence: "low", advisory: false });
   });
 
   it("skips the check, with a note, when activity wasn't collected", () => {
-    const missing = computeSavings(snapshot({ users: [user("viewer")] }), prices, { now: NOW });
+    const missing = computeSavings(
+      snapshot({ users: [user("viewer")] }),
+      prices,
+      { now: NOW },
+    );
     expect(missing.users.viewOnly).toEqual([]);
     expect(missing.notes.some((n) => n.includes("new scan"))).toBe(true);
 
-    const unreadable = computeSavings(snapshot({ users: [user("viewer")], writeActivity: null }), prices, { now: NOW });
+    const unreadable = computeSavings(
+      snapshot({ users: [user("viewer")], writeActivity: null }),
+      prices,
+      { now: NOW },
+    );
     expect(unreadable.users.viewOnly).toEqual([]);
-    expect(unreadable.notes.some((n) => n.includes("wasn't readable"))).toBe(true);
+    expect(unreadable.notes.some((n) => n.includes("wasn't readable"))).toBe(
+      true,
+    );
   });
 });
 
 describe("installed apps", () => {
-  const obj = (apiName: string, lastModified: string | null, unreadable = false) => ({
+  const obj = (
+    apiName: string,
+    lastModified: string | null,
+    unreadable = false,
+  ) => ({
     apiName,
     label: apiName,
     lastCreated: lastModified,
@@ -304,13 +448,49 @@ describe("installed apps", () => {
   it("marks apps idle when none of their objects changed in 90 days", () => {
     const result = computeSavings(
       snapshot({
-        packageLicenses: [{ id: "P", namespace: "old", status: "Active", allowed: 10, used: 10 }],
+        packageLicenses: [
+          {
+            id: "P",
+            namespace: "old",
+            status: "Active",
+            allowed: 10,
+            used: 10,
+          },
+        ],
         installedPackages: [
-          { namespace: "busy", name: "Busy App", truncated: false, objects: [obj("busy__A__c", daysAgo(200)), obj("busy__B__c", daysAgo(3))] },
-          { namespace: "old", name: "Old App", truncated: false, objects: [obj("old__A__c", daysAgo(200)), obj("old__B__c", null)] },
-          { namespace: "empty", name: "Empty App", truncated: false, objects: [obj("empty__A__c", null)] },
-          { namespace: "code", name: "Code Only", truncated: false, objects: [] },
-          { namespace: "locked", name: "Locked", truncated: false, objects: [obj("locked__A__c", null, true)] },
+          {
+            namespace: "busy",
+            name: "Busy App",
+            truncated: false,
+            objects: [
+              obj("busy__A__c", daysAgo(200)),
+              obj("busy__B__c", daysAgo(3)),
+            ],
+          },
+          {
+            namespace: "old",
+            name: "Old App",
+            truncated: false,
+            objects: [obj("old__A__c", daysAgo(200)), obj("old__B__c", null)],
+          },
+          {
+            namespace: "empty",
+            name: "Empty App",
+            truncated: false,
+            objects: [obj("empty__A__c", null)],
+          },
+          {
+            namespace: "code",
+            name: "Code Only",
+            truncated: false,
+            objects: [],
+          },
+          {
+            namespace: "locked",
+            name: "Locked",
+            truncated: false,
+            objects: [obj("locked__A__c", null, true)],
+          },
         ],
       }),
       prices,
@@ -323,8 +503,13 @@ describe("installed apps", () => {
       ["Locked", "unknown"],
       ["Busy App", "active"],
     ]);
-    expect(result.apps?.find((a) => a.name === "Old App")).toMatchObject({ seats: { allowed: 10, used: 10 }, lastActivity: daysAgo(200) });
-    const recs = result.recommendations.filter((r) => r.category === "unused_apps");
+    expect(result.apps?.find((a) => a.name === "Old App")).toMatchObject({
+      seats: { allowed: 10, used: 10 },
+      lastActivity: daysAgo(200),
+    });
+    const recs = result.recommendations.filter(
+      (r) => r.category === "unused_apps",
+    );
     expect(recs.map((r) => [r.id, r.confidence])).toEqual([
       ["unused_apps:old", "medium"],
       ["unused_apps:empty", "low"],
@@ -335,16 +520,36 @@ describe("installed apps", () => {
 
   it("leaves apps empty when packages weren't collected", () => {
     expect(computeSavings(snapshot(), prices, { now: NOW }).apps).toBeNull();
-    const unreadable = computeSavings(snapshot({ installedPackages: null }), prices, { now: NOW });
+    const unreadable = computeSavings(
+      snapshot({ installedPackages: null }),
+      prices,
+      { now: NOW },
+    );
     expect(unreadable.apps).toBeNull();
-    expect(unreadable.notes.some((n) => n.includes("Installed apps"))).toBe(true);
+    expect(unreadable.notes.some((n) => n.includes("Installed apps"))).toBe(
+      true,
+    );
   });
 });
 
 describe("app prices", () => {
-  const obj = (lastModified: string | null) => ({ apiName: "x__A__c", label: "A", lastCreated: lastModified, lastModified, unreadable: false });
-  const priced = (apps: NonNullable<PriceBook["apps"]>): PriceBook => ({ ...prices, apps });
-  const token = (appName: string, userId: string, lastUsed: number, useCount = 50) => ({
+  const obj = (lastModified: string | null) => ({
+    apiName: "x__A__c",
+    label: "A",
+    lastCreated: lastModified,
+    lastModified,
+    unreadable: false,
+  });
+  const priced = (apps: NonNullable<PriceBook["apps"]>): PriceBook => ({
+    ...prices,
+    apps,
+  });
+  const token = (
+    appName: string,
+    userId: string,
+    lastUsed: number,
+    useCount = 50,
+  ) => ({
     id: `${appName}-${userId}`,
     appName,
     userId,
@@ -356,13 +561,40 @@ describe("app prices", () => {
     const result = computeSavings(
       snapshot({
         packageLicenses: [
-          { id: "P1", namespace: "old", status: "Active", allowed: 10, used: 4 },
-          { id: "P2", namespace: "busy", status: "Active", allowed: 20, used: 15 },
+          {
+            id: "P1",
+            namespace: "old",
+            status: "Active",
+            allowed: 10,
+            used: 4,
+          },
+          {
+            id: "P2",
+            namespace: "busy",
+            status: "Active",
+            allowed: 20,
+            used: 15,
+          },
         ],
         installedPackages: [
-          { namespace: "old", name: "Old App", truncated: false, objects: [obj(daysAgo(200))] },
-          { namespace: "busy", name: "Busy App", truncated: false, objects: [obj(daysAgo(2))] },
-          { namespace: "flat", name: "Flat App", truncated: false, objects: [obj(null)] },
+          {
+            namespace: "old",
+            name: "Old App",
+            truncated: false,
+            objects: [obj(daysAgo(200))],
+          },
+          {
+            namespace: "busy",
+            name: "Busy App",
+            truncated: false,
+            objects: [obj(daysAgo(2))],
+          },
+          {
+            namespace: "flat",
+            name: "Flat App",
+            truncated: false,
+            objects: [obj(null)],
+          },
         ],
       }),
       priced({ packages: { old: 30, busy: 10, flat: 100 }, connectedApps: {} }),
@@ -374,7 +606,11 @@ describe("app prices", () => {
       ["Flat App", 1200],
       ["Busy App", 0],
     ]);
-    const ids = result.recommendations.map((r) => [r.id, r.annualSavings, r.advisory]);
+    const ids = result.recommendations.map((r) => [
+      r.id,
+      r.annualSavings,
+      r.advisory,
+    ]);
     expect(ids).toContainEqual(["unused_apps:old", 3600, false]);
     expect(ids).toContainEqual(["unused_apps:flat", 1200, false]);
     // Busy App's 5 unused seats × $10 × 12; Old App's seats are already covered by cancelling it.
@@ -395,16 +631,23 @@ describe("app prices", () => {
           token("Gong", "u4", 300),
         ],
       }),
-      priced({ packages: {}, connectedApps: { Clearbit: 250, Outreach: 900, Salesloft: 400 } }),
+      priced({
+        packages: {},
+        connectedApps: { Clearbit: 250, Outreach: 900, Salesloft: 400 },
+      }),
       { now: NOW },
     );
-    expect(result.connectedApps?.map((a) => [a.appName, a.annualSavings])).toEqual([
+    expect(
+      result.connectedApps?.map((a) => [a.appName, a.annualSavings]),
+    ).toEqual([
       ["Salesloft", 4800],
       ["Clearbit", 3000],
       ["Gong", 0],
       ["Outreach", 0],
     ]);
-    const recs = result.recommendations.filter((r) => r.category === "connected_apps");
+    const recs = result.recommendations.filter(
+      (r) => r.category === "connected_apps",
+    );
     expect(recs.map((r) => [r.id, r.annualSavings, r.advisory])).toEqual([
       ["connected_apps:overlap:Sales engagement", 4800, false],
       ["connected_apps:Clearbit", 3000, false],
@@ -418,13 +661,26 @@ describe("app prices", () => {
     const result = computeSavings(
       snapshot({
         oauthTokens: [token("Clearbit", "u1", 200)],
-        packageLicenses: [{ id: "P", namespace: "old", status: "Active", allowed: 10, used: 2 }],
-        installedPackages: [{ namespace: "old", name: "Old App", truncated: false, objects: [obj(daysAgo(200))] }],
+        packageLicenses: [
+          { id: "P", namespace: "old", status: "Active", allowed: 10, used: 2 },
+        ],
+        installedPackages: [
+          {
+            namespace: "old",
+            name: "Old App",
+            truncated: false,
+            objects: [obj(daysAgo(200))],
+          },
+        ],
       }),
       prices,
       { now: NOW },
     );
-    const apps = result.recommendations.filter((r) => ["connected_apps", "unused_apps", "package_licenses"].includes(r.category));
+    const apps = result.recommendations.filter((r) =>
+      ["connected_apps", "unused_apps", "package_licenses"].includes(
+        r.category,
+      ),
+    );
     expect(apps).toHaveLength(3);
     expect(apps.every((r) => r.advisory && r.annualSavings === 0)).toBe(true);
     expect(result.annualSavings).toBe(0);
@@ -436,9 +692,131 @@ describe("app prices", () => {
       priced({ packages: {}, connectedApps: { "Salesforce Chatter": 50 } }),
       { now: NOW },
     );
-    expect(result.connectedApps?.[0]).toMatchObject({ salesforce: true, verdict: "remove", annualSavings: 0 });
-    const rec = result.recommendations.find((r) => r.category === "connected_apps");
-    expect(rec).toMatchObject({ title: "Revoke unused access: Salesforce Chatter", advisory: true, annualSavings: 0 });
+    expect(result.connectedApps?.[0]).toMatchObject({
+      salesforce: true,
+      verdict: "remove",
+      annualSavings: 0,
+    });
+    const rec = result.recommendations.find(
+      (r) => r.category === "connected_apps",
+    );
+    expect(rec).toMatchObject({
+      title: "Revoke unused access: Salesforce Chatter",
+      advisory: true,
+      annualSavings: 0,
+    });
     expect(rec?.detail).not.toContain("price");
+  });
+
+  it("falls back to public list prices until the customer enters their own", () => {
+    const listPrices = {
+      seated: {
+        name: "Seated",
+        price: 20,
+        unit: "user" as const,
+        tier: "Standard",
+        source: "https://example.com",
+        checked: "2026-10-09",
+      },
+      flat: {
+        name: "Flat",
+        price: 500,
+        unit: "org" as const,
+        tier: "Team",
+        source: "https://example.com",
+        checked: "2026-10-09",
+      },
+      busy: {
+        name: "Busy",
+        price: 10,
+        unit: "user" as const,
+        tier: "Pro",
+        source: "https://example.com",
+        checked: "2026-10-09",
+      },
+      mine: {
+        name: "Mine",
+        price: 99,
+        unit: "user" as const,
+        tier: "Pro",
+        source: "https://example.com",
+        checked: "2026-10-09",
+      },
+    };
+    const result = computeSavings(
+      snapshot({
+        packageLicenses: [
+          {
+            id: "P1",
+            namespace: "seated",
+            status: "Active",
+            allowed: 5,
+            used: 5,
+          },
+          {
+            id: "P2",
+            namespace: "busy",
+            status: "Active",
+            allowed: 10,
+            used: 6,
+          },
+          {
+            id: "P3",
+            namespace: "mine",
+            status: "Active",
+            allowed: 2,
+            used: 2,
+          },
+        ],
+        installedPackages: [
+          {
+            namespace: "seated",
+            name: "Seated",
+            truncated: false,
+            objects: [obj(daysAgo(200))],
+          },
+          {
+            namespace: "flat",
+            name: "Flat",
+            truncated: false,
+            objects: [obj(null)],
+          },
+          {
+            namespace: "busy",
+            name: "Busy",
+            truncated: false,
+            objects: [obj(daysAgo(1))],
+          },
+          {
+            namespace: "mine",
+            name: "Mine",
+            truncated: false,
+            objects: [obj(daysAgo(200))],
+          },
+        ],
+      }),
+      priced({ packages: { mine: 40 }, connectedApps: {} }),
+      { now: NOW, listPrices },
+    );
+    expect(
+      result.apps?.map((a) => [a.name, a.annualSavings, a.priceSource]),
+    ).toEqual([
+      ["Flat", 6000, "list"],
+      ["Seated", 1200, "list"],
+      ["Mine", 960, "customer"],
+      ["Busy", 0, "list"],
+    ]);
+    const seats = result.recommendations.find(
+      (r) => r.id === "package_licenses:busy",
+    );
+    expect(seats).toMatchObject({
+      annualSavings: 480,
+      advisory: false,
+      confidence: "low",
+    });
+    expect(seats?.detail).toContain("list price");
+    expect(
+      result.recommendations.find((r) => r.id === "unused_apps:seated")?.detail,
+    ).toContain("Seated's list price (Standard");
   });
 });
