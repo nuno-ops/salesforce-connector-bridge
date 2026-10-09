@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { env } from "@/lib/env";
@@ -12,8 +13,16 @@ export interface LoginState {
   message?: string;
 }
 
-function callbackUrl(next: string) {
-  return `${env().NEXT_PUBLIC_APP_URL}/auth/callback?next=${encodeURIComponent(safeNext(next))}`;
+/**
+ * Sends the link back to the host the person signed in on, so deploy previews keep the sign-in cookie.
+ * Supabase only honours hosts in its Redirect URLs list and otherwise falls back to the Site URL.
+ */
+async function callbackUrl(next: string) {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const origin = host ? `${proto}://${host}` : env().NEXT_PUBLIC_APP_URL;
+  return `${origin}/auth/callback?next=${encodeURIComponent(safeNext(next))}`;
 }
 
 export async function sendMagicLink(_prev: LoginState, formData: FormData): Promise<LoginState> {
@@ -23,7 +32,7 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
-    options: { emailRedirectTo: callbackUrl(String(formData.get("next") ?? "")) },
+    options: { emailRedirectTo: await callbackUrl(String(formData.get("next") ?? "")) },
   });
   if (error) return { status: "error", message: error.message };
   return { status: "sent", message: `Check ${email.data} for a sign-in link.` };
@@ -34,7 +43,7 @@ export async function signInWithGoogle(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: callbackUrl(String(formData.get("next") ?? "")) },
+    options: { redirectTo: await callbackUrl(String(formData.get("next") ?? "")) },
   });
   if (error || !data.url) redirect(`/login?error=${encodeURIComponent(error?.message ?? "Google sign-in failed")}`);
   redirect(data.url);
