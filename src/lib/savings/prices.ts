@@ -9,6 +9,15 @@ export interface PriceBook {
   /** Monthly cost of one Full Copy sandbox. `null` = unknown, shown as advice only. */
   fullSandboxMonthly: number | null;
   source: "edition_default" | "manual" | "contract";
+  /** What the customer pays for third-party apps. Apps without a price are shown as advice only. */
+  apps?: AppPrices;
+}
+
+export interface AppPrices {
+  /** Installed package by namespace: monthly price per seat, or per month in total when the package has no seat count. */
+  packages: Record<string, number>;
+  /** Connected app by name: what the subscription costs per month in total. */
+  connectedApps: Record<string, number>;
 }
 
 /** Per-user list prices by edition, matching the original app's defaults. */

@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
 import type { SavingsResult } from "@/lib/savings/engine";
+import type { AppPrices } from "@/lib/savings/prices";
 
 // The app talks to Postgres with a server-side connection, so authorisation lives
 // in the data access layer. RLS is enabled with no policies so the public
@@ -99,6 +100,15 @@ export const priceBooks = pgTable("price_books", {
   integrationMonthly: numeric("integration_monthly", { precision: 10, scale: 2, mode: "number" }).notNull(),
   fullSandboxMonthly: numeric("full_sandbox_monthly", { precision: 10, scale: 2, mode: "number" }),
   source: priceSource("source").notNull().default("manual"),
+  updatedAt: updatedAt(),
+}).enableRLS();
+
+/** What the customer pays for third-party apps, kept apart from Salesforce prices so a price reset keeps them. */
+export const appPrices = pgTable("app_prices", {
+  connectionId: uuid("connection_id")
+    .primaryKey()
+    .references(() => sfConnections.id, { onDelete: "cascade" }),
+  prices: jsonb("prices").$type<AppPrices>().notNull(),
   updatedAt: updatedAt(),
 }).enableRLS();
 

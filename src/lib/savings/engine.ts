@@ -1,7 +1,8 @@
 import type { OrgSnapshot, SnapshotUser } from "@/lib/salesforce/types";
+import { reviewApps, type AppReviewItem } from "@/lib/apps/review";
 import { priceForLicense, type PriceBook } from "./prices";
 
-export const ENGINE_VERSION = 2;
+export const ENGINE_VERSION = 3;
 
 export type Category =
   | "inactive_users"
@@ -12,7 +13,8 @@ export type Category =
   | "storage"
   | "package_licenses"
   | "view_only_users"
-  | "unused_apps";
+  | "unused_apps"
+  | "connected_apps";
 
 export type Confidence = "high" | "medium" | "low";
 
@@ -67,6 +69,8 @@ export interface SavingsResult {
   };
   /** Installed managed packages with a usage verdict; `null` when not collected or unreadable. */
   apps: AppUsage[] | null;
+  /** Connected apps reviewed from OAuth usage, dollar savings first. Missing on results computed before engine v3. */
+  connectedApps?: ConnectedAppResult[];
   licenses: LicenseRow[];
   storage: { dataUsedPct: number; fileUsedPct: number } | null;
   sandboxes: { full: number; partial: number; developer: number; total: number } | null;
@@ -83,6 +87,17 @@ export interface AppUsage {
   /** idle: objects exist but nothing changed in the window; unknown: no objects we could read. */
   status: "active" | "idle" | "unknown";
   objectCount: number;
+  /** Monthly price the customer entered for this app, or `null`. */
+  monthlyPrice?: number | null;
+  /** Yearly saving if the recommendation is acted on; 0 when unpriced or nothing to save. */
+  annualSavings?: number;
+}
+
+export interface ConnectedAppResult extends AppReviewItem {
+  /** Monthly subscription cost the customer entered, or `null`. */
+  monthlyPrice: number | null;
+  /** Yearly saving if the recommendation is acted on; 0 when unpriced or the app should stay. */
+  annualSavings: number;
 }
 
 export interface EngineOptions {
@@ -320,23 +335,8 @@ export function computeSavings(
     });
   }
 
-  // 6. Managed package seats nobody uses.
-  for (const p of snapshot.packageLicenses) {
-    if (p.allowed < 0 || p.status !== "Active" || p.allowed <= p.used) continue;
-    const unused = p.allowed - p.used;
-    recommendations.push({
-      id: `package_licenses:${p.namespace}`,
-      category: "package_licenses",
-      title: `Review ${unused} unused ${p.namespace} package ${plural(unused, "seat")}`,
-      detail: `${p.used} of ${p.allowed} seats are assigned. Check the vendor contract before renewal.`,
-      count: unused,
-      annualSavings: 0,
-      confidence: "low",
-      advisory: true,
-    });
-  }
-
-  // 7. Installed apps nobody uses.
+  // 6. Installed apps nobody uses, and package seats nobody holds.
+  const packagePrices = prices.apps?.packages ?? {};
   let apps: AppUsage[] | null = null;
   if (snapshot.installedPackages === null) {
     notes.push("Installed apps need the Tooling API and weren't readable for the connected user.");
@@ -352,31 +352,97 @@ export function computeSavings(
       const status: AppUsage["status"] =
         readable.length === 0 ? "unknown" : since !== null && since < idleAppDays ? "active" : "idle";
       const lic = p.namespace ? seatsByNamespace.get(p.namespace) : undefined;
+      const seats = lic ? { allowed: lic.allowed, used: lic.used } : null;
+      const monthlyPrice = p.namespace ? (packagePrices[p.namespace] ?? null) : null;
       return {
         name: p.name,
         namespace: p.namespace,
-        seats: lic ? { allowed: lic.allowed, used: lic.used } : null,
+        seats,
         lastActivity,
         status,
         objectCount: p.objects.length,
+        monthlyPrice,
+        annualSavings: status === "idle" && monthlyPrice !== null ? packageMonthlyCost(seats, monthlyPrice) * 12 : 0,
       };
     });
-    apps.sort((a, b) => rankStatus(a.status) - rankStatus(b.status) || a.name.localeCompare(b.name));
-    // Licensed apps first: those are the ones most likely to cost money.
+    apps.sort(
+      (a, b) => (b.annualSavings ?? 0) - (a.annualSavings ?? 0) || rankStatus(a.status) - rankStatus(b.status) || a.name.localeCompare(b.name),
+    );
+    // Priced apps first, then licensed ones: those are the most likely to cost money.
     for (const app of [...apps].sort((a, b) => Number(b.seats !== null) - Number(a.seats !== null))) {
       if (app.status !== "idle") continue;
       const paid = app.seats !== null;
+      const saving = app.annualSavings ?? 0;
       recommendations.push({
         id: `unused_apps:${app.namespace ?? app.name}`,
         category: "unused_apps",
-        title: `Review ${app.name}: no activity for ${idleAppDays}+ days`,
-        detail: `${app.lastActivity ? `Its ${app.objectCount} ${plural(app.objectCount, "object")} last saw a record created or edited on ${app.lastActivity.slice(0, 10)}` : `Its ${app.objectCount} ${plural(app.objectCount, "object")} hold no records`}. ${paid ? "It's a licensed app, so check the vendor contract and cancel before it renews." : "If you pay for it, check the vendor contract before it renews; if not, uninstalling it tidies the org."}`,
+        title: saving > 0 ? `Cancel ${app.name}: no activity for ${idleAppDays}+ days` : `Review ${app.name}: no activity for ${idleAppDays}+ days`,
+        detail: `${app.lastActivity ? `Its ${app.objectCount} ${plural(app.objectCount, "object")} last saw a record created or edited on ${app.lastActivity.slice(0, 10)}` : `Its ${app.objectCount} ${plural(app.objectCount, "object")} hold no records`}. ${saving > 0 ? "Cancel it with the vendor before it renews." : paid ? "It's a licensed app, so check the vendor contract and cancel before it renews. Add its price to see the saving." : "If you pay for it, add its price to see the saving; if not, uninstalling it tidies the org."}`,
         count: 1,
-        annualSavings: 0,
+        annualSavings: saving,
         confidence: paid ? "medium" : "low",
-        advisory: true,
+        advisory: saving === 0,
       });
     }
+  }
+  // An idle app's saving already covers all of its seats.
+  const idleNamespaces = new Set((apps ?? []).filter((a) => a.status === "idle" && (a.annualSavings ?? 0) > 0).map((a) => a.namespace));
+  for (const p of snapshot.packageLicenses) {
+    if (p.allowed < 0 || p.status !== "Active" || p.allowed <= p.used || idleNamespaces.has(p.namespace)) continue;
+    const unused = p.allowed - p.used;
+    const price = packagePrices[p.namespace] ?? null;
+    const saving = price !== null ? unused * price * 12 : 0;
+    recommendations.push({
+      id: `package_licenses:${p.namespace}`,
+      category: "package_licenses",
+      title: `${saving > 0 ? "Drop" : "Review"} ${unused} unused ${p.namespace} package ${plural(unused, "seat")}`,
+      detail: `${p.used} of ${p.allowed} seats are assigned. ${saving > 0 ? "Reduce the seat count at renewal." : "Add the seat price to see the saving, and check the vendor contract before renewal."}`,
+      count: unused,
+      annualSavings: saving,
+      confidence: saving > 0 ? "medium" : "low",
+      advisory: saving === 0,
+    });
+  }
+
+  // 7. Connected apps: unused or doing the same job as another app.
+  const appPrices = prices.apps?.connectedApps ?? {};
+  const review = reviewApps(snapshot);
+  const costOf = (t: AppReviewItem) => (appPrices[t.appName] !== undefined ? appPrices[t.appName] * 12 : null);
+  // In each overlap, the app with the fewest users is the one to drop.
+  const dropInOverlap = new Set(
+    review.overlaps.map((o) => review.tools.filter((t) => o.apps.includes(t.appName)).sort((a, b) => a.users - b.users || a.totalUses - b.totalUses)[0].appName),
+  );
+  const connectedApps: ConnectedAppResult[] = review.tools.map((t) => {
+    const cost = costOf(t);
+    const saves = t.verdict === "remove" || (t.verdict === "consolidate" && dropInOverlap.has(t.appName));
+    return { ...t, monthlyPrice: appPrices[t.appName] ?? null, annualSavings: saves && cost !== null ? cost : 0 };
+  });
+  connectedApps.sort((a, b) => b.annualSavings - a.annualSavings);
+  for (const t of connectedApps.filter((a) => a.verdict === "remove")) {
+    recommendations.push({
+      id: `connected_apps:${t.appName}`,
+      category: "connected_apps",
+      title: `${t.annualSavings > 0 ? "Cancel" : "Review"} ${t.appName}: unused for 90+ days`,
+      detail: `${t.reason}${t.annualSavings > 0 ? "" : " Add its price to see the saving."}`,
+      count: t.users,
+      annualSavings: t.annualSavings,
+      confidence: t.annualSavings > 0 ? "medium" : "low",
+      advisory: t.annualSavings === 0,
+    });
+  }
+  for (const o of review.overlaps) {
+    const drop = connectedApps.find((a) => o.apps.includes(a.appName) && dropInOverlap.has(a.appName))!;
+    const keep = o.apps.filter((n) => n !== drop.appName).join(", ");
+    recommendations.push({
+      id: `connected_apps:overlap:${o.category}`,
+      category: "connected_apps",
+      title: `Consolidate ${o.category.toLowerCase()} tools: ${o.apps.join(", ")}`,
+      detail: `These apps do the same job. Moving ${drop.appName}'s ${drop.users} ${plural(drop.users, "user")} onto ${keep} ${drop.annualSavings > 0 ? "saves its subscription" : "would save a subscription; add its price to see how much"}.`,
+      count: o.apps.length,
+      annualSavings: drop.annualSavings,
+      confidence: "low",
+      advisory: drop.annualSavings === 0,
+    });
   }
 
   // 8. Sandboxes.
@@ -442,6 +508,7 @@ export function computeSavings(
     package_licenses: 0,
     view_only_users: 0,
     unused_apps: 0,
+    connected_apps: 0,
   } satisfies Record<Category, number>;
   for (const r of recommendations) if (!r.advisory) byCategory[r.category] += r.annualSavings;
   const annualSavings = Object.values(byCategory).reduce((a, b) => a + b, 0);
@@ -458,6 +525,7 @@ export function computeSavings(
     recommendations,
     users: { inactive, integration, platform, viewOnly },
     apps,
+    connectedApps,
     licenses,
     storage,
     sandboxes,
@@ -494,6 +562,11 @@ function licenseRow(name: string, kind: LicenseRow["kind"], total: number, used:
 }
 
 const sum = (users: FlaggedUser[]) => users.reduce((a, u) => a + u.annualSavings, 0);
+/** Monthly cost of a package: per seat when it has a seat count, otherwise the price is the monthly total. */
+function packageMonthlyCost(seats: AppUsage["seats"], price: number) {
+  return seats && seats.allowed > 0 ? seats.allowed * price : price;
+}
+
 const rankStatus = (s: AppUsage["status"]) => ({ idle: 0, unknown: 1, active: 2 })[s];
 const rank = (c: Confidence) => ({ high: 0, medium: 1, low: 2 })[c];
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);

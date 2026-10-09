@@ -8,6 +8,7 @@ import { extractContractPrices } from "@/lib/ai/claude";
 import { requireConnection } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { disconnect } from "@/lib/salesforce/connection";
+import type { AppPrices } from "@/lib/savings/prices";
 import { getPriceBook, latestScan, recompute, runScan } from "@/lib/scan";
 
 export interface ActionState {
@@ -55,6 +56,29 @@ export async function resetPricesAction(connectionId: string) {
   await db().delete(schema.priceBooks).where(eq(schema.priceBooks.connectionId, connectionId));
   await repriceLatest(connection);
   revalidatePath(`/orgs/${connectionId}`);
+}
+
+const appPrice = z.union([z.literal("").transform(() => null), price]);
+
+/** Fields are named `package:<namespace>` and `connected:<app name>`; blank removes a price. */
+export async function saveAppPricesAction(connectionId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { connection } = await requireConnection(connectionId);
+  const prices: AppPrices = { packages: {}, connectedApps: {} };
+  for (const [key, value] of formData) {
+    const [kind, ...rest] = key.split(":");
+    const name = rest.join(":");
+    if ((kind !== "package" && kind !== "connected") || !name || typeof value !== "string") continue;
+    const parsed = appPrice.safeParse(value.trim());
+    if (!parsed.success) return { status: "error", message: `The price for ${name} must be a number between 0 and 100,000.` };
+    if (parsed.data !== null) (kind === "package" ? prices.packages : prices.connectedApps)[name] = parsed.data;
+  }
+  await db()
+    .insert(schema.appPrices)
+    .values({ connectionId, prices })
+    .onConflictDoUpdate({ target: schema.appPrices.connectionId, set: { prices } });
+  await repriceLatest(connection);
+  revalidatePath(`/orgs/${connectionId}`);
+  return { status: "ok", message: "App prices saved and savings recalculated." };
 }
 
 export interface ContractState extends ActionState {

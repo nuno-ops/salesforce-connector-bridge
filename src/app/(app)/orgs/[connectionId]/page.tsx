@@ -30,6 +30,7 @@ const CATEGORY_LABEL: Record<Category, string> = {
   package_licenses: "Package seats",
   view_only_users: "View-only users",
   unused_apps: "Unused apps",
+  connected_apps: "Connected apps",
 };
 
 const appStatusVariant = { idle: "danger", unknown: "muted", active: "default" } as const;
@@ -112,6 +113,11 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const result = scan.result;
   const snapshot = scan.snapshot!;
   const appReview = reviewApps(snapshot);
+  // Results from before engine v3 have no app prices; fall back to the unpriced review.
+  const connectedApps = result.connectedApps ?? appReview.tools.map((t) => ({ ...t, monthlyPrice: null, annualSavings: 0 }));
+  const connectedSavings = connectedApps.reduce((a, t) => a + t.annualSavings, 0);
+  const installedSavings = (result.apps ?? []).reduce((a, t) => a + (t.annualSavings ?? 0), 0);
+  const appPricesHref = `/orgs/${connection.id}/prices#apps`;
   const history = access.monitoring ? await scanHistory(connection.id) : [];
   const categories = (Object.entries(result.byCategory) as [Category, number][]).filter(([, v]) => v > 0);
   const actionable = result.recommendations.filter((r) => !r.advisory);
@@ -216,12 +222,19 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
+              {connectedSavings > 0 && (
+                <p className="text-sm">
+                  <span className="font-mono text-lg font-semibold text-cobalt">{formatCurrency(connectedSavings)}</span> a year from
+                  cancelling unused apps and consolidating overlapping ones.
+                </p>
+              )}
               <p className="text-sm">{appReview.summary}</p>
-              {appReview.tools.length > 0 && (
+              {connectedApps.length > 0 && (
                 <Table>
                   <THead>
                     <tr>
                       <TH>App</TH>
+                      <TH className="text-right">Yearly saving</TH>
                       <TH>Category</TH>
                       <TH className="text-right">Users</TH>
                       <TH>Verdict</TH>
@@ -229,9 +242,12 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                     </tr>
                   </THead>
                   <TBody>
-                    {appReview.tools.map((t) => (
+                    {connectedApps.map((t) => (
                       <TR key={t.appName}>
                         <TD className="font-medium">{t.appName}</TD>
+                        <TD className="text-right whitespace-nowrap">
+                          <AppSaving saving={t.annualSavings} priced={t.monthlyPrice !== null} flagged={t.verdict === "remove" || t.verdict === "consolidate"} href={appPricesHref} />
+                        </TD>
                         <TD>{t.category}</TD>
                         <TD className="text-right">{formatNumber(t.users)}</TD>
                         <TD>
@@ -258,11 +274,18 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                   worth cancelling at renewal.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col gap-4">
+                {installedSavings > 0 && (
+                  <p className="text-sm">
+                    <span className="font-mono text-lg font-semibold text-cobalt">{formatCurrency(installedSavings)}</span> a year from
+                    cancelling apps nobody uses.
+                  </p>
+                )}
                 <Table>
                   <THead>
                     <tr>
                       <TH>App</TH>
+                      <TH className="text-right">Yearly saving</TH>
                       <TH className="text-right">Seats used</TH>
                       <TH>Last activity</TH>
                       <TH>Status</TH>
@@ -274,6 +297,14 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                         <TD>
                           <span className="font-medium">{a.name}</span>
                           {a.namespace && <div className="font-mono text-xs text-muted-foreground">{a.namespace}</div>}
+                        </TD>
+                        <TD className="text-right whitespace-nowrap">
+                          <AppSaving
+                            saving={a.annualSavings ?? 0}
+                            priced={a.monthlyPrice != null}
+                            flagged={a.status === "idle"}
+                            href={a.namespace ? appPricesHref : null}
+                          />
                         </TD>
                         <TD className="text-right">
                           {a.seats ? (a.seats.allowed < 0 ? "Site license" : `${formatNumber(a.seats.used)} / ${formatNumber(a.seats.allowed)}`) : "—"}
@@ -453,4 +484,16 @@ function Meter({ label, value }: { label: string; value: number }) {
       </div>
     </div>
   );
+}
+
+/** Dollar saving for an app row; flagged apps without a price link to where the price is entered. */
+function AppSaving({ saving, priced, flagged, href }: { saving: number; priced: boolean; flagged: boolean; href: string | null }) {
+  if (saving > 0) return <span className="font-mono font-semibold text-cobalt">{formatCurrency(saving)}</span>;
+  if (flagged && !priced && href)
+    return (
+      <Link href={href} className="text-xs font-semibold text-cobalt underline-offset-4 hover:underline">
+        Add price
+      </Link>
+    );
+  return <span className="text-muted-foreground">—</span>;
 }

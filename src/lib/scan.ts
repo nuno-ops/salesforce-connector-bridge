@@ -12,19 +12,21 @@ type Connection = typeof schema.sfConnections.$inferSelect;
 export type Scan = typeof schema.scans.$inferSelect;
 
 export async function getPriceBook(connection: Pick<Connection, "id" | "edition">): Promise<PriceBook> {
-  const [row] = await db()
-    .select()
-    .from(schema.priceBooks)
-    .where(eq(schema.priceBooks.connectionId, connection.id))
-    .limit(1);
-  if (!row) return defaultPriceBook(connection.edition);
-  return {
-    fullMonthly: row.fullMonthly,
-    platformMonthly: row.platformMonthly,
-    integrationMonthly: row.integrationMonthly,
-    fullSandboxMonthly: row.fullSandboxMonthly,
-    source: row.source,
-  };
+  const database = db();
+  const [[row], [apps]] = await Promise.all([
+    database.select().from(schema.priceBooks).where(eq(schema.priceBooks.connectionId, connection.id)).limit(1),
+    database.select().from(schema.appPrices).where(eq(schema.appPrices.connectionId, connection.id)).limit(1),
+  ]);
+  const base: PriceBook = row
+    ? {
+        fullMonthly: row.fullMonthly,
+        platformMonthly: row.platformMonthly,
+        integrationMonthly: row.integrationMonthly,
+        fullSandboxMonthly: row.fullSandboxMonthly,
+        source: row.source,
+      }
+    : defaultPriceBook(connection.edition);
+  return apps ? { ...base, apps: apps.prices } : base;
 }
 
 export async function latestScan(connectionId: string, { succeededOnly = false } = {}) {

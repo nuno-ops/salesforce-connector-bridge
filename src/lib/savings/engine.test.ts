@@ -340,3 +340,93 @@ describe("installed apps", () => {
     expect(unreadable.notes.some((n) => n.includes("Installed apps"))).toBe(true);
   });
 });
+
+describe("app prices", () => {
+  const obj = (lastModified: string | null) => ({ apiName: "x__A__c", label: "A", lastCreated: lastModified, lastModified, unreadable: false });
+  const priced = (apps: NonNullable<PriceBook["apps"]>): PriceBook => ({ ...prices, apps });
+  const token = (appName: string, userId: string, lastUsed: number, useCount = 50) => ({
+    id: `${appName}-${userId}`,
+    appName,
+    userId,
+    useCount,
+    lastUsedDate: daysAgo(lastUsed),
+  });
+
+  it("prices an idle package by its seats, without counting its unused seats again", () => {
+    const result = computeSavings(
+      snapshot({
+        packageLicenses: [
+          { id: "P1", namespace: "old", status: "Active", allowed: 10, used: 4 },
+          { id: "P2", namespace: "busy", status: "Active", allowed: 20, used: 15 },
+        ],
+        installedPackages: [
+          { namespace: "old", name: "Old App", truncated: false, objects: [obj(daysAgo(200))] },
+          { namespace: "busy", name: "Busy App", truncated: false, objects: [obj(daysAgo(2))] },
+          { namespace: "flat", name: "Flat App", truncated: false, objects: [obj(null)] },
+        ],
+      }),
+      priced({ packages: { old: 30, busy: 10, flat: 100 }, connectedApps: {} }),
+      { now: NOW },
+    );
+    // Idle with seats: 10 seats × $30 × 12. Idle without seats: $100 a month × 12.
+    expect(result.apps?.map((a) => [a.name, a.annualSavings])).toEqual([
+      ["Old App", 3600],
+      ["Flat App", 1200],
+      ["Busy App", 0],
+    ]);
+    const ids = result.recommendations.map((r) => [r.id, r.annualSavings, r.advisory]);
+    expect(ids).toContainEqual(["unused_apps:old", 3600, false]);
+    expect(ids).toContainEqual(["unused_apps:flat", 1200, false]);
+    // Busy App's 5 unused seats × $10 × 12; Old App's seats are already covered by cancelling it.
+    expect(ids).toContainEqual(["package_licenses:busy", 600, false]);
+    expect(ids.some(([id]) => id === "package_licenses:old")).toBe(false);
+    expect(result.byCategory.unused_apps).toBe(4800);
+    expect(result.byCategory.package_licenses).toBe(600);
+  });
+
+  it("prices unused connected apps and the smaller app in an overlap", () => {
+    const result = computeSavings(
+      snapshot({
+        oauthTokens: [
+          token("Clearbit", "u1", 200),
+          token("Outreach", "u1", 1),
+          token("Outreach", "u2", 1),
+          token("Salesloft", "u3", 1),
+          token("Gong", "u4", 300),
+        ],
+      }),
+      priced({ packages: {}, connectedApps: { Clearbit: 250, Outreach: 900, Salesloft: 400 } }),
+      { now: NOW },
+    );
+    expect(result.connectedApps?.map((a) => [a.appName, a.annualSavings])).toEqual([
+      ["Salesloft", 4800],
+      ["Clearbit", 3000],
+      ["Gong", 0],
+      ["Outreach", 0],
+    ]);
+    const recs = result.recommendations.filter((r) => r.category === "connected_apps");
+    expect(recs.map((r) => [r.id, r.annualSavings, r.advisory])).toEqual([
+      ["connected_apps:overlap:Sales engagement", 4800, false],
+      ["connected_apps:Clearbit", 3000, false],
+      // Gong has no price, so it stays as advice.
+      ["connected_apps:Gong", 0, true],
+    ]);
+    expect(result.byCategory.connected_apps).toBe(7800);
+  });
+
+  it("keeps unpriced apps as advice with no dollar figure", () => {
+    const result = computeSavings(
+      snapshot({
+        oauthTokens: [token("Clearbit", "u1", 200)],
+        packageLicenses: [{ id: "P", namespace: "old", status: "Active", allowed: 10, used: 2 }],
+        installedPackages: [{ namespace: "old", name: "Old App", truncated: false, objects: [obj(daysAgo(200))] }],
+      }),
+      prices,
+      { now: NOW },
+    );
+    const apps = result.recommendations.filter((r) => ["connected_apps", "unused_apps", "package_licenses"].includes(r.category));
+    expect(apps).toHaveLength(3);
+    expect(apps.every((r) => r.advisory && r.annualSavings === 0)).toBe(true);
+    expect(result.annualSavings).toBe(0);
+  });
+});
