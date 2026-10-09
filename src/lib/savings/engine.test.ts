@@ -429,4 +429,16 @@ describe("app prices", () => {
     expect(apps.every((r) => r.advisory && r.annualSavings === 0)).toBe(true);
     expect(result.annualSavings).toBe(0);
   });
+
+  it("never prices Salesforce's own apps", () => {
+    const result = computeSavings(
+      snapshot({ oauthTokens: [token("Salesforce Chatter", "u1", 200)] }),
+      priced({ packages: {}, connectedApps: { "Salesforce Chatter": 50 } }),
+      { now: NOW },
+    );
+    expect(result.connectedApps?.[0]).toMatchObject({ salesforce: true, verdict: "remove", annualSavings: 0 });
+    const rec = result.recommendations.find((r) => r.category === "connected_apps");
+    expect(rec).toMatchObject({ title: "Revoke unused access: Salesforce Chatter", advisory: true, annualSavings: 0 });
+    expect(rec?.detail).not.toContain("price");
+  });
 });

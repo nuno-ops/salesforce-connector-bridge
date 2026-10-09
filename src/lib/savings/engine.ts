@@ -415,15 +415,15 @@ export function computeSavings(
   const connectedApps: ConnectedAppResult[] = review.tools.map((t) => {
     const cost = costOf(t);
     const saves = t.verdict === "remove" || (t.verdict === "consolidate" && dropInOverlap.has(t.appName));
-    return { ...t, monthlyPrice: appPrices[t.appName] ?? null, annualSavings: saves && cost !== null ? cost : 0 };
+    return { ...t, monthlyPrice: appPrices[t.appName] ?? null, annualSavings: saves && cost !== null && !t.salesforce ? cost : 0 };
   });
   connectedApps.sort((a, b) => b.annualSavings - a.annualSavings);
   for (const t of connectedApps.filter((a) => a.verdict === "remove")) {
     recommendations.push({
       id: `connected_apps:${t.appName}`,
       category: "connected_apps",
-      title: `${t.annualSavings > 0 ? "Cancel" : "Review"} ${t.appName}: unused for 90+ days`,
-      detail: `${t.reason}${t.annualSavings > 0 ? "" : " Add its price to see the saving."}`,
+      title: t.salesforce ? `Revoke unused access: ${t.appName}` : `${t.annualSavings > 0 ? "Cancel" : "Review"} ${t.appName}: unused for 90+ days`,
+      detail: `${t.reason}${t.annualSavings > 0 || t.salesforce ? "" : " Add its price to see the saving."}`,
       count: t.users,
       annualSavings: t.annualSavings,
       confidence: t.annualSavings > 0 ? "medium" : "low",

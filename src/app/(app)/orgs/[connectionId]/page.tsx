@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { appExchangeSearchUrl } from "@/lib/apps/appexchange";
 import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
@@ -117,6 +118,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const connectedApps = result.connectedApps ?? appReview.tools.map((t) => ({ ...t, monthlyPrice: null, annualSavings: 0 }));
   const connectedSavings = connectedApps.reduce((a, t) => a + t.annualSavings, 0);
   const installedSavings = (result.apps ?? []).reduce((a, t) => a + (t.annualSavings ?? 0), 0);
+  // Read from the live review so results saved before this flag existed get it too.
+  const salesforceApps = new Set(appReview.tools.filter((t) => t.salesforce).map((t) => t.appName));
   const appPricesHref = `/orgs/${connection.id}/prices#apps`;
   const history = access.monitoring ? await scanHistory(connection.id) : [];
   const categories = (Object.entries(result.byCategory) as [Category, number][]).filter(([, v]) => v > 0);
@@ -246,7 +249,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                       <TR key={t.appName}>
                         <TD className="font-medium">{t.appName}</TD>
                         <TD className="text-right whitespace-nowrap">
-                          <AppSaving saving={t.annualSavings} priced={t.monthlyPrice !== null} flagged={t.verdict === "remove" || t.verdict === "consolidate"} href={appPricesHref} />
+                          <AppSaving saving={t.annualSavings} priced={t.monthlyPrice !== null} flagged={!salesforceApps.has(t.appName) && (t.verdict === "remove" || t.verdict === "consolidate")} href={appPricesHref} />
                         </TD>
                         <TD>{t.category}</TD>
                         <TD className="text-right">{formatNumber(t.users)}</TD>
@@ -305,6 +308,16 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                             flagged={a.status === "idle"}
                             href={a.namespace ? appPricesHref : null}
                           />
+                          {a.status === "idle" && a.namespace && a.monthlyPrice == null && (
+                            <a
+                              href={appExchangeSearchUrl(a.name)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block text-xs text-muted-foreground hover:text-cobalt"
+                            >
+                              List price ↗
+                            </a>
+                          )}
                         </TD>
                         <TD className="text-right">
                           {a.seats ? (a.seats.allowed < 0 ? "Site license" : `${formatNumber(a.seats.used)} / ${formatNumber(a.seats.allowed)}`) : "—"}

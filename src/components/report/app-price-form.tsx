@@ -12,6 +12,8 @@ export interface AppPriceRow {
   detail: string;
   unit: string;
   value: number | null;
+  /** Where to look the price up, e.g. the AppExchange listing search. */
+  lookupUrl?: string;
 }
 
 export function AppPriceForm({ connectionId, groups }: { connectionId: string; groups: { title: string; rows: AppPriceRow[] }[] }) {
@@ -28,7 +30,17 @@ export function AppPriceForm({ connectionId, groups }: { connectionId: string; g
               <div key={r.field} className="flex items-center justify-between gap-4 border-b border-border pb-3 last:border-0">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">{r.name}</div>
-                  <div className="text-xs text-muted-foreground">{r.detail}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {r.detail}
+                    {r.lookupUrl && (
+                      <>
+                        {" · "}
+                        <a href={r.lookupUrl} target="_blank" rel="noreferrer" className="font-semibold text-cobalt hover:underline">
+                          Find price on AppExchange ↗
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <div className="relative w-28">

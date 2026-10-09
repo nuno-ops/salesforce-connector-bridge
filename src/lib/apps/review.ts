@@ -15,6 +15,8 @@ export interface AppReviewItem {
   lastUsed: string | null;
   verdict: AppVerdict;
   reason: string;
+  /** Salesforce's own app: free with the org, so it never carries a price. */
+  salesforce: boolean;
   alternative: string | null;
 }
 
@@ -106,10 +108,13 @@ export function reviewApps(snapshot: Pick<OrgSnapshot, "oauthTokens" | "captured
   const tools: AppReviewItem[] = apps.map((app) => {
     const category = app.entry?.category ?? "Unrecognised";
     const usage = `${app.users} ${app.users === 1 ? "user" : "users"}, ${app.totalUses} ${app.totalUses === 1 ? "use" : "uses"}`;
-    const base = { appName: app.appName, category, users: app.users, totalUses: app.totalUses, lastUsed: app.lastUsed, alternative: app.entry?.alternative ?? null };
+    const base = { appName: app.appName, category, users: app.users, totalUses: app.totalUses, lastUsed: app.lastUsed, alternative: app.entry?.alternative ?? null, salesforce: Boolean(app.entry?.salesforce) };
 
     if (app.unused) {
       const when = app.lastUsed ? `last used ${app.lastUsed}` : "no recorded last use";
+      if (app.entry?.salesforce) {
+        return { ...base, verdict: "remove", reason: `Salesforce's own app with no use in the last ${UNUSED_DAYS} days (${when}). Revoke the unused access to tidy the org; it has no separate cost.` };
+      }
       return { ...base, verdict: "remove", reason: `No use in the last ${UNUSED_DAYS} days (${when}). Revoke access and check whether it's still paid for.` };
     }
     const overlap = overlapOf.get(app.appName);

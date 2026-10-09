@@ -4,6 +4,7 @@ import { AppPriceForm, type AppPriceRow } from "@/components/report/app-price-fo
 import { PriceForm } from "@/components/report/price-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { appExchangeSearchUrl } from "@/lib/apps/appexchange";
 import { reviewApps } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { env } from "@/lib/env";
@@ -35,6 +36,7 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
         detail: a.seats ? (a.seats.allowed < 0 ? "Site license" : `${formatNumber(a.seats.used)} of ${formatNumber(a.seats.allowed)} seats used`) : "No seat count",
         unit: perSeat ? "per seat / mo" : "per month",
         value: prices.apps?.packages[a.namespace] ?? null,
+        lookupUrl: appExchangeSearchUrl(a.name),
       });
     }
     for (const l of scan.snapshot.packageLicenses) {
@@ -47,7 +49,9 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
         value: prices.apps?.packages[l.namespace] ?? null,
       });
     }
-    for (const t of scan.result.connectedApps ?? reviewApps(scan.snapshot).tools) {
+    // Salesforce's own apps come with the org, so there's nothing to price.
+    for (const t of reviewApps(scan.snapshot).tools) {
+      if (t.salesforce) continue;
       connectedRows.push({
         field: `connected:${t.appName}`,
         name: t.appName,
@@ -96,7 +100,8 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
             <CardTitle>App prices</CardTitle>
             <CardDescription>
               Salesforce doesn&apos;t know what you pay other vendors. Add a price for any app you pay for and unused or overlapping apps
-              show a dollar saving in the report. Leave the rest blank.
+              show a dollar saving in the report. Leave free apps blank. For installed apps, the AppExchange link shows the vendor&apos;s
+              list price if you don&apos;t have your contract to hand.
             </CardDescription>
           </CardHeader>
           <CardContent>
