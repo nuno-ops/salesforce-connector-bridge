@@ -1,7 +1,7 @@
 import type { OrgSnapshot, SnapshotUser } from "@/lib/salesforce/types";
 import { priceForLicense, type PriceBook } from "./prices";
 
-export const ENGINE_VERSION = 1;
+export const ENGINE_VERSION = 2;
 
 export type Category =
   | "inactive_users"
@@ -10,7 +10,9 @@ export type Category =
   | "unused_seats"
   | "sandboxes"
   | "storage"
-  | "package_licenses";
+  | "package_licenses"
+  | "view_only_users"
+  | "unused_apps";
 
 export type Confidence = "high" | "medium" | "low";
 
@@ -61,11 +63,26 @@ export interface SavingsResult {
     inactive: FlaggedUser[];
     integration: FlaggedUser[];
     platform: FlaggedUser[];
+    viewOnly: FlaggedUser[];
   };
+  /** Installed managed packages with a usage verdict; `null` when not collected or unreadable. */
+  apps: AppUsage[] | null;
   licenses: LicenseRow[];
   storage: { dataUsedPct: number; fileUsedPct: number } | null;
   sandboxes: { full: number; partial: number; developer: number; total: number } | null;
   notes: string[];
+}
+
+export interface AppUsage {
+  name: string;
+  namespace: string | null;
+  /** Paid seats from the package license, `null` when the package has no license record; -1 = site license. */
+  seats: { allowed: number; used: number } | null;
+  /** Latest record created or edited in any of the package's objects. */
+  lastActivity: string | null;
+  /** idle: objects exist but nothing changed in the window; unknown: no objects we could read. */
+  status: "active" | "idle" | "unknown";
+  objectCount: number;
 }
 
 export interface EngineOptions {
@@ -73,12 +90,15 @@ export interface EngineOptions {
   inactiveDays?: number;
   /** Token use count above which an app connection looks like an integration. */
   integrationUseCount?: number;
+  /** An installed app with no record created or edited for this many days counts as unused. */
+  idleAppDays?: number;
   now?: Date;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CRM_OBJECTS = ["Opportunity", "Lead", "Case"];
 const INTEGRATION_NAME = /\b(integration|api|sync|etl|middleware|connector)\b/i;
+const ADMIN_PROFILE = /system administrator/i;
 
 /**
  * Turns an org snapshot into priced savings opportunities.
@@ -94,6 +114,7 @@ export function computeSavings(
   const now = options.now ?? new Date();
   const inactiveDays = options.inactiveDays ?? 30;
   const integrationUseCount = options.integrationUseCount ?? 1000;
+  const idleAppDays = options.idleAppDays ?? 90;
   const notes: string[] = [];
   const recommendations: Recommendation[] = [];
   const claimed = new Set<string>();
@@ -242,7 +263,46 @@ export function computeSavings(
     });
   }
 
-  // 4. Seats paid for but never assigned.
+  // 4. Full licenses held by people who log in but never create or edit anything.
+  const viewOnly: FlaggedUser[] = [];
+  const activity = snapshot.writeActivity;
+  if (activity === null) {
+    notes.push("Record activity wasn't readable, so the view-only user check was skipped.");
+  } else if (activity === undefined) {
+    notes.push("Run a new scan to check for users who log in but never edit records.");
+  } else {
+    const saving = Math.max(0, prices.fullMonthly - prices.platformMonthly) * 12;
+    for (const u of snapshot.users) {
+      if (claimed.has(u.id) || u.licenseName !== "Salesforce") continue;
+      // Admins mostly change setup, not records, so they'd all look idle.
+      if (u.profileName && ADMIN_PROFILE.test(u.profileName)) continue;
+      const sinceCreated = daysSince(u.createdDate);
+      if (sinceCreated !== null && sinceCreated < activity.windowDays) continue;
+      if ((activity.byUser[u.id] ?? 0) > 0) continue;
+      viewOnly.push(
+        flag(u, {
+          reason: `Logs in but created or edited no records in ${activity.windowDays} days`,
+          annualSavings: saving,
+          confidence: "low",
+        }),
+      );
+      claimed.add(u.id);
+    }
+  }
+  if (viewOnly.length && activity) {
+    recommendations.push({
+      id: "view_only_users",
+      category: "view_only_users",
+      title: `Right-size ${viewOnly.length} view-only ${plural(viewOnly.length, "user")}`,
+      detail: `These users log in but didn't create or edit a single ${activity.objects.join(", ")} record in ${activity.windowDays} days. They may only need to see reports: consider a Platform or restricted-use license, or emailed report subscriptions. Savings assume the Platform price; ask your account executive what fits.`,
+      count: viewOnly.length,
+      annualSavings: sum(viewOnly),
+      confidence: "low",
+      advisory: false,
+    });
+  }
+
+  // 5. Seats paid for but never assigned.
   for (const name of ["Salesforce", "Salesforce Platform"]) {
     const lic = snapshot.userLicenses.find((l) => l.name === name);
     const price = priceForLicense(prices, name) ?? 0;
@@ -260,7 +320,7 @@ export function computeSavings(
     });
   }
 
-  // 5. Managed package seats nobody uses.
+  // 6. Managed package seats nobody uses.
   for (const p of snapshot.packageLicenses) {
     if (p.allowed < 0 || p.status !== "Active" || p.allowed <= p.used) continue;
     const unused = p.allowed - p.used;
@@ -276,7 +336,50 @@ export function computeSavings(
     });
   }
 
-  // 6. Sandboxes.
+  // 7. Installed apps nobody uses.
+  let apps: AppUsage[] | null = null;
+  if (snapshot.installedPackages === null) {
+    notes.push("Installed apps need the Tooling API and weren't readable for the connected user.");
+  } else if (snapshot.installedPackages) {
+    const seatsByNamespace = new Map(snapshot.packageLicenses.map((p) => [p.namespace, p]));
+    apps = snapshot.installedPackages.map((p) => {
+      const readable = p.objects.filter((o) => !o.unreadable);
+      const lastActivity = readable.reduce<string | null>((latest, o) => {
+        for (const d of [o.lastCreated, o.lastModified]) if (d && (!latest || d > latest)) latest = d;
+        return latest;
+      }, null);
+      const since = daysSince(lastActivity);
+      const status: AppUsage["status"] =
+        readable.length === 0 ? "unknown" : since !== null && since < idleAppDays ? "active" : "idle";
+      const lic = p.namespace ? seatsByNamespace.get(p.namespace) : undefined;
+      return {
+        name: p.name,
+        namespace: p.namespace,
+        seats: lic ? { allowed: lic.allowed, used: lic.used } : null,
+        lastActivity,
+        status,
+        objectCount: p.objects.length,
+      };
+    });
+    apps.sort((a, b) => rankStatus(a.status) - rankStatus(b.status) || a.name.localeCompare(b.name));
+    // Licensed apps first: those are the ones most likely to cost money.
+    for (const app of [...apps].sort((a, b) => Number(b.seats !== null) - Number(a.seats !== null))) {
+      if (app.status !== "idle") continue;
+      const paid = app.seats !== null;
+      recommendations.push({
+        id: `unused_apps:${app.namespace ?? app.name}`,
+        category: "unused_apps",
+        title: `Review ${app.name}: no activity for ${idleAppDays}+ days`,
+        detail: `${app.lastActivity ? `Its ${app.objectCount} ${plural(app.objectCount, "object")} last saw a record created or edited on ${app.lastActivity.slice(0, 10)}` : `Its ${app.objectCount} ${plural(app.objectCount, "object")} hold no records`}. ${paid ? "It's a licensed app, so check the vendor contract and cancel before it renews." : "If you pay for it, check the vendor contract before it renews; if not, uninstalling it tidies the org."}`,
+        count: 1,
+        annualSavings: 0,
+        confidence: paid ? "medium" : "low",
+        advisory: true,
+      });
+    }
+  }
+
+  // 8. Sandboxes.
   let sandboxes: SavingsResult["sandboxes"] = null;
   if (snapshot.sandboxes === null) {
     notes.push("Sandbox details need the Tooling API and weren't readable for the connected user.");
@@ -301,7 +404,7 @@ export function computeSavings(
     }
   }
 
-  // 7. Storage.
+  // 9. Storage.
   let storage: SavingsResult["storage"] = null;
   if (snapshot.storage) {
     const s = snapshot.storage;
@@ -337,6 +440,8 @@ export function computeSavings(
     sandboxes: 0,
     storage: 0,
     package_licenses: 0,
+    view_only_users: 0,
+    unused_apps: 0,
   } satisfies Record<Category, number>;
   for (const r of recommendations) if (!r.advisory) byCategory[r.category] += r.annualSavings;
   const annualSavings = Object.values(byCategory).reduce((a, b) => a + b, 0);
@@ -351,7 +456,8 @@ export function computeSavings(
     monthlySavings: annualSavings / 12,
     byCategory,
     recommendations,
-    users: { inactive, integration, platform },
+    users: { inactive, integration, platform, viewOnly },
+    apps,
     licenses,
     storage,
     sandboxes,
@@ -388,5 +494,6 @@ function licenseRow(name: string, kind: LicenseRow["kind"], total: number, used:
 }
 
 const sum = (users: FlaggedUser[]) => users.reduce((a, u) => a + u.annualSavings, 0);
+const rankStatus = (s: AppUsage["status"]) => ({ idle: 0, unknown: 1, active: 2 })[s];
 const rank = (c: Confidence) => ({ high: 0, medium: 1, low: 2 })[c];
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);

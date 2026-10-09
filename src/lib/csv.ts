@@ -29,7 +29,7 @@ export function savingsCsv(result: SavingsResult, instanceUrl: string): string {
       Math.round(u.annualSavings),
       `${instanceUrl}/${u.id}`,
     ]);
-  const userCategories = new Set(["inactive_users", "integration_users", "platform_licenses"]);
+  const userCategories = new Set(["inactive_users", "integration_users", "platform_licenses", "view_only_users"]);
   const other = result.recommendations
     .filter((r) => !userCategories.has(r.category))
     .map((r) => [r.category, "", "", "", "", "", "", r.title, r.confidence, Math.round(r.annualSavings), ""]);
@@ -38,6 +38,7 @@ export function savingsCsv(result: SavingsResult, instanceUrl: string): string {
     ...userRows("Inactive user", result.users.inactive),
     ...userRows("Integration user", result.users.integration),
     ...userRows("Platform license candidate", result.users.platform),
+    ...userRows("View-only user", result.users.viewOnly ?? []),
     ...other,
   ]);
 }

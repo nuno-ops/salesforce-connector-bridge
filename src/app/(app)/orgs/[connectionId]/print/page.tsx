@@ -67,6 +67,7 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
       <UserSection title="Inactive users" users={r.users.inactive} />
       <UserSection title="Integration users" users={r.users.integration} />
       <UserSection title="Platform license candidates" users={r.users.platform} />
+      <UserSection title="View-only users" users={r.users.viewOnly ?? []} />
     </article>
   );
 }
