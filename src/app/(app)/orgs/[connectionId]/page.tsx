@@ -1,19 +1,17 @@
-import { eq } from "drizzle-orm";
 import { AlertTriangle, Download, Printer, Settings2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckoutButton, UpgradeCard } from "@/components/app/upgrade-card";
 import { MetricsChart } from "@/components/report/metrics-chart";
 import { ScanButton } from "@/components/report/scan-button";
-import { ToolReviewButton } from "@/components/report/tool-review-button";
 import { UserTabs } from "@/components/report/user-tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
-import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import type { Category, Recommendation } from "@/lib/savings/engine";
 import { latestScan, scanHistory } from "@/lib/scan";
@@ -38,6 +36,12 @@ const appStatusVariant = { idle: "danger", unknown: "muted", active: "default" }
 const appStatusLabel = { idle: "Unused", unknown: "Can't tell", active: "In use" } as const;
 
 const confidenceVariant = { high: "default", medium: "warning", low: "muted" } as const;
+const verdictVariant: Record<AppVerdict, "default" | "warning" | "danger" | "muted"> = {
+  keep: "muted",
+  review: "warning",
+  consolidate: "warning",
+  remove: "danger",
+};
 
 export default async function OrgPage({ params, searchParams }: PageProps<"/orgs/[connectionId]">) {
   const { connectionId } = await params;
@@ -107,7 +111,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
 
   const result = scan.result;
   const snapshot = scan.snapshot!;
-  const [toolReview] = await db().select().from(schema.toolAnalyses).where(eq(schema.toolAnalyses.scanId, scan.id)).limit(1);
+  const appReview = reviewApps(snapshot);
   const history = access.monitoring ? await scanHistory(connection.id) : [];
   const categories = (Object.entries(result.byCategory) as [Category, number][]).filter(([, v]) => v > 0);
   const actionable = result.recommendations.filter((r) => !r.advisory);
@@ -207,52 +211,40 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             <CardHeader>
               <CardTitle>Connected apps</CardTitle>
               <CardDescription>
-                {new Set(snapshot.oauthTokens.map((t) => t.appName)).size} apps with recorded usage. Claude reviews app names and usage
-                counts only; no records leave your org.
+                Reviewed from how often each app&apos;s access was used. Apps unused for {UNUSED_DAYS}+ days, apps doing the same job,
+                and apps only one person uses are flagged.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {toolReview ? (
-                <>
-                  <p className="text-sm">{toolReview.analysis.summary}</p>
-                  <Table>
-                    <THead>
-                      <tr>
-                        <TH>App</TH>
-                        <TH>Category</TH>
-                        <TH>Verdict</TH>
-                        <TH>Why</TH>
-                      </tr>
-                    </THead>
-                    <TBody>
-                      {toolReview.analysis.tools.map((t) => (
-                        <TR key={t.appName}>
-                          <TD className="font-medium">{t.appName}</TD>
-                          <TD>{t.category}</TD>
-                          <TD>
-                            <Badge variant={t.verdict === "keep" ? "default" : t.verdict === "remove" ? "danger" : "warning"}>{t.verdict}</Badge>
-                          </TD>
-                          <TD>
-                            {t.reason}
-                            {t.alternative && <div className="text-xs text-muted-foreground">Alternative: {t.alternative}</div>}
-                          </TD>
-                        </TR>
-                      ))}
-                    </TBody>
-                  </Table>
-                  {toolReview.analysis.overlaps.map((o) => (
-                    <p key={o.apps.join()} className="text-sm">
-                      <span className="font-medium">Overlap: {o.apps.join(", ")}.</span> {o.note}
-                    </p>
-                  ))}
-                  <div className="no-print">
-                    <ToolReviewButton connectionId={connection.id} rerun />
-                  </div>
-                </>
-              ) : (
-                <div className="no-print">
-                  <ToolReviewButton connectionId={connection.id} />
-                </div>
+              <p className="text-sm">{appReview.summary}</p>
+              {appReview.tools.length > 0 && (
+                <Table>
+                  <THead>
+                    <tr>
+                      <TH>App</TH>
+                      <TH>Category</TH>
+                      <TH className="text-right">Users</TH>
+                      <TH>Verdict</TH>
+                      <TH>Why</TH>
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {appReview.tools.map((t) => (
+                      <TR key={t.appName}>
+                        <TD className="font-medium">{t.appName}</TD>
+                        <TD>{t.category}</TD>
+                        <TD className="text-right">{formatNumber(t.users)}</TD>
+                        <TD>
+                          <Badge variant={verdictVariant[t.verdict]}>{t.verdict}</Badge>
+                        </TD>
+                        <TD>
+                          {t.reason}
+                          {t.alternative && <div className="text-xs text-muted-foreground">Native option: {t.alternative}</div>}
+                        </TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </Table>
               )}
             </CardContent>
           </Card>

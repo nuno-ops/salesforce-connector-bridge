@@ -4,9 +4,8 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { analyseTools, CLAUDE_MODEL, extractContractPrices } from "@/lib/ai/claude";
+import { extractContractPrices } from "@/lib/ai/claude";
 import { requireConnection } from "@/lib/auth";
-import { getAccess } from "@/lib/billing/server";
 import { db, schema } from "@/lib/db";
 import { disconnect } from "@/lib/salesforce/connection";
 import { getPriceBook, latestScan, recompute, runScan } from "@/lib/scan";
@@ -78,25 +77,6 @@ export async function extractContractAction(connectionId: string, _prev: Contrac
   } catch (e) {
     return { status: "error", message: e instanceof Error ? e.message : "Couldn't read the contract." };
   }
-}
-
-export async function analyseToolsAction(connectionId: string): Promise<ActionState> {
-  const { connection, workspace } = await requireConnection(connectionId);
-  const access = await getAccess(workspace.id);
-  if (!access.fullReport) return { status: "error", message: "Unlock the full report to use the AI review." };
-  const scan = await latestScan(connection.id, { succeededOnly: true });
-  if (!scan?.snapshot) return { status: "error", message: "Run a scan first." };
-  try {
-    const analysis = await analyseTools(scan.snapshot);
-    await db()
-      .insert(schema.toolAnalyses)
-      .values({ scanId: scan.id, analysis, model: CLAUDE_MODEL })
-      .onConflictDoUpdate({ target: schema.toolAnalyses.scanId, set: { analysis, model: CLAUDE_MODEL, createdAt: new Date() } });
-  } catch (e) {
-    return { status: "error", message: e instanceof Error ? e.message : "The AI review failed." };
-  }
-  revalidatePath(`/orgs/${connectionId}`);
-  return { status: "ok" };
 }
 
 export async function disconnectAction(connectionId: string) {

@@ -32,8 +32,8 @@ export function UpgradeCard({ returnPath, auditHours }: { returnPath: string; au
           <Lock className="size-4" /> Unlock the full report
         </CardTitle>
         <CardDescription>
-          See every user behind these numbers with direct links into Salesforce, export to CSV, print a report for finance, and get
-          an AI review of your connected apps.
+          See every user behind these numbers with direct links into Salesforce, export to CSV, print a report for finance, and see
+          which connected apps are unused or overlapping.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-3">

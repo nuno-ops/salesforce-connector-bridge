@@ -8,7 +8,7 @@ const CHECKS = [
   ["03", "Platform downgrades", "Find users who never touch Opportunities, Leads or Cases and may fit a Platform license."],
   ["04", "Unassigned seats", "Surface licenses nobody holds, plus unused seats across installed managed packages."],
   ["05", "Storage + sandboxes", "Spot storage close to its limit and Full Copy sandboxes you may not need."],
-  ["06", "Connected apps", "Use AI to review third-party apps and flag possible functional overlap."],
+  ["06", "Connected apps", "Flag third-party apps nobody has used in 90 days, apps that do the same job, and apps only one person uses."],
 ] as const;
 
 const PLANS = [
@@ -26,7 +26,7 @@ const PLANS = [
     price: "$99",
     suffix: " once",
     desc: "The evidence behind every recommendation, ready for action or renewal.",
-    items: ["Every user behind the numbers", "CSV export + printable report", "AI review of connected apps", "Prices read from your contract"],
+    items: ["Every user behind the numbers", "CSV export + printable report", "Connected app review", "Prices read from your contract"],
     cta: "Run full audit",
     tone: "audit",
   },

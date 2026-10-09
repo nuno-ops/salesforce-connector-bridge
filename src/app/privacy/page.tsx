@@ -28,8 +28,7 @@ export default function PrivacyPage() {
         <li>Supabase hosts our database and handles sign-in.</li>
         <li>Stripe processes payments.</li>
         <li>
-          Anthropic (Claude) receives connected-app names and usage counts when you request an AI review, and any contract PDF you
-          upload to fill in your prices. Uploaded PDFs are not stored by us.
+          Anthropic (Claude) receives any contract PDF you upload to fill in your prices. Uploaded PDFs are not stored by us.
         </li>
       </ul>
       <h2>Deleting your data</h2>

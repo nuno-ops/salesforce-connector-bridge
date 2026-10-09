@@ -13,7 +13,6 @@ import {
 } from "drizzle-orm/pg-core";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
 import type { SavingsResult } from "@/lib/savings/engine";
-import type { ToolAnalysis } from "@/lib/ai/schemas";
 
 // The app talks to Postgres with a server-side connection, so authorisation lives
 // in the data access layer. RLS is enabled with no policies so the public
@@ -125,11 +124,12 @@ export const scans = pgTable(
   (t) => [index("scans_connection_started").on(t.connectionId, t.startedAt.desc())],
 ).enableRLS();
 
+/** Legacy: AI app reviews from before the rule-based review in `lib/apps/review.ts`. No longer written. */
 export const toolAnalyses = pgTable("tool_analyses", {
   scanId: uuid("scan_id")
     .primaryKey()
     .references(() => scans.id, { onDelete: "cascade" }),
-  analysis: jsonb("analysis").$type<ToolAnalysis>().notNull(),
+  analysis: jsonb("analysis").$type<unknown>().notNull(),
   model: text("model").notNull(),
   createdAt: createdAt(),
 }).enableRLS();
