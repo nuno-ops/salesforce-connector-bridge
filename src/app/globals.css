@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  /* "Forensic luxury" palette, shared with the landing page. */
+  --background: #f2f0ea;
+  --foreground: #11110f;
+  --card: #faf9f5;
+  --muted: #e9e6de;
+  --muted-foreground: #67665f;
+  --border: #dcd9d1;
+  --primary: #11110f;
+  --primary-foreground: #f2f0ea;
+  --accent: #e6ebff;
+  --accent-foreground: #2340d9;
+  --positive: #3155ff;
+  --cobalt: #3155ff;
+  --lime: #c8ff3d;
+  --coral: #ff6b57;
+  --warning: #b3361f;
+  --warning-bg: #ffe4de;
+  --danger: #b91c1c;
+  --danger-bg: #fee2e2;
+  --ring: #3155ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-ring: var(--ring);
+  --color-cobalt: var(--cobalt);
+  --color-lime: var(--lime);
+  --color-coral: var(--coral);
+  --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.035em;
+}
+
+@layer components {
+  /* Mono label with a cobalt rule, as on the landing page. */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 28px;
+    height: 2px;
+    background: var(--cobalt);
+  }
+  .display-title {
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.055em;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
