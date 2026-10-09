@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Logo } from "@/components/app/logo";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
@@ -15,13 +15,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const error = typeof params.error === "string" ? params.error : null;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6">
+      <Logo />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <Link href="/" className="mb-2 text-sm font-semibold text-primary">
-            Salesforce Saver
-          </Link>
-          <CardTitle className="text-xl">Sign in</CardTitle>
+          <p className="eyebrow mb-2">Free scan</p>
+          <CardTitle className="text-3xl tracking-[-0.05em]">Sign in</CardTitle>
           <CardDescription>New here? Signing in creates your account.</CardDescription>
         </CardHeader>
         <CardContent>

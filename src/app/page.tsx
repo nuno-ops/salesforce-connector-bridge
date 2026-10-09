@@ -1,6 +1,3 @@
-import "@fontsource-variable/manrope";
-import "@fontsource/ibm-plex-mono/500.css";
-import "@fontsource/ibm-plex-mono/600.css";
 import "./landing.css";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";

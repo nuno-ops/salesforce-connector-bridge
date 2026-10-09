@@ -26,7 +26,10 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <div className="flex flex-col gap-4 border-b border-foreground pb-8">
+        <p className="eyebrow">Account</p>
+        <h1 className="display-title">Settings</h1>
+      </div>
 
       <Card>
         <CardHeader>

@@ -20,10 +20,10 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div>
-        <Link href={`/orgs/${connection.id}`} className="text-sm text-muted-foreground hover:underline">
-          ← {connection.orgName}
+        <Link href={`/orgs/${connection.id}`} className="eyebrow hover:text-cobalt">
+          {connection.orgName}
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">Your Salesforce prices</h1>
+        <h1 className="display-title mt-4 mb-3">Your Salesforce prices</h1>
         <p className="text-muted-foreground">
           Savings use list prices until you enter what you actually pay. Discounts are common, so your real numbers make the report
           credible with finance.

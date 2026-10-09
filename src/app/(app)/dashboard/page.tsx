@@ -44,9 +44,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Your Salesforce orgs</h1>
-        <p className="text-muted-foreground">Connect an org to see where you&apos;re overpaying for licenses.</p>
+      <div className="flex flex-col gap-4 border-b border-foreground pb-8">
+        <p className="eyebrow">Workspace</p>
+        <h1 className="display-title">Your Salesforce orgs</h1>
+        <p className="max-w-xl text-muted-foreground">Connect an org to see where you&apos;re overpaying for licenses.</p>
       </div>
 
       {typeof error === "string" && (
@@ -59,7 +60,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         <div className="grid gap-4 md:grid-cols-2">
           {connections.map((c) => (
             <Link key={c.id} href={`/orgs/${c.id}`}>
-              <Card className="transition-shadow hover:shadow-md">
+              <Card className="group transition-[border-color,transform] duration-300 hover:-translate-y-1 hover:border-foreground">
                 <CardHeader className="flex-row items-start justify-between">
                   <div className="flex items-center gap-3">
                     <Building2 className="size-5 text-muted-foreground" />
@@ -71,14 +72,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                       </CardDescription>
                     </div>
                   </div>
-                  <ChevronRight className="size-5 text-muted-foreground" />
+                  <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-cobalt" />
                 </CardHeader>
                 <CardContent className="flex items-end justify-between">
                   <div>
-                    <p className="text-2xl font-semibold text-positive">
+                    <p className="text-3xl font-bold tracking-[-0.05em] text-positive">
                       {c.annualSavings !== null ? formatCurrency(c.annualSavings) : "—"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="mt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                       {c.lastScan ? `potential yearly savings · scanned ${formatDate(c.lastScan)}` : "Not scanned yet"}
                     </p>
                   </div>

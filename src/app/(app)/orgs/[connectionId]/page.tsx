@@ -47,12 +47,12 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const failed = lastAttempt?.status === "failed" ? lastAttempt : null;
 
   const header = (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:underline">
-          ← All orgs
+    <div className="flex flex-wrap items-end justify-between gap-4 border-b border-foreground pb-8">
+      <div className="flex flex-col gap-4">
+        <Link href="/dashboard" className="eyebrow hover:text-cobalt">
+          All orgs
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{connection.orgName}</h1>
+        <h1 className="display-title">{connection.orgName}</h1>
         <p className="text-sm text-muted-foreground">
           {connection.edition}
           {connection.isSandbox ? " · Sandbox" : ""} · connected as {connection.sfUsername}
@@ -122,23 +122,23 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
       )}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="md:col-span-1">
+        <Card className="border-foreground bg-foreground text-background md:col-span-1 print:border-border print:bg-card print:text-foreground">
           <CardHeader>
-            <CardDescription>Potential yearly savings</CardDescription>
-            <p className="text-4xl font-bold text-positive">{formatCurrency(result.annualSavings)}</p>
-            <p className="text-sm text-muted-foreground">{formatCurrency(result.monthlySavings)} per month</p>
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#89887f]">Potential yearly savings</p>
+            <p className="mt-4 text-5xl font-bold tracking-[-0.06em] text-lime print:text-positive">{formatCurrency(result.annualSavings)}</p>
+            <p className="text-sm text-[#96958d]">{formatCurrency(result.monthlySavings)} per month</p>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
+          <CardContent className="flex flex-col text-sm">
             {categories.map(([key, value]) => (
-              <div key={key} className="flex justify-between">
-                <span className="text-muted-foreground">{CATEGORY_LABEL[key]}</span>
-                <span className="font-medium">{formatCurrency(value)}</span>
+              <div key={key} className="flex justify-between border-b border-[#2d2d29] py-3 first:border-t">
+                <span className="text-[#b5b3aa]">{CATEGORY_LABEL[key]}</span>
+                <span className="font-mono font-semibold">{formatCurrency(value)}</span>
               </div>
             ))}
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-4 text-xs text-[#96958d]">
               Based on {result.prices.source === "edition_default" ? `list prices for ${connection.edition}` : "your prices"}: $
               {result.prices.fullMonthly}/user/month full, ${result.prices.platformMonthly} Platform.{" "}
-              <Link href={`/orgs/${connection.id}/prices`} className="text-primary hover:underline">
+              <Link href={`/orgs/${connection.id}/prices`} className="text-lime hover:underline print:text-cobalt">
                 Edit prices
               </Link>
             </p>
@@ -274,7 +274,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                             {l.name}
                             {l.utilization !== null && (
                               <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
-                                <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.min(100, l.utilization * 100)}%` }} />
+                                <div className="h-1.5 rounded-full bg-cobalt" style={{ width: `${Math.min(100, l.utilization * 100)}%` }} />
                               </div>
                             )}
                           </TD>
@@ -396,7 +396,7 @@ function RecommendationRow({ rec }: { rec: Recommendation }) {
         </p>
         <p className="text-sm text-muted-foreground">{rec.detail}</p>
       </div>
-      <p className="shrink-0 text-right font-semibold">{rec.advisory ? <span className="text-xs font-normal text-muted-foreground">Advice</span> : formatCurrency(rec.annualSavings)}</p>
+      <p className="shrink-0 text-right font-mono font-semibold">{rec.advisory ? <span className="text-xs font-normal text-muted-foreground">Advice</span> : formatCurrency(rec.annualSavings)}</p>
     </div>
   );
 }
@@ -410,7 +410,7 @@ function Meter({ label, value }: { label: string; value: number }) {
         <span className={pct > 75 ? "font-medium text-warning" : ""}>{pct}% used</span>
       </div>
       <div className="mt-1 h-2 w-full rounded-full bg-muted">
-        <div className={`h-2 rounded-full ${pct > 90 ? "bg-danger" : pct > 75 ? "bg-warning" : "bg-primary"}`} style={{ width: `${Math.min(100, pct)}%` }} />
+        <div className={`h-2 rounded-full ${pct > 90 ? "bg-danger" : pct > 75 ? "bg-coral" : "bg-cobalt"}`} style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
     </div>
   );

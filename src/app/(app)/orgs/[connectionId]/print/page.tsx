@@ -21,8 +21,8 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
     <article className="mx-auto flex max-w-3xl flex-col gap-8 bg-card p-8 print:p-0">
       <header className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-semibold text-primary">Salesforce Saver</p>
-          <h1 className="text-2xl font-bold">License savings report: {connection.orgName}</h1>
+          <p className="eyebrow">Salesforce Saver · savings report</p>
+          <h1 className="mt-3 text-3xl font-bold">License savings report: {connection.orgName}</h1>
           <p className="text-sm text-muted-foreground">
             {connection.edition} · data as of {formatDate(scan.startedAt)}
           </p>

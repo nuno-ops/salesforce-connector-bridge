@@ -1,22 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafaf9;
-  --foreground: #0c0a09;
-  --card: #ffffff;
-  --muted: #f5f5f4;
-  --muted-foreground: #57534e;
-  --border: #e7e5e4;
-  --primary: #0c0a09;
-  --primary-foreground: #ffffff;
-  --accent: #ecfdf5;
-  --accent-foreground: #047857;
-  --positive: #047857;
-  --warning: #b45309;
-  --warning-bg: #fef3c7;
+  /* "Forensic luxury" palette, shared with the landing page. */
+  --background: #f2f0ea;
+  --foreground: #11110f;
+  --card: #faf9f5;
+  --muted: #e9e6de;
+  --muted-foreground: #67665f;
+  --border: #dcd9d1;
+  --primary: #11110f;
+  --primary-foreground: #f2f0ea;
+  --accent: #e6ebff;
+  --accent-foreground: #2340d9;
+  --positive: #3155ff;
+  --cobalt: #3155ff;
+  --lime: #c8ff3d;
+  --coral: #ff6b57;
+  --warning: #b3361f;
+  --warning-bg: #ffe4de;
   --danger: #b91c1c;
   --danger-bg: #fee2e2;
-  --ring: #78716c;
+  --ring: #3155ff;
 }
 
 @theme inline {
@@ -36,13 +40,50 @@
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-cobalt: var(--cobalt);
+  --color-lime: var(--lime);
+  --color-coral: var(--coral);
+  --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.035em;
+}
+
+@layer components {
+  /* Mono label with a cobalt rule, as on the landing page. */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 28px;
+    height: 2px;
+    background: var(--cobalt);
+  }
+  .display-title {
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.055em;
+  }
 }
 
 html {

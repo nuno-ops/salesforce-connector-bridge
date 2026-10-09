@@ -11,7 +11,7 @@ export function CheckoutButton({
   product: "monitor" | "audit" | "consult";
   returnPath: string;
   children: React.ReactNode;
-  variant?: "default" | "outline";
+  variant?: "default" | "outline" | "accent";
 }) {
   return (
     <form action="/api/stripe/checkout" method="post">
@@ -26,7 +26,7 @@ export function CheckoutButton({
 
 export function UpgradeCard({ returnPath, auditHours }: { returnPath: string; auditHours: number }) {
   return (
-    <Card className="border-primary/40 bg-accent/40">
+    <Card className="border-cobalt">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Lock className="size-4" /> Unlock the full report
@@ -37,7 +37,7 @@ export function UpgradeCard({ returnPath, auditHours }: { returnPath: string; au
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-3">
-        <CheckoutButton product="monitor" returnPath={returnPath}>
+        <CheckoutButton product="monitor" returnPath={returnPath} variant="accent">
           Monitor savings · $39/month
         </CheckoutButton>
         <CheckoutButton product="audit" returnPath={returnPath} variant="outline">
