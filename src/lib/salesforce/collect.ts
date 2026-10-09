@@ -1,5 +1,5 @@
 import { SF_API_VERSION, SalesforceAuthError, type SalesforceClient } from "./client";
-import type { OrgSnapshot } from "./types";
+import type { OrgSnapshot, SnapshotInstalledPackage, SnapshotWriteActivity } from "./types";
 
 // Raw record shapes, limited to the fields we select.
 interface UserRecord {
@@ -51,7 +51,26 @@ export const QUERIES = {
     "SELECT CALENDAR_YEAR(CreatedDate) y, CALENDAR_MONTH(CreatedDate) m, COUNT(Id) c FROM Opportunity WHERE CreatedDate = LAST_N_DAYS:180 GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)",
   wonByMonth:
     "SELECT CALENDAR_YEAR(CloseDate) y, CALENDAR_MONTH(CloseDate) m, COUNT(Id) c, SUM(Amount) a FROM Opportunity WHERE IsWon = true AND CloseDate = LAST_N_DAYS:180 GROUP BY CALENDAR_YEAR(CloseDate), CALENDAR_MONTH(CloseDate)",
+  installedPackages:
+    "SELECT SubscriberPackage.NamespacePrefix, SubscriberPackage.Name FROM InstalledSubscriberPackage",
 } as const;
+
+/** Objects whose creates and edits count as someone actually working in Salesforce. */
+export const ACTIVITY_OBJECTS = ["Account", "Contact", "Lead", "Opportunity", "Case", "Task", "Event"] as const;
+export const ACTIVITY_WINDOW_DAYS = 90;
+/** Caps that keep the installed-app check to a bounded number of API calls. */
+const MAX_OBJECTS_PER_PACKAGE = 8;
+const MAX_PACKAGE_OBJECTS = 80;
+
+export const activityQuery = (object: string, field: "CreatedById" | "LastModifiedById") => {
+  const date = field === "CreatedById" ? "CreatedDate" : "LastModifiedDate";
+  return `SELECT ${field} u, COUNT(Id) c FROM ${object} WHERE ${date} = LAST_N_DAYS:${ACTIVITY_WINDOW_DAYS} GROUP BY ${field}`;
+};
+
+export const packageObjectsQuery = (namespace: string) =>
+  `SELECT QualifiedApiName, Label FROM EntityDefinition WHERE NamespacePrefix = '${namespace.replace(/[^A-Za-z0-9_]/g, "")}'`;
+
+export const lastActivityQuery = (object: string) => `SELECT MAX(CreatedDate) c, MAX(LastModifiedDate) m FROM ${object}`;
 
 /**
  * Reads everything the savings engine needs from an org.
@@ -70,7 +89,7 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     }
   };
 
-  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, leads, opps, won] =
+  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, leads, opps, won, writeActivity, installedPackages] =
     await Promise.all([
       client.query<{ Id: string; Name: string; OrganizationType: string; IsSandbox: boolean }>(QUERIES.organization),
       client.query<UserRecord>(QUERIES.users),
@@ -117,6 +136,8 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
       optional("Lead trend", () => client.query<MonthAggregate>(QUERIES.leadsByMonth), []),
       optional("Opportunity trend", () => client.query<MonthAggregate>(QUERIES.opportunitiesByMonth), []),
       optional("Closed-won trend", () => client.query<MonthAggregate>(QUERIES.wonByMonth), []),
+      collectWriteActivity(client, warnings),
+      optional("Installed apps", () => collectInstalledPackages(client), null),
     ]);
 
   const organization = org[0];
@@ -184,6 +205,8 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
           }
         : null,
     sandboxes: sandboxes?.map((s) => ({ name: s.SandboxName, licenseType: s.LicenseType, description: s.Description })) ?? null,
+    writeActivity,
+    installedPackages,
     metrics: {
       leadsByMonth: leads.map((r) => ({ month: month(r), count: r.c })).sort((a, b) => a.month.localeCompare(b.month)),
       opportunitiesByMonth: [...oppMonths].sort().map((m) => {
@@ -194,4 +217,72 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     },
     warnings,
   };
+}
+
+/** Counts records each user created or last edited recently. Objects that fail are skipped with a warning. */
+async function collectWriteActivity(client: SalesforceClient, warnings: string[]): Promise<SnapshotWriteActivity | null> {
+  const byUser: Record<string, number> = {};
+  const objects: string[] = [];
+  const failed: string[] = [];
+  await Promise.all(
+    ACTIVITY_OBJECTS.map(async (object) => {
+      try {
+        const [created, modified] = await Promise.all([
+          client.query<{ u: string; c: number }>(activityQuery(object, "CreatedById")),
+          client.query<{ u: string; c: number }>(activityQuery(object, "LastModifiedById")),
+        ]);
+        for (const r of [...created, ...modified]) if (r.u) byUser[r.u] = (byUser[r.u] ?? 0) + r.c;
+        objects.push(object);
+      } catch (e) {
+        if (e instanceof SalesforceAuthError) throw e;
+        failed.push(object);
+      }
+    }),
+  );
+  if (failed.length) warnings.push(`User activity: couldn't read ${failed.join(", ")}`);
+  if (objects.length === 0) return null;
+  return { objects: ACTIVITY_OBJECTS.filter((o) => objects.includes(o)), byUser, windowDays: ACTIVITY_WINDOW_DAYS };
+}
+
+/**
+ * Lists installed managed packages and, for each of their custom objects, when a record
+ * was last created or edited. A package whose objects have gone quiet is probably unused.
+ */
+async function collectInstalledPackages(client: SalesforceClient): Promise<SnapshotInstalledPackage[]> {
+  const installed = await client.query<{ SubscriberPackage: { NamespacePrefix: string | null; Name: string } | null }>(
+    QUERIES.installedPackages,
+    { tooling: true },
+  );
+  let budget = MAX_PACKAGE_OBJECTS;
+  const packages: SnapshotInstalledPackage[] = [];
+  for (const row of installed) {
+    const pkg = row.SubscriberPackage;
+    if (!pkg) continue;
+    const entry: SnapshotInstalledPackage = { namespace: pkg.NamespacePrefix, name: pkg.Name, objects: [], truncated: false };
+    packages.push(entry);
+    if (!pkg.NamespacePrefix) continue;
+    let defs: { QualifiedApiName: string; Label: string }[] = [];
+    try {
+      defs = await client.query<{ QualifiedApiName: string; Label: string }>(packageObjectsQuery(pkg.NamespacePrefix));
+    } catch (e) {
+      if (e instanceof SalesforceAuthError) throw e;
+    }
+    // Custom objects only: settings (__mdt), events (__e) and the like don't hold business records.
+    const custom = defs.filter((d) => d.QualifiedApiName.endsWith("__c"));
+    const take = Math.min(custom.length, MAX_OBJECTS_PER_PACKAGE, budget);
+    budget -= take;
+    entry.truncated = take < custom.length;
+    entry.objects = await Promise.all(
+      custom.slice(0, take).map(async (d) => {
+        try {
+          const [r] = await client.query<{ c: string | null; m: string | null }>(lastActivityQuery(d.QualifiedApiName));
+          return { apiName: d.QualifiedApiName, label: d.Label, lastCreated: r?.c ?? null, lastModified: r?.m ?? null, unreadable: false };
+        } catch (e) {
+          if (e instanceof SalesforceAuthError) throw e;
+          return { apiName: d.QualifiedApiName, label: d.Label, lastCreated: null, lastModified: null, unreadable: true };
+        }
+      }),
+    );
+  }
+  return packages;
 }

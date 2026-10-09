@@ -30,7 +30,12 @@ const CATEGORY_LABEL: Record<Category, string> = {
   sandboxes: "Sandboxes",
   storage: "Storage",
   package_licenses: "Package seats",
+  view_only_users: "View-only users",
+  unused_apps: "Unused apps",
 };
+
+const appStatusVariant = { idle: "danger", unknown: "muted", active: "default" } as const;
+const appStatusLabel = { idle: "Unused", unknown: "Can't tell", active: "In use" } as const;
 
 const confidenceVariant = { high: "default", medium: "warning", low: "muted" } as const;
 
@@ -192,6 +197,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                   { key: "inactive", label: "Inactive", users: result.users.inactive },
                   { key: "integration", label: "Integration", users: result.users.integration },
                   { key: "platform", label: "Platform candidates", users: result.users.platform },
+                  { key: "viewOnly", label: "View-only", users: result.users.viewOnly ?? [] },
                 ]}
               />
             </CardContent>
@@ -250,6 +256,47 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
               )}
             </CardContent>
           </Card>
+
+          {result.apps && result.apps.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Installed apps</CardTitle>
+                <CardDescription>
+                  AppExchange packages and the last time anyone created or edited a record in their objects. Apps idle for 90+ days are
+                  worth cancelling at renewal.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <THead>
+                    <tr>
+                      <TH>App</TH>
+                      <TH className="text-right">Seats used</TH>
+                      <TH>Last activity</TH>
+                      <TH>Status</TH>
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {result.apps.map((a) => (
+                      <TR key={a.namespace ?? a.name}>
+                        <TD>
+                          <span className="font-medium">{a.name}</span>
+                          {a.namespace && <div className="font-mono text-xs text-muted-foreground">{a.namespace}</div>}
+                        </TD>
+                        <TD className="text-right">
+                          {a.seats ? (a.seats.allowed < 0 ? "Site license" : `${formatNumber(a.seats.used)} / ${formatNumber(a.seats.allowed)}`) : "—"}
+                        </TD>
+                        <TD className="whitespace-nowrap">{a.lastActivity ? formatDate(a.lastActivity) : a.status === "idle" ? "No records" : "—"}</TD>
+                        <TD>
+                          <Badge variant={appStatusVariant[a.status]}>{appStatusLabel[a.status]}</Badge>
+                        </TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card>

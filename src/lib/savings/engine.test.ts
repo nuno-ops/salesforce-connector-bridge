@@ -255,3 +255,88 @@ describe("computeSavings", () => {
     ]);
   });
 });
+
+describe("view-only users", () => {
+  const activity = (byUser: Record<string, number>) => ({ objects: ["Account", "Opportunity"], byUser, windowDays: 90 });
+
+  it("flags full-license users who log in but never create or edit records", () => {
+    const result = computeSavings(
+      snapshot({
+        users: [
+          user("busy"),
+          user("viewer"),
+          user("admin", { profileName: "System Administrator" }),
+          user("newbie", { createdDate: daysAgo(20) }),
+          user("platform", { licenseName: "Salesforce Platform" }),
+          user("gone", { lastLoginDate: null }),
+        ],
+        writeActivity: activity({ busy: 12 }),
+      }),
+      prices,
+      { now: NOW },
+    );
+    expect(result.users.viewOnly.map((u) => u.id)).toEqual(["viewer"]);
+    expect(result.users.inactive.map((u) => u.id)).toEqual(["gone"]);
+    expect(result.byCategory.view_only_users).toBe((165 - 25) * 12);
+    expect(result.recommendations.find((r) => r.category === "view_only_users")).toMatchObject({ confidence: "low", advisory: false });
+  });
+
+  it("skips the check, with a note, when activity wasn't collected", () => {
+    const missing = computeSavings(snapshot({ users: [user("viewer")] }), prices, { now: NOW });
+    expect(missing.users.viewOnly).toEqual([]);
+    expect(missing.notes.some((n) => n.includes("new scan"))).toBe(true);
+
+    const unreadable = computeSavings(snapshot({ users: [user("viewer")], writeActivity: null }), prices, { now: NOW });
+    expect(unreadable.users.viewOnly).toEqual([]);
+    expect(unreadable.notes.some((n) => n.includes("wasn't readable"))).toBe(true);
+  });
+});
+
+describe("installed apps", () => {
+  const obj = (apiName: string, lastModified: string | null, unreadable = false) => ({
+    apiName,
+    label: apiName,
+    lastCreated: lastModified,
+    lastModified,
+    unreadable,
+  });
+
+  it("marks apps idle when none of their objects changed in 90 days", () => {
+    const result = computeSavings(
+      snapshot({
+        packageLicenses: [{ id: "P", namespace: "old", status: "Active", allowed: 10, used: 10 }],
+        installedPackages: [
+          { namespace: "busy", name: "Busy App", truncated: false, objects: [obj("busy__A__c", daysAgo(200)), obj("busy__B__c", daysAgo(3))] },
+          { namespace: "old", name: "Old App", truncated: false, objects: [obj("old__A__c", daysAgo(200)), obj("old__B__c", null)] },
+          { namespace: "empty", name: "Empty App", truncated: false, objects: [obj("empty__A__c", null)] },
+          { namespace: "code", name: "Code Only", truncated: false, objects: [] },
+          { namespace: "locked", name: "Locked", truncated: false, objects: [obj("locked__A__c", null, true)] },
+        ],
+      }),
+      prices,
+      { now: NOW },
+    );
+    expect(result.apps?.map((a) => [a.name, a.status])).toEqual([
+      ["Empty App", "idle"],
+      ["Old App", "idle"],
+      ["Code Only", "unknown"],
+      ["Locked", "unknown"],
+      ["Busy App", "active"],
+    ]);
+    expect(result.apps?.find((a) => a.name === "Old App")).toMatchObject({ seats: { allowed: 10, used: 10 }, lastActivity: daysAgo(200) });
+    const recs = result.recommendations.filter((r) => r.category === "unused_apps");
+    expect(recs.map((r) => [r.id, r.confidence])).toEqual([
+      ["unused_apps:old", "medium"],
+      ["unused_apps:empty", "low"],
+    ]);
+    expect(recs.every((r) => r.advisory && r.annualSavings === 0)).toBe(true);
+    expect(result.annualSavings).toBe(0);
+  });
+
+  it("leaves apps empty when packages weren't collected", () => {
+    expect(computeSavings(snapshot(), prices, { now: NOW }).apps).toBeNull();
+    const unreadable = computeSavings(snapshot({ installedPackages: null }), prices, { now: NOW });
+    expect(unreadable.apps).toBeNull();
+    expect(unreadable.notes.some((n) => n.includes("Installed apps"))).toBe(true);
+  });
+});

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { SalesforceAuthError, SalesforceClient } from "./client";
-import { collectSnapshot, QUERIES } from "./collect";
+import { activityQuery, collectSnapshot, lastActivityQuery, packageObjectsQuery, QUERIES } from "./collect";
 import { parseIdentityUrl, resolveLoginHost } from "./oauth";
 
 const json = (body: unknown, status = 200) =>
@@ -79,6 +79,15 @@ describe("collectSnapshot", () => {
       ],
       [QUERIES.opportunitiesByMonth]: [{ y: 2026, m: 9, c: 4 }],
       [QUERIES.wonByMonth]: [{ y: 2026, m: 9, c: 1, a: 5000 }],
+      [activityQuery("Opportunity", "CreatedById")]: [{ u: "0051", c: 3 }],
+      [activityQuery("Opportunity", "LastModifiedById")]: [{ u: "0051", c: 2 }],
+      [activityQuery("Account", "LastModifiedById")]: [{ u: "0051", c: 1 }],
+      [QUERIES.installedPackages]: [{ SubscriberPackage: { NamespacePrefix: "acme", Name: "Acme Docs" } }],
+      [packageObjectsQuery("acme")]: [
+        { QualifiedApiName: "acme__Doc__c", Label: "Doc" },
+        { QualifiedApiName: "acme__Setting__mdt", Label: "Setting" },
+      ],
+      [lastActivityQuery("acme__Doc__c")]: [{ c: "2026-01-02T00:00:00.000+0000", m: "2026-02-03T00:00:00.000+0000" }],
     };
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input));
@@ -88,6 +97,7 @@ describe("collectSnapshot", () => {
       const q = url.searchParams.get("q") ?? "";
       if (q in responses) return json({ done: true, totalSize: 1, records: responses[q] });
       if (q === QUERIES.sandboxes) return json([{ errorCode: "INSUFFICIENT_ACCESS", message: "No access" }], 403);
+      if (q === activityQuery("Task", "CreatedById")) return json([{ errorCode: "QUERY_TIMEOUT", message: "Timed out" }], 400);
       return json({ done: true, totalSize: 0, records: [] });
     });
     const client = new SalesforceClient(creds, { fetch: fetch as typeof globalThis.fetch });
@@ -98,7 +108,28 @@ describe("collectSnapshot", () => {
     expect(snap.objectPermissions[0]).toMatchObject({ profileId: "00e1", read: true });
     expect(snap.storage).toEqual({ dataMaxMB: 1000, dataRemainingMB: 400, fileMaxMB: 2000, fileRemainingMB: 1000 });
     expect(snap.sandboxes).toBeNull();
-    expect(snap.warnings).toEqual(["Sandboxes: No access"]);
+    expect([...snap.warnings].sort()).toEqual(["Sandboxes: No access", "User activity: couldn't read Task"]);
+    expect(snap.writeActivity).toEqual({
+      objects: ["Account", "Contact", "Lead", "Opportunity", "Case", "Event"],
+      byUser: { "0051": 6 },
+      windowDays: 90,
+    });
+    expect(snap.installedPackages).toEqual([
+      {
+        namespace: "acme",
+        name: "Acme Docs",
+        truncated: false,
+        objects: [
+          {
+            apiName: "acme__Doc__c",
+            label: "Doc",
+            lastCreated: "2026-01-02T00:00:00.000+0000",
+            lastModified: "2026-02-03T00:00:00.000+0000",
+            unreadable: false,
+          },
+        ],
+      },
+    ]);
     expect(snap.metrics.opportunitiesByMonth).toEqual([{ month: "2026-09", count: 4, won: 1, wonAmount: 5000 }]);
   });
 });
