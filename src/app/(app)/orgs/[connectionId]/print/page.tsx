@@ -4,7 +4,7 @@ import { PrintButton } from "@/components/report/print-button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
-import type { FlaggedUser } from "@/lib/savings/engine";
+import { reportRecommendations, type FlaggedUser } from "@/lib/savings/engine";
 import { latestScan } from "@/lib/scan";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
   const [scan, access] = await Promise.all([latestScan(connection.id, { succeededOnly: true }), getAccess(workspace.id)]);
   if (!scan?.result || !access.fullReport) notFound();
   const r = scan.result;
+  const { priced, needsPrice } = reportRecommendations(r.recommendations);
 
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8 bg-card p-8 print:p-0">
@@ -50,18 +51,28 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
             </tr>
           </THead>
           <TBody>
-            {r.recommendations.map((rec) => (
+            {priced.map((rec) => (
               <TR key={rec.id}>
                 <TD>
                   <p className="font-medium">{rec.title}</p>
                   <p className="text-xs text-muted-foreground">{rec.detail}</p>
                 </TD>
                 <TD className="capitalize">{rec.confidence}</TD>
-                <TD className="text-right">{rec.advisory ? "Advice" : formatCurrency(rec.annualSavings)}</TD>
+                <TD className="text-right">{formatCurrency(rec.annualSavings)}</TD>
               </TR>
             ))}
           </TBody>
         </Table>
+        {needsPrice.length > 0 && (
+          <div className="text-sm">
+            <p className="font-medium">Add a price to see the saving</p>
+            <ul className="list-disc pl-5 text-muted-foreground">
+              {needsPrice.map((rec) => (
+                <li key={rec.id}>{rec.title}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       <UserSection title="Frozen users" users={r.users.frozen ?? []} />

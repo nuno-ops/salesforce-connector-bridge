@@ -77,8 +77,6 @@ describe("collectSnapshot", () => {
           PermissionsDelete: false,
         },
       ],
-      [QUERIES.opportunitiesByMonth]: [{ y: 2026, m: 9, c: 4 }],
-      [QUERIES.wonByMonth]: [{ y: 2026, m: 9, c: 1, a: 5000 }],
       [activityQuery("Opportunity", "CreatedById")]: [{ u: "0051", c: 3 }],
       [activityQuery("Opportunity", "LastModifiedById")]: [{ u: "0051", c: 2 }],
       [activityQuery("Account", "LastModifiedById")]: [{ u: "0051", c: 1 }],
@@ -148,7 +146,7 @@ describe("collectSnapshot", () => {
         ],
       },
     ]);
-    expect(snap.metrics.opportunitiesByMonth).toEqual([{ month: "2026-09", count: 4, won: 1, wonAmount: 5000 }]);
+    expect(snap.metrics).toBeUndefined();
   });
 });
 

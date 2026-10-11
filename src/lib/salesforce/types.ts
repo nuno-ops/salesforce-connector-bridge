@@ -38,7 +38,8 @@ export interface OrgSnapshot {
   apiRequests?: { max: number; remaining: number } | null;
   /** Custom objects the org built itself (no namespace). Missing on older snapshots; `null` when unreadable. */
   ownCustomObjects?: number | null;
-  metrics: {
+  /** Sales trends, only on snapshots taken before the report dropped its sales chart. */
+  metrics?: {
     leadsByMonth: { month: string; count: number }[];
     opportunitiesByMonth: { month: string; count: number; won: number; wonAmount: number }[];
   };
