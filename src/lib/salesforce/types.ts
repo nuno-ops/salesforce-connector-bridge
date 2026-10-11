@@ -38,6 +38,11 @@ export interface OrgSnapshot {
   apiRequests?: { max: number; remaining: number } | null;
   /** Custom objects the org built itself (no namespace). Missing on older snapshots; `null` when unreadable. */
   ownCustomObjects?: number | null;
+  /**
+   * The org's own Salesforce subscription from the Your Account objects (needs Manage Billing).
+   * Missing on older snapshots; `null` when unreadable.
+   */
+  salesforceAccount?: SnapshotSalesforceAccount | null;
   /** Sales trends, only on snapshots taken before the report dropped its sales chart. */
   metrics?: {
     leadsByMonth: { month: string; count: number }[];
@@ -132,4 +137,30 @@ export interface SnapshotPackageObject {
   lastModified: string | null;
   /** The object couldn't be queried (no access or the query timed out). */
   unreadable: boolean;
+}
+
+export interface SnapshotSalesforceAccount {
+  contracts: SnapshotSalesforceContract[];
+  /** Invoices from roughly the last two years, newest first. */
+  invoices: SnapshotSalesforceInvoice[];
+}
+
+export interface SnapshotSalesforceContract {
+  id: string;
+  number: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  /** Activated, Expired, Terminated, Draft, inApproval. */
+  status: string | null;
+  autoRenew: boolean | null;
+  /** e.g. "Monthly", "Quarterly", "Annual". */
+  billingFrequency: string | null;
+  currency: string | null;
+}
+
+export interface SnapshotSalesforceInvoice {
+  contractId: string | null;
+  date: string | null;
+  total: number;
+  currency: string | null;
 }

@@ -11,8 +11,14 @@ const usd = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-export function formatCurrency(amount: number) {
-  return usd.format(Math.round(amount));
+export function formatCurrency(amount: number, currency = "USD") {
+  if (currency === "USD") return usd.format(Math.round(amount));
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(Math.round(amount));
+  } catch {
+    // Unknown currency code: show the amount with the code rather than failing the page.
+    return `${formatNumber(Math.round(amount))} ${currency}`;
+  }
 }
 
 export function formatNumber(n: number) {

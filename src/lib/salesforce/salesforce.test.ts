@@ -86,6 +86,19 @@ describe("collectSnapshot", () => {
         { QualifiedApiName: "acme__Doc__c", Label: "Doc" },
         { QualifiedApiName: "acme__Setting__mdt", Label: "Setting" },
       ],
+      [QUERIES.salesforceContracts]: [
+        {
+          Id: "0xF1",
+          ContractNumber: "0574",
+          StartDate: "2026-09-01",
+          EndDate: "2027-08-31",
+          SalesforceContractStatus: "Activated",
+          AutoRenewCode: "No",
+          BillingFrequency: "Monthly",
+          ContractCurrency: "USD",
+        },
+      ],
+      [QUERIES.salesforceInvoices]: [{ SalesforceContractId: "0xF1", InvoiceDate: "2026-09-30", TotalAmount: 8421.2, InvoiceCurrency: "USD" }],
       [lastActivityQuery("acme__Doc__c")]: [{ c: "2026-01-02T00:00:00.000+0000", m: "2026-02-03T00:00:00.000+0000" }],
     };
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
@@ -146,7 +159,26 @@ describe("collectSnapshot", () => {
         ],
       },
     ]);
+    expect(snap.salesforceAccount).toEqual({
+      contracts: [
+        {
+          id: "0xF1",
+          number: "0574",
+          startDate: "2026-09-01",
+          endDate: "2027-08-31",
+          status: "Activated",
+          autoRenew: false,
+          billingFrequency: "Monthly",
+          currency: "USD",
+        },
+      ],
+      invoices: [{ contractId: "0xF1", date: "2026-09-30", total: 8421.2, currency: "USD" }],
+    });
     expect(snap.metrics).toBeUndefined();
+  });
+
+  it("never reads payment card fields from the Salesforce contract", () => {
+    expect(QUERIES.salesforceContracts).not.toMatch(/CreditCard|NameOnCreditCard/i);
   });
 });
 
