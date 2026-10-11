@@ -43,6 +43,17 @@ export async function latestScan(connectionId: string, { succeededOnly = false }
   return scan ?? null;
 }
 
+/** Status of the most recent scan attempt, without the stored snapshot and result. */
+export async function lastScanAttempt(connectionId: string) {
+  const [scan] = await db()
+    .select({ id: schema.scans.id, status: schema.scans.status, error: schema.scans.error, startedAt: schema.scans.startedAt })
+    .from(schema.scans)
+    .where(eq(schema.scans.connectionId, connectionId))
+    .orderBy(desc(schema.scans.startedAt))
+    .limit(1);
+  return scan ?? null;
+}
+
 export async function scanHistory(connectionId: string, limit = 12) {
   return db()
     .select({

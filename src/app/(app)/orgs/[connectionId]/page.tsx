@@ -15,7 +15,7 @@ import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
 import type { Category, Recommendation } from "@/lib/savings/engine";
-import { latestScan, scanHistory } from "@/lib/scan";
+import { lastScanAttempt, latestScan, scanHistory } from "@/lib/scan";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { disconnectAction } from "./actions";
 
@@ -51,7 +51,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const { connection, workspace } = await requireConnection(connectionId);
   const [scan, lastAttempt, access] = await Promise.all([
     latestScan(connection.id, { succeededOnly: true }),
-    latestScan(connection.id),
+    lastScanAttempt(connection.id),
     getAccess(workspace.id),
   ]);
   const returnPath = `/orgs/${connection.id}`;

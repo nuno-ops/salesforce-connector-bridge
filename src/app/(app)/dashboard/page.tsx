@@ -1,8 +1,9 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { AlertTriangle, Building2, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ConnectForm } from "@/components/app/connect-form";
+import { PendingHint } from "@/components/app/pending-hint";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspace } from "@/lib/auth";
@@ -22,7 +23,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       startedAt: schema.scans.startedAt,
     })
     .from(schema.scans)
-    .where(eq(schema.scans.status, "succeeded"))
+    .innerJoin(schema.sfConnections, eq(schema.sfConnections.id, schema.scans.connectionId))
+    .where(and(eq(schema.scans.status, "succeeded"), eq(schema.sfConnections.workspaceId, workspace.id)))
     .orderBy(schema.scans.connectionId, desc(schema.scans.startedAt))
     .as("latest");
 
@@ -72,7 +74,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                       </CardDescription>
                     </div>
                   </div>
-                  <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-cobalt" />
+                  <PendingHint>
+                    <ChevronRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-cobalt" />
+                  </PendingHint>
                 </CardHeader>
                 <CardContent className="flex items-end justify-between">
                   <div>

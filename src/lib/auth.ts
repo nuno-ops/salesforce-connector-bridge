@@ -73,13 +73,19 @@ export const requireWorkspace = cache(async (): Promise<WorkspaceContext> => {
 
 /** A Salesforce connection the current user may access, or a 404. */
 export async function requireConnection(connectionId: string) {
-  const ctx = await requireWorkspace();
+  const user = await requireUser();
   if (!/^[0-9a-f-]{36}$/i.test(connectionId)) notFound();
-  const [connection] = await db()
-    .select()
+  // One round trip: the connection, its workspace and the user's role, only if they're a member.
+  const [row] = await db()
+    .select({ connection: schema.sfConnections, workspace: schema.workspaces, role: schema.memberships.role })
     .from(schema.sfConnections)
-    .where(and(eq(schema.sfConnections.id, connectionId), eq(schema.sfConnections.workspaceId, ctx.workspace.id)))
+    .innerJoin(
+      schema.memberships,
+      and(eq(schema.memberships.workspaceId, schema.sfConnections.workspaceId), eq(schema.memberships.userId, user.id)),
+    )
+    .innerJoin(schema.workspaces, eq(schema.workspaces.id, schema.sfConnections.workspaceId))
+    .where(eq(schema.sfConnections.id, connectionId))
     .limit(1);
-  if (!connection) notFound();
-  return { ...ctx, connection };
+  if (!row) notFound();
+  return { user, ...row };
 }
