@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { OrgSnapshot, SnapshotUser } from "@/lib/salesforce/types";
-import { computeSavings } from "./engine";
+import { computeSavings, reportRecommendations } from "./engine";
 import { defaultPriceBook, type PriceBook } from "./prices";
 
 const NOW = new Date("2026-10-01T00:00:00Z");
@@ -930,5 +930,27 @@ describe("Unlimited Edition fit", () => {
 
   it("skips other editions", () => {
     expect(computeSavings(snapshot({ users: [user("a")] }), prices, { now: NOW }).edition).toBeNull();
+  });
+});
+
+describe("reportRecommendations", () => {
+  it("shows dollar savings, lists the ones a price would unlock, and drops pure advice", () => {
+    const result = computeSavings(
+      snapshot({
+        users: [user("never", { lastLoginDate: null })],
+        packageLicenses: [{ id: "P", namespace: "zzz", status: "Active", allowed: 10, used: 2 }],
+        sandboxes: [
+          { name: "a", licenseType: "FULL", description: null },
+          { name: "b", licenseType: "FULL", description: null },
+        ],
+        storage: { dataMaxMB: 1000, dataRemainingMB: 50, fileMaxMB: 1000, fileRemainingMB: 900 },
+      }),
+      prices,
+      { now: NOW, listPrices: {} },
+    );
+    const { priced, needsPrice } = reportRecommendations(result.recommendations);
+    expect(priced.map((r) => r.category)).toEqual(["inactive_users"]);
+    expect(needsPrice.map((r) => r.category).sort()).toEqual(["package_licenses", "sandboxes"]);
+    expect(result.recommendations.some((r) => r.category === "storage")).toBe(true);
   });
 });

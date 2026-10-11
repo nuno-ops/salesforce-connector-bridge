@@ -32,6 +32,19 @@ export interface Recommendation {
   confidence: Confidence;
   /** Advice we can't price. Never counted in the totals. */
   advisory: boolean;
+  /** Unpriced only because the customer hasn't entered a price yet; entering one turns it into a saving. */
+  needsPrice?: boolean;
+}
+
+/** A recommendation that carries a dollar saving. */
+export const isPriced = (r: Recommendation) => !r.advisory && r.annualSavings > 0;
+
+/** What the report shows: dollar savings, plus the ones a price would unlock. Pure advice is left out. */
+export function reportRecommendations(recommendations: Recommendation[]) {
+  return {
+    priced: recommendations.filter(isPriced),
+    needsPrice: recommendations.filter((r) => !isPriced(r) && r.needsPrice),
+  };
 }
 
 export interface FlaggedUser {
@@ -499,6 +512,7 @@ export function computeSavings(
         annualSavings: saving,
         confidence: paid && !fromList ? "medium" : "low",
         advisory: saving === 0,
+        needsPrice: saving === 0 && app.namespace !== null,
       });
     }
   }
@@ -519,6 +533,7 @@ export function computeSavings(
       annualSavings: saving,
       confidence: saving > 0 && !fromList ? "medium" : "low",
       advisory: saving === 0,
+      needsPrice: saving === 0,
     });
   }
 
@@ -546,6 +561,7 @@ export function computeSavings(
       annualSavings: t.annualSavings,
       confidence: t.annualSavings > 0 ? "medium" : "low",
       advisory: t.annualSavings === 0,
+      needsPrice: t.annualSavings === 0 && !t.salesforce,
     });
   }
   for (const o of review.overlaps) {
@@ -560,6 +576,7 @@ export function computeSavings(
       annualSavings: drop.annualSavings,
       confidence: "low",
       advisory: drop.annualSavings === 0,
+      needsPrice: drop.annualSavings === 0 && !drop.salesforce,
     });
   }
 
@@ -584,6 +601,7 @@ export function computeSavings(
         annualSavings: priced ? excess * prices.fullSandboxMonthly! * 12 : 0,
         confidence: "low",
         advisory: !priced,
+        needsPrice: !priced,
       });
     }
   }
@@ -647,9 +665,8 @@ export function computeSavings(
     const annualSavings = priced ? Math.max(0, gross - sandboxAddOn) : 0;
     edition = { signals, seats, annualSavings, blocked };
 
-    if (blocked) {
-      notes.push("Unlimited Edition fits how this org is used (API calls or custom objects are above Enterprise limits).");
-    } else if (seats > 0) {
+    // An org that has outgrown Enterprise gets no edition advice at all.
+    if (!blocked && seats > 0) {
       const sandboxNote =
         fullSandboxes && fullSandboxes > 0
           ? prices.fullSandboxMonthly !== null

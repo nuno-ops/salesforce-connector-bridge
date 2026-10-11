@@ -1,4 +1,4 @@
-import type { FlaggedUser, SavingsResult } from "@/lib/savings/engine";
+import { reportRecommendations, type FlaggedUser, type SavingsResult } from "@/lib/savings/engine";
 
 function cell(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -12,7 +12,7 @@ export function toCsv(rows: unknown[][]): string {
   return rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
 }
 
-/** One row per flagged user, plus one per unpriced or org-level recommendation. */
+/** One row per flagged user, plus one per other priced recommendation or one a price would unlock. */
 export function savingsCsv(result: SavingsResult, instanceUrl: string): string {
   const header = ["Category", "User", "Username", "Email", "Profile", "License", "Last login", "Reason", "Confidence", "Annual savings (USD)", "Link"];
   const userRows = (category: string, users: FlaggedUser[]) =>
@@ -30,7 +30,8 @@ export function savingsCsv(result: SavingsResult, instanceUrl: string): string {
       `${instanceUrl}/${u.id}`,
     ]);
   const userCategories = new Set(["inactive_users", "integration_users", "platform_licenses", "view_only_users", "frozen_users", "duplicate_users"]);
-  const other = result.recommendations
+  const { priced, needsPrice } = reportRecommendations(result.recommendations);
+  const other = [...priced, ...needsPrice]
     .filter((r) => !userCategories.has(r.category))
     .map((r) => [r.category, "", "", "", "", "", "", r.title, r.confidence, Math.round(r.annualSavings), ""]);
   return toCsv([

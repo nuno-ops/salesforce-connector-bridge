@@ -2,7 +2,6 @@ import { AlertTriangle, Download, Printer, Settings2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckoutButton, UpgradeCard } from "@/components/app/upgrade-card";
-import { MetricsChart } from "@/components/report/metrics-chart";
 import { ScanButton } from "@/components/report/scan-button";
 import { UserTabs } from "@/components/report/user-tabs";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,7 @@ import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
-import type { Category, Recommendation } from "@/lib/savings/engine";
+import { reportRecommendations, type Category, type Recommendation } from "@/lib/savings/engine";
 import { lastScanAttempt, latestScan, scanHistory } from "@/lib/scan";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { disconnectAction } from "./actions";
@@ -36,9 +35,6 @@ const CATEGORY_LABEL: Record<Category, string> = {
   duplicate_users: "Duplicate accounts",
   edition: "Edition",
 };
-
-const appStatusVariant = { idle: "danger", unknown: "muted", active: "default" } as const;
-const appStatusLabel = { idle: "Unused", unknown: "Can't tell", active: "In use" } as const;
 
 const confidenceVariant = { high: "default", medium: "warning", low: "muted" } as const;
 const verdictVariant: Record<AppVerdict, "default" | "warning" | "danger" | "muted"> = {
@@ -126,8 +122,19 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const appPricesHref = `/orgs/${connection.id}/prices#apps`;
   const history = access.monitoring ? await scanHistory(connection.id) : [];
   const categories = (Object.entries(result.byCategory) as [Category, number][]).filter(([, v]) => v > 0);
-  const actionable = result.recommendations.filter((r) => !r.advisory);
-  const advisory = result.recommendations.filter((r) => r.advisory);
+  const { priced, needsPrice } = reportRecommendations(result.recommendations);
+  // Only apps with something to cancel or consolidate; the rest are counted, not listed.
+  const flaggedConnected = connectedApps.filter((t) => t.verdict === "remove" || t.verdict === "consolidate");
+  const idleApps = (result.apps ?? []).filter((a) => a.status === "idle");
+  const otherAppCount = (result.apps?.length ?? 0) - idleApps.length;
+  const userTabs = [
+    { key: "frozen", label: "Frozen", users: result.users.frozen ?? [] },
+    { key: "duplicate", label: "Duplicates", users: result.users.duplicate ?? [] },
+    { key: "inactive", label: "Inactive", users: result.users.inactive },
+    { key: "integration", label: "Integration", users: result.users.integration },
+    { key: "platform", label: "Platform candidates", users: result.users.platform },
+    { key: "viewOnly", label: "View-only", users: result.users.viewOnly ?? [] },
+  ].filter((t) => t.users.length > 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -171,10 +178,25 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             <CardTitle>Recommendations</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col divide-y divide-border">
-            {actionable.length === 0 && <p className="text-sm text-muted-foreground">No license waste found. Your org is in good shape.</p>}
-            {[...actionable, ...advisory].map((r) => (
+            {priced.length === 0 && <p className="text-sm text-muted-foreground">No license waste found. Your org is in good shape.</p>}
+            {priced.map((r) => (
               <RecommendationRow key={r.id} rec={r} />
             ))}
+            {needsPrice.length > 0 && (
+              <div className="py-3 last:pb-0">
+                <p className="text-sm font-medium">
+                  Add a price to see the saving{" "}
+                  <Link href={`/orgs/${connection.id}/prices`} className="text-cobalt hover:underline">
+                    Enter prices
+                  </Link>
+                </p>
+                <ul className="mt-1 list-disc pl-5 text-sm text-muted-foreground">
+                  {needsPrice.map((r) => (
+                    <li key={r.id}>{r.title}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -201,26 +223,19 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             </Button>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Users to act on</CardTitle>
-              <CardDescription>Names open the user record in Salesforce.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UserTabs
-                instanceUrl={connection.instanceUrl}
-                tabs={[
-                  { key: "frozen", label: "Frozen", users: result.users.frozen ?? [] },
-                  { key: "duplicate", label: "Duplicates", users: result.users.duplicate ?? [] },
-                  { key: "inactive", label: "Inactive", users: result.users.inactive },
-                  { key: "integration", label: "Integration", users: result.users.integration },
-                  { key: "platform", label: "Platform candidates", users: result.users.platform },
-                  { key: "viewOnly", label: "View-only", users: result.users.viewOnly ?? [] },
-                ]}
-              />
-            </CardContent>
-          </Card>
+          {userTabs.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Users to act on</CardTitle>
+                <CardDescription>Names open the user record in Salesforce.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UserTabs instanceUrl={connection.instanceUrl} tabs={userTabs} />
+              </CardContent>
+            </Card>
+          )}
 
+          {flaggedConnected.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Connected apps</CardTitle>
@@ -236,8 +251,11 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                   cancelling unused apps and consolidating overlapping ones.
                 </p>
               )}
-              <p className="text-sm">{appReview.summary}</p>
-              {connectedApps.length > 0 && (
+              {connectedApps.length > flaggedConnected.length && (
+                <p className="text-sm text-muted-foreground">
+                  {connectedApps.length - flaggedConnected.length} other connected {connectedApps.length - flaggedConnected.length === 1 ? "app looks" : "apps look"} fine.
+                </p>
+              )}
                 <Table>
                   <THead>
                     <tr>
@@ -250,7 +268,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                     </tr>
                   </THead>
                   <TBody>
-                    {connectedApps.map((t) => (
+                    {flaggedConnected.map((t) => (
                       <TR key={t.appName}>
                         <TD className="font-medium">{t.appName}</TD>
                         <TD className="text-right whitespace-nowrap">
@@ -269,17 +287,18 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                     ))}
                   </TBody>
                 </Table>
-              )}
             </CardContent>
           </Card>
+          )}
 
-          {result.apps && result.apps.length > 0 && (
+          {idleApps.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Installed apps</CardTitle>
+                <CardTitle>Unused installed apps</CardTitle>
                 <CardDescription>
-                  AppExchange packages and the last time anyone created or edited a record in their objects. Apps idle for 90+ days are
-                  worth cancelling at renewal. Savings use the vendor&apos;s list price where we know it, until you enter your own.
+                  AppExchange apps where nobody created or edited a record in 90+ days: worth cancelling at renewal. Savings use the
+                  vendor&apos;s list price where we know it, until you enter your own.
+                  {otherAppCount > 0 && ` ${otherAppCount} other installed ${otherAppCount === 1 ? "app is" : "apps are"} in use or couldn't be checked.`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
@@ -296,11 +315,10 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                       <TH className="text-right">Yearly saving</TH>
                       <TH className="text-right">Seats used</TH>
                       <TH>Last activity</TH>
-                      <TH>Status</TH>
                     </tr>
                   </THead>
                   <TBody>
-                    {result.apps.map((a) => (
+                    {idleApps.map((a) => (
                       <TR key={a.namespace ?? a.name}>
                         <TD>
                           <span className="font-medium">{a.name}</span>
@@ -310,7 +328,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                           <AppSaving
                             saving={a.annualSavings ?? 0}
                             priced={a.monthlyPrice != null}
-                            flagged={a.status === "idle"}
+                            flagged
                             href={a.namespace ? appPricesHref : null}
                           />
                           {a.priceSource === "list" && (a.annualSavings ?? 0) > 0 && a.listPrice && (
@@ -324,7 +342,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                               List price ↗
                             </a>
                           )}
-                          {a.status === "idle" && a.namespace && a.monthlyPrice == null && !a.listPrice && (
+                          {a.namespace && a.monthlyPrice == null && !a.listPrice && (
                             <a
                               href={appExchangeSearchUrl(a.name)}
                               target="_blank"
@@ -338,10 +356,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                         <TD className="text-right">
                           {a.seats ? (a.seats.allowed < 0 ? "Site license" : `${formatNumber(a.seats.used)} / ${formatNumber(a.seats.allowed)}`) : "—"}
                         </TD>
-                        <TD className="whitespace-nowrap">{a.lastActivity ? formatDate(a.lastActivity) : a.status === "idle" ? "No records" : "—"}</TD>
-                        <TD>
-                          <Badge variant={appStatusVariant[a.status]}>{appStatusLabel[a.status]}</Badge>
-                        </TD>
+                        <TD className="whitespace-nowrap">{a.lastActivity ? formatDate(a.lastActivity) : "No records"}</TD>
                       </TR>
                     ))}
                   </TBody>
@@ -350,7 +365,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             </Card>
           )}
 
-          {result.edition && (
+          {result.edition && result.edition.annualSavings > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Unlimited Edition fit</CardTitle>
@@ -391,76 +406,6 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             </Card>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Licenses</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <THead>
-                    <tr>
-                      <TH>License</TH>
-                      <TH className="text-right">Used</TH>
-                      <TH className="text-right">Total</TH>
-                    </tr>
-                  </THead>
-                  <TBody>
-                    {result.licenses
-                      .filter((l) => l.kind === "user" && l.total !== 0)
-                      .map((l) => (
-                        <TR key={l.name}>
-                          <TD>
-                            {l.name}
-                            {l.utilization !== null && (
-                              <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
-                                <div className="h-1.5 rounded-full bg-cobalt" style={{ width: `${Math.min(100, l.utilization * 100)}%` }} />
-                              </div>
-                            )}
-                          </TD>
-                          <TD className="text-right">{formatNumber(l.used)}</TD>
-                          <TD className="text-right">{l.total < 0 ? "Unlimited" : formatNumber(l.total)}</TD>
-                        </TR>
-                      ))}
-                  </TBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Storage and sandboxes</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4 text-sm">
-                {result.storage ? (
-                  <>
-                    <Meter label="Data storage" value={result.storage.dataUsedPct} />
-                    <Meter label="File storage" value={result.storage.fileUsedPct} />
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">Storage limits weren&apos;t readable.</p>
-                )}
-                {result.sandboxes ? (
-                  <p>
-                    {result.sandboxes.total} sandboxes: {result.sandboxes.full} Full Copy, {result.sandboxes.partial} Partial Copy,{" "}
-                    {result.sandboxes.developer} Developer.
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground">Sandbox details weren&apos;t readable.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales activity, last 6 months</CardTitle>
-              <CardDescription>Useful context when deciding who really needs a full license.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <MetricsChart metrics={snapshot.metrics} />
-            </CardContent>
-          </Card>
         </>
       )}
 
@@ -506,7 +451,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
       {result.notes.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Scan notes</CardTitle>
+            <CardTitle className="text-sm">What we couldn&apos;t check</CardTitle>
+            <CardDescription>The total may be missing savings from these.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="list-disc pl-5 text-sm text-muted-foreground">
@@ -541,20 +487,6 @@ function RecommendationRow({ rec }: { rec: Recommendation }) {
   );
 }
 
-function Meter({ label, value }: { label: string; value: number }) {
-  const pct = Math.round(value * 100);
-  return (
-    <div>
-      <div className="flex justify-between">
-        <span>{label}</span>
-        <span className={pct > 75 ? "font-medium text-warning" : ""}>{pct}% used</span>
-      </div>
-      <div className="mt-1 h-2 w-full rounded-full bg-muted">
-        <div className={`h-2 rounded-full ${pct > 90 ? "bg-danger" : pct > 75 ? "bg-coral" : "bg-cobalt"}`} style={{ width: `${Math.min(100, pct)}%` }} />
-      </div>
-    </div>
-  );
-}
 
 /** Dollar saving for an app row; flagged apps without a price link to where the price is entered. */
 function AppSaving({ saving, priced, flagged, href }: { saving: number; priced: boolean; flagged: boolean; href: string | null }) {

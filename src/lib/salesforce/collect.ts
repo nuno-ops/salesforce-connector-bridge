@@ -22,12 +22,6 @@ interface ObjectPermissionRecord {
   PermissionsEdit: boolean;
   PermissionsDelete: boolean;
 }
-interface MonthAggregate {
-  y: number;
-  m: number;
-  c: number;
-  a?: number | null;
-}
 interface Limits {
   DailyApiRequests?: { Max: number; Remaining: number };
   DataStorageMB?: { Max: number; Remaining: number };
@@ -46,12 +40,6 @@ export const QUERIES = {
   packageLicenses: "SELECT Id, NamespacePrefix, Status, AllowedLicenses, UsedLicenses FROM PackageLicense",
   permissionSetLicenses: "SELECT Id, MasterLabel, TotalLicenses, UsedLicenses FROM PermissionSetLicense",
   sandboxes: "SELECT SandboxName, LicenseType, Description FROM SandboxInfo",
-  leadsByMonth:
-    "SELECT CALENDAR_YEAR(CreatedDate) y, CALENDAR_MONTH(CreatedDate) m, COUNT(Id) c FROM Lead WHERE CreatedDate = LAST_N_DAYS:180 GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)",
-  opportunitiesByMonth:
-    "SELECT CALENDAR_YEAR(CreatedDate) y, CALENDAR_MONTH(CreatedDate) m, COUNT(Id) c FROM Opportunity WHERE CreatedDate = LAST_N_DAYS:180 GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)",
-  wonByMonth:
-    "SELECT CALENDAR_YEAR(CloseDate) y, CALENDAR_MONTH(CloseDate) m, COUNT(Id) c, SUM(Amount) a FROM Opportunity WHERE IsWon = true AND CloseDate = LAST_N_DAYS:180 GROUP BY CALENDAR_YEAR(CloseDate), CALENDAR_MONTH(CloseDate)",
   frozenUsers: "SELECT UserId FROM UserLogin WHERE IsFrozen = true",
   installedPackages:
     "SELECT SubscriberPackage.NamespacePrefix, SubscriberPackage.Name FROM InstalledSubscriberPackage",
@@ -91,7 +79,7 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     }
   };
 
-  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, leads, opps, won, writeActivity, installedPackages, frozen, globalDescribe] =
+  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe] =
     await Promise.all([
       client.query<{ Id: string; Name: string; OrganizationType: string; IsSandbox: boolean }>(QUERIES.organization),
       client.query<UserRecord>(QUERIES.users),
@@ -135,9 +123,6 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
           }),
         null,
       ),
-      optional("Lead trend", () => client.query<MonthAggregate>(QUERIES.leadsByMonth), []),
-      optional("Opportunity trend", () => client.query<MonthAggregate>(QUERIES.opportunitiesByMonth), []),
-      optional("Closed-won trend", () => client.query<MonthAggregate>(QUERIES.wonByMonth), []),
       collectWriteActivity(client, warnings),
       optional("Installed apps", () => collectInstalledPackages(client), null),
       optional("Frozen users", () => client.query<{ UserId: string }>(QUERIES.frozenUsers), null),
@@ -151,9 +136,6 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
   const organization = org[0];
   if (!organization) throw new Error("Couldn't read the Organization record.");
 
-  const month = (r: MonthAggregate) => `${r.y}-${String(r.m).padStart(2, "0")}`;
-  const wonByMonth = new Map(won.map((r) => [month(r), r]));
-  const oppMonths = new Set([...opps.map(month), ...wonByMonth.keys()]);
 
   return {
     version: 1,
@@ -218,14 +200,6 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     frozenUserIds: frozen?.map((f) => f.UserId) ?? null,
     apiRequests: limits?.DailyApiRequests ? { max: limits.DailyApiRequests.Max, remaining: limits.DailyApiRequests.Remaining } : null,
     ownCustomObjects: Array.isArray(globalDescribe?.sobjects) ? globalDescribe.sobjects.filter((o) => isOwnCustomObject(o.name)).length : null,
-    metrics: {
-      leadsByMonth: leads.map((r) => ({ month: month(r), count: r.c })).sort((a, b) => a.month.localeCompare(b.month)),
-      opportunitiesByMonth: [...oppMonths].sort().map((m) => {
-        const created = opps.find((r) => month(r) === m);
-        const w = wonByMonth.get(m);
-        return { month: m, count: created?.c ?? 0, won: w?.c ?? 0, wonAmount: w?.a ?? 0 };
-      }),
-    },
     warnings,
   };
 }
