@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { SalesforceAuthError, SalesforceClient } from "./client";
-import { activityQuery, collectSnapshot, lastActivityQuery, packageObjectsQuery, QUERIES } from "./collect";
+import { activityQuery, collectSnapshot, isOwnCustomObject, lastActivityQuery, packageObjectsQuery, QUERIES } from "./collect";
 import { parseIdentityUrl, resolveLoginHost } from "./oauth";
 
 const json = (body: unknown, status = 200) =>
@@ -82,6 +82,7 @@ describe("collectSnapshot", () => {
       [activityQuery("Opportunity", "CreatedById")]: [{ u: "0051", c: 3 }],
       [activityQuery("Opportunity", "LastModifiedById")]: [{ u: "0051", c: 2 }],
       [activityQuery("Account", "LastModifiedById")]: [{ u: "0051", c: 1 }],
+      [QUERIES.frozenUsers]: [{ UserId: "0051" }],
       [QUERIES.installedPackages]: [{ SubscriberPackage: { NamespacePrefix: "acme", Name: "Acme Docs" } }],
       [packageObjectsQuery("acme")]: [
         { QualifiedApiName: "acme__Doc__c", Label: "Doc" },
@@ -92,7 +93,21 @@ describe("collectSnapshot", () => {
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input));
       if (url.pathname.endsWith("/limits")) {
-        return json({ DataStorageMB: { Max: 1000, Remaining: 400 }, FileStorageMB: { Max: 2000, Remaining: 1000 } });
+        return json({
+          DataStorageMB: { Max: 1000, Remaining: 400 },
+          FileStorageMB: { Max: 2000, Remaining: 1000 },
+          DailyApiRequests: { Max: 115000, Remaining: 114000 },
+        });
+      }
+      if (url.pathname.endsWith("/sobjects")) {
+        return json({
+          sobjects: [
+            { name: "Account", custom: false },
+            { name: "Invoice__c", custom: true },
+            { name: "acme__Doc__c", custom: true },
+            { name: "Setting__mdt", custom: true },
+          ],
+        });
       }
       const q = url.searchParams.get("q") ?? "";
       if (q in responses) return json({ done: true, totalSize: 1, records: responses[q] });
@@ -114,6 +129,9 @@ describe("collectSnapshot", () => {
       byUser: { "0051": 6 },
       windowDays: 90,
     });
+    expect(snap.frozenUserIds).toEqual(["0051"]);
+    expect(snap.apiRequests).toEqual({ max: 115000, remaining: 114000 });
+    expect(snap.ownCustomObjects).toBe(1);
     expect(snap.installedPackages).toEqual([
       {
         namespace: "acme",
@@ -131,6 +149,16 @@ describe("collectSnapshot", () => {
       },
     ]);
     expect(snap.metrics.opportunitiesByMonth).toEqual([{ month: "2026-09", count: 4, won: 1, wonAmount: 5000 }]);
+  });
+});
+
+describe("isOwnCustomObject", () => {
+  it("counts only the org's own custom objects", () => {
+    expect(isOwnCustomObject("Invoice__c")).toBe(true);
+    expect(isOwnCustomObject("Line_Item__c")).toBe(true);
+    expect(isOwnCustomObject("acme__Doc__c")).toBe(false);
+    expect(isOwnCustomObject("Setting__mdt")).toBe(false);
+    expect(isOwnCustomObject("Account")).toBe(false);
   });
 });
 

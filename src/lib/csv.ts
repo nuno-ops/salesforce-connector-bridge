@@ -29,12 +29,14 @@ export function savingsCsv(result: SavingsResult, instanceUrl: string): string {
       Math.round(u.annualSavings),
       `${instanceUrl}/${u.id}`,
     ]);
-  const userCategories = new Set(["inactive_users", "integration_users", "platform_licenses", "view_only_users"]);
+  const userCategories = new Set(["inactive_users", "integration_users", "platform_licenses", "view_only_users", "frozen_users", "duplicate_users"]);
   const other = result.recommendations
     .filter((r) => !userCategories.has(r.category))
     .map((r) => [r.category, "", "", "", "", "", "", r.title, r.confidence, Math.round(r.annualSavings), ""]);
   return toCsv([
     header,
+    ...userRows("Frozen user", result.users.frozen ?? []),
+    ...userRows("Duplicate account", result.users.duplicate ?? []),
     ...userRows("Inactive user", result.users.inactive),
     ...userRows("Integration user", result.users.integration),
     ...userRows("Platform license candidate", result.users.platform),

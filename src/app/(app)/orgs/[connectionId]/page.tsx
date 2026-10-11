@@ -32,6 +32,9 @@ const CATEGORY_LABEL: Record<Category, string> = {
   view_only_users: "View-only users",
   unused_apps: "Unused apps",
   connected_apps: "Connected apps",
+  frozen_users: "Frozen users",
+  duplicate_users: "Duplicate accounts",
+  edition: "Edition",
 };
 
 const appStatusVariant = { idle: "danger", unknown: "muted", active: "default" } as const;
@@ -207,6 +210,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
               <UserTabs
                 instanceUrl={connection.instanceUrl}
                 tabs={[
+                  { key: "frozen", label: "Frozen", users: result.users.frozen ?? [] },
+                  { key: "duplicate", label: "Duplicates", users: result.users.duplicate ?? [] },
                   { key: "inactive", label: "Inactive", users: result.users.inactive },
                   { key: "integration", label: "Integration", users: result.users.integration },
                   { key: "platform", label: "Platform candidates", users: result.users.platform },
@@ -337,6 +342,47 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                         <TD>
                           <Badge variant={appStatusVariant[a.status]}>{appStatusLabel[a.status]}</Badge>
                         </TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {result.edition && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Unlimited Edition fit</CardTitle>
+                <CardDescription>
+                  What Unlimited adds over Enterprise, and whether this org uses it.{" "}
+                  {result.edition.blocked
+                    ? "This org needs Unlimited's higher limits."
+                    : result.edition.annualSavings > 0
+                      ? `Moving ${formatNumber(result.edition.seats)} full licenses to Enterprise at renewal could save ${formatCurrency(result.edition.annualSavings)} a year.`
+                      : "We couldn't read enough to price a move to Enterprise."}{" "}
+                  Premier support also comes with Unlimited; we can&apos;t see whether you use it.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <THead>
+                    <tr>
+                      <TH>Unlimited extra</TH>
+                      <TH>Needed?</TH>
+                      <TH>Why</TH>
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {result.edition.signals.map((sig) => (
+                      <TR key={sig.key}>
+                        <TD className="font-medium">{sig.label}</TD>
+                        <TD>
+                          <Badge variant={sig.needsUnlimited === null ? "muted" : sig.needsUnlimited ? "warning" : "default"}>
+                            {sig.needsUnlimited === null ? "Can't tell" : sig.needsUnlimited ? "Yes" : "No"}
+                          </Badge>
+                        </TD>
+                        <TD>{sig.detail}</TD>
                       </TR>
                     ))}
                   </TBody>

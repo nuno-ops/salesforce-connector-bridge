@@ -1,9 +1,9 @@
 import type { OrgSnapshot, SnapshotUser } from "@/lib/salesforce/types";
 import { LIST_PRICES, type ListPrice } from "@/lib/apps/list-prices";
 import { reviewApps, type AppReviewItem } from "@/lib/apps/review";
-import { priceForLicense, type PriceBook } from "./prices";
+import { editionKey, ENTERPRISE_SHARE_OF_UNLIMITED, priceForLicense, type PriceBook } from "./prices";
 
-export const ENGINE_VERSION = 3;
+export const ENGINE_VERSION = 4;
 
 export type Category =
   | "inactive_users"
@@ -15,7 +15,10 @@ export type Category =
   | "package_licenses"
   | "view_only_users"
   | "unused_apps"
-  | "connected_apps";
+  | "connected_apps"
+  | "frozen_users"
+  | "duplicate_users"
+  | "edition";
 
 export type Confidence = "high" | "medium" | "low";
 
@@ -67,7 +70,12 @@ export interface SavingsResult {
     integration: FlaggedUser[];
     platform: FlaggedUser[];
     viewOnly: FlaggedUser[];
+    /** Missing on results computed before engine v4. */
+    frozen?: FlaggedUser[];
+    duplicate?: FlaggedUser[];
   };
+  /** Unlimited Edition fit; `null` for other editions. Missing on results computed before engine v4. */
+  edition?: EditionFit | null;
   /** Installed managed packages with a usage verdict; `null` when not collected or unreadable. */
   apps: AppUsage[] | null;
   /** Connected apps reviewed from OAuth usage, dollar savings first. Missing on results computed before engine v3. */
@@ -98,6 +106,23 @@ export interface AppUsage {
   annualSavings?: number;
 }
 
+export interface EditionSignal {
+  key: "full_sandbox" | "api_requests" | "custom_objects";
+  label: string;
+  /** true: the org needs this Unlimited extra; false: it doesn't; null: we couldn't tell. */
+  needsUnlimited: boolean | null;
+  detail: string;
+}
+
+export interface EditionFit {
+  signals: EditionSignal[];
+  /** Full licenses the saving is counted on (seats not already flagged by another check). */
+  seats: number;
+  annualSavings: number;
+  /** The org has outgrown Enterprise (API use or custom objects), so no saving is suggested. */
+  blocked: boolean;
+}
+
 export interface ConnectedAppResult extends AppReviewItem {
   /** Monthly subscription cost the customer entered, or `null`. */
   monthlyPrice: number | null;
@@ -121,12 +146,18 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const CRM_OBJECTS = ["Opportunity", "Lead", "Case"];
 const INTEGRATION_NAME = /\b(integration|api|sync|etl|middleware|connector)\b/i;
 const ADMIN_PROFILE = /system administrator/i;
+/** Enterprise Edition limits (Salesforce limits cheat sheet): API calls per 24h and custom objects. */
+const ENTERPRISE_API_BASE = 100_000;
+const ENTERPRISE_API_PER_LICENSE = 1_000;
+const ENTERPRISE_CUSTOM_OBJECTS = 200;
+/** Leave headroom: one day's API use is a noisy sample. */
+const API_HEADROOM = 0.8;
 
 /**
  * Turns an org snapshot into priced savings opportunities.
  *
  * Each user lands in at most one bucket, checked in priority order
- * inactive → integration → platform, so savings are never double counted.
+ * frozen → inactive → integration → duplicate → platform → view-only, so savings are never double counted.
  */
 export function computeSavings(
   snapshot: OrgSnapshot,
@@ -144,11 +175,34 @@ export function computeSavings(
   const daysSince = (iso: string | null) =>
     iso ? Math.floor((now.getTime() - new Date(iso).getTime()) / DAY_MS) : null;
 
+  // 0. Frozen users: they can't log in but still hold a license.
+  const frozen: FlaggedUser[] = [];
+  const frozenIds = new Set(snapshot.frozenUserIds ?? []);
+  if (snapshot.frozenUserIds === null) notes.push("Frozen users weren't readable, so they're checked as inactive users instead.");
+  for (const u of snapshot.users) {
+    const price = priceForLicense(prices, u.licenseName);
+    if (!price || !frozenIds.has(u.id)) continue;
+    frozen.push(flag(u, { reason: "Frozen but still active, so the license is still used", annualSavings: price * 12, confidence: "high" }));
+    claimed.add(u.id);
+  }
+  if (frozen.length) {
+    recommendations.push({
+      id: "frozen_users",
+      category: "frozen_users",
+      title: `Deactivate ${frozen.length} frozen ${plural(frozen.length, "user")}`,
+      detail: "Freezing blocks the login but keeps the license in use. Deactivate these users to free their licenses, then drop the seats at renewal.",
+      count: frozen.length,
+      annualSavings: sum(frozen),
+      confidence: "high",
+      advisory: false,
+    });
+  }
+
   // 1. Inactive users on paid licenses.
   const inactive: FlaggedUser[] = [];
   for (const u of snapshot.users) {
     const price = priceForLicense(prices, u.licenseName);
-    if (!price) continue;
+    if (!price || claimed.has(u.id)) continue;
     const sinceLogin = daysSince(u.lastLoginDate);
     const sinceCreated = daysSince(u.createdDate);
     // Brand-new users haven't had the chance to log in yet.
@@ -235,6 +289,46 @@ export function computeSavings(
       annualSavings: sum(integration),
       confidence: integration.some((u) => u.confidence === "medium") ? "medium" : "low",
       advisory: priced.length === 0,
+    });
+  }
+
+  // 2b. One person, several paid accounts (same email), e.g. "jdoe" and "jdoe.admin".
+  const duplicate: FlaggedUser[] = [];
+  const byEmail = new Map<string, SnapshotUser[]>();
+  for (const u of snapshot.users) {
+    if (!u.email || !priceForLicense(prices, u.licenseName)) continue;
+    const key = u.email.trim().toLowerCase();
+    byEmail.set(key, [...(byEmail.get(key) ?? []), u]);
+  }
+  for (const group of byEmail.values()) {
+    if (group.length < 2) continue;
+    // Keep the account used most recently; the others are extra seats.
+    const sorted = [...group].sort((a, b) => (b.lastLoginDate ?? "").localeCompare(a.lastLoginDate ?? ""));
+    const keeper = sorted[0];
+    const sameName = group.every((u) => normName(u.name) === normName(keeper.name));
+    for (const u of sorted.slice(1)) {
+      if (claimed.has(u.id)) continue;
+      duplicate.push(
+        flag(u, {
+          reason: `Same email as ${keeper.name} (${keeper.username})`,
+          annualSavings: priceForLicense(prices, u.licenseName)! * 12,
+          confidence: sameName ? "medium" : "low",
+        }),
+      );
+      claimed.add(u.id);
+    }
+  }
+  if (duplicate.length) {
+    recommendations.push({
+      id: "duplicate_users",
+      category: "duplicate_users",
+      title: `Merge ${duplicate.length} duplicate ${plural(duplicate.length, "account")}`,
+      detail:
+        "These paid users share an email with another active user, which usually means one person with two accounts (often a second admin login). Give the person one account and deactivate the extra. Check shared mailboxes first.",
+      count: duplicate.length,
+      annualSavings: sum(duplicate),
+      confidence: duplicate.some((u) => u.confidence === "medium") ? "medium" : "low",
+      advisory: false,
     });
   }
 
@@ -494,6 +588,87 @@ export function computeSavings(
     }
   }
 
+  // 8b. Unlimited Edition that would fit on Enterprise.
+  let edition: EditionFit | null = null;
+  if (editionKey(snapshot.organization.edition) === "unlimited") {
+    const fullLicense = snapshot.userLicenses.find((l) => l.name === "Salesforce");
+    const fullUsers = snapshot.users.filter((u) => u.licenseName === "Salesforce");
+    const signals: EditionSignal[] = [];
+
+    const api = snapshot.apiRequests;
+    const enterpriseApi = ENTERPRISE_API_BASE + ENTERPRISE_API_PER_LICENSE * (fullLicense?.total ?? fullUsers.length);
+    if (api) {
+      const used = Math.max(0, api.max - api.remaining);
+      signals.push({
+        key: "api_requests",
+        label: "API calls",
+        needsUnlimited: used > enterpriseApi * API_HEADROOM,
+        detail: `${used.toLocaleString("en-US")} used in the last 24 hours; Enterprise would allow about ${enterpriseApi.toLocaleString("en-US")}.`,
+      });
+    } else {
+      signals.push({ key: "api_requests", label: "API calls", needsUnlimited: null, detail: "API usage wasn't readable." });
+    }
+
+    const objects = snapshot.ownCustomObjects;
+    signals.push(
+      objects === null || objects === undefined
+        ? { key: "custom_objects", label: "Custom objects", needsUnlimited: null, detail: "The object list wasn't readable." }
+        : {
+            key: "custom_objects",
+            label: "Custom objects",
+            needsUnlimited: objects > ENTERPRISE_CUSTOM_OBJECTS,
+            detail: `${objects} built in this org; Enterprise allows ${ENTERPRISE_CUSTOM_OBJECTS} (AppExchange apps' objects don't count).`,
+          },
+    );
+
+    const fullSandboxes = sandboxes?.full ?? null;
+    signals.push(
+      fullSandboxes === null
+        ? { key: "full_sandbox", label: "Full Copy sandbox", needsUnlimited: null, detail: "Sandbox details weren't readable." }
+        : {
+            key: "full_sandbox",
+            label: "Full Copy sandbox",
+            needsUnlimited: fullSandboxes > 0,
+            detail:
+              fullSandboxes > 0
+                ? "In use. Unlimited includes one; on Enterprise you'd buy it as an add-on."
+                : "None in use, so the one Unlimited includes goes unused.",
+          },
+    );
+
+    const blocked = signals.some((s) => s.key !== "full_sandbox" && s.needsUnlimited === true);
+    const unknownLimits = signals.filter((s) => s.key !== "full_sandbox" && s.needsUnlimited === null).length;
+    // Seats already flagged by another check are counted there, not again here.
+    const claimedFull = fullUsers.filter((u) => claimed.has(u.id)).length;
+    const seats = Math.max(0, (fullLicense?.used ?? fullUsers.length) - claimedFull);
+    const sandboxAddOn = fullSandboxes && prices.fullSandboxMonthly !== null ? fullSandboxes * prices.fullSandboxMonthly * 12 : 0;
+    const gross = seats * prices.fullMonthly * (1 - ENTERPRISE_SHARE_OF_UNLIMITED) * 12;
+    const priced = !blocked && unknownLimits < 2;
+    const annualSavings = priced ? Math.max(0, gross - sandboxAddOn) : 0;
+    edition = { signals, seats, annualSavings, blocked };
+
+    if (blocked) {
+      notes.push("Unlimited Edition fits how this org is used (API calls or custom objects are above Enterprise limits).");
+    } else if (seats > 0) {
+      const sandboxNote =
+        fullSandboxes && fullSandboxes > 0
+          ? prices.fullSandboxMonthly !== null
+            ? " The saving already subtracts buying your Full Copy sandbox as an add-on."
+            : " You use a Full Copy sandbox, which Enterprise charges for as an add-on: subtract its price, or add it under Prices."
+          : "";
+      recommendations.push({
+        id: "edition",
+        category: "edition",
+        title: "Consider Enterprise Edition at renewal",
+        detail: `You pay for Unlimited, but your API use and custom objects fit within Enterprise limits. Moving your ${seats} remaining full ${plural(seats, "license")} to Enterprise, plus any add-ons you still need (for example Premier support), could cost about half as much per seat at list prices.${sandboxNote}`,
+        count: seats,
+        annualSavings,
+        confidence: "low",
+        advisory: annualSavings === 0,
+      });
+    }
+  }
+
   // 9. Storage.
   let storage: SavingsResult["storage"] = null;
   if (snapshot.storage) {
@@ -533,6 +708,9 @@ export function computeSavings(
     view_only_users: 0,
     unused_apps: 0,
     connected_apps: 0,
+    frozen_users: 0,
+    duplicate_users: 0,
+    edition: 0,
   } satisfies Record<Category, number>;
   for (const r of recommendations) if (!r.advisory) byCategory[r.category] += r.annualSavings;
   const annualSavings = Object.values(byCategory).reduce((a, b) => a + b, 0);
@@ -547,7 +725,8 @@ export function computeSavings(
     monthlySavings: annualSavings / 12,
     byCategory,
     recommendations,
-    users: { inactive, integration, platform, viewOnly },
+    users: { inactive, integration, platform, viewOnly, frozen, duplicate },
+    edition,
     apps,
     connectedApps,
     licenses,
@@ -585,6 +764,7 @@ function licenseRow(name: string, kind: LicenseRow["kind"], total: number, used:
   };
 }
 
+const normName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, " ");
 const sum = (users: FlaggedUser[]) => users.reduce((a, u) => a + u.annualSavings, 0);
 const rankStatus = (s: AppUsage["status"]) => ({ idle: 0, unknown: 1, active: 2 })[s];
 const rank = (c: Confidence) => ({ high: 0, medium: 1, low: 2 })[c];
