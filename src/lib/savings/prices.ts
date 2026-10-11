@@ -30,6 +30,9 @@ const EDITION_FULL_PRICE: Record<string, number> = {
 
 const FALLBACK_FULL_PRICE = 100;
 
+/** Enterprise list price as a share of Unlimited, applied to whatever the customer pays for Unlimited. */
+export const ENTERPRISE_SHARE_OF_UNLIMITED = EDITION_FULL_PRICE.enterprise / EDITION_FULL_PRICE.unlimited;
+
 export function editionKey(edition: string): string | null {
   const e = edition.toLowerCase();
   for (const key of Object.keys(EDITION_FULL_PRICE)) {

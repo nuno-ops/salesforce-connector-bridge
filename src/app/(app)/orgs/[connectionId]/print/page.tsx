@@ -64,6 +64,8 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
         </Table>
       </section>
 
+      <UserSection title="Frozen users" users={r.users.frozen ?? []} />
+      <UserSection title="Duplicate accounts" users={r.users.duplicate ?? []} />
       <UserSection title="Inactive users" users={r.users.inactive} />
       <UserSection title="Integration users" users={r.users.integration} />
       <UserSection title="Platform license candidates" users={r.users.platform} />

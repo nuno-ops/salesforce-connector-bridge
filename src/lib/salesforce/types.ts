@@ -32,6 +32,12 @@ export interface OrgSnapshot {
   writeActivity?: SnapshotWriteActivity | null;
   /** Installed managed packages and when their objects last saw a record. Missing on older snapshots; `null` when unreadable. */
   installedPackages?: SnapshotInstalledPackage[] | null;
+  /** Ids of active users who are frozen (they still hold a license). Missing on older snapshots; `null` when unreadable. */
+  frozenUserIds?: string[] | null;
+  /** Daily API requests from the org limits. Missing on older snapshots; `null` when unreadable. */
+  apiRequests?: { max: number; remaining: number } | null;
+  /** Custom objects the org built itself (no namespace). Missing on older snapshots; `null` when unreadable. */
+  ownCustomObjects?: number | null;
   metrics: {
     leadsByMonth: { month: string; count: number }[];
     opportunitiesByMonth: { month: string; count: number; won: number; wonAmount: number }[];

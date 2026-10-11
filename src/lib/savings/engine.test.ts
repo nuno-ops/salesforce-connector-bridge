@@ -820,3 +820,115 @@ describe("app prices", () => {
     ).toContain("Seated's list price (Standard");
   });
 });
+
+describe("frozen and duplicate users", () => {
+  it("flags frozen users with high confidence before the inactive check", () => {
+    const result = computeSavings(
+      snapshot({
+        users: [user("ice", { lastLoginDate: daysAgo(200) }), user("ok")],
+        frozenUserIds: ["ice", "someone-inactive-not-in-list"],
+      }),
+      prices,
+      { now: NOW },
+    );
+    expect(result.users.frozen?.map((u) => u.id)).toEqual(["ice"]);
+    expect(result.users.inactive).toEqual([]);
+    expect(result.byCategory.frozen_users).toBe(165 * 12);
+    expect(result.recommendations[0]).toMatchObject({ category: "frozen_users", confidence: "high", advisory: false });
+  });
+
+  it("flags extra paid accounts that share an email, keeping the most recently used one", () => {
+    const result = computeSavings(
+      snapshot({
+        users: [
+          user("main", { name: "Jo Doe", email: "jo@acme.com", lastLoginDate: daysAgo(1) }),
+          user("admin", { name: "Jo Doe", email: "JO@acme.com ", lastLoginDate: daysAgo(5) }),
+          user("bot", { name: "Report Runner", email: "ops@acme.com", lastLoginDate: daysAgo(2) }),
+          user("ops", { name: "Sam Ops", email: "ops@acme.com", lastLoginDate: daysAgo(1) }),
+          user("solo", { email: "solo@acme.com" }),
+        ],
+      }),
+      prices,
+      { now: NOW },
+    );
+    expect(result.users.duplicate?.map((u) => [u.id, u.confidence])).toEqual([
+      ["admin", "medium"],
+      ["bot", "low"],
+    ]);
+    expect(result.users.duplicate?.[0].reason).toContain("Jo Doe");
+    expect(result.byCategory.duplicate_users).toBe(2 * 165 * 12);
+  });
+
+  it("doesn't double count a duplicate that's already inactive", () => {
+    const result = computeSavings(
+      snapshot({
+        users: [
+          user("main", { email: "jo@acme.com", lastLoginDate: daysAgo(1) }),
+          user("old", { email: "jo@acme.com", lastLoginDate: daysAgo(120) }),
+        ],
+      }),
+      prices,
+      { now: NOW },
+    );
+    expect(result.users.inactive.map((u) => u.id)).toEqual(["old"]);
+    expect(result.users.duplicate).toEqual([]);
+    expect(result.annualSavings).toBe(165 * 12);
+  });
+});
+
+describe("Unlimited Edition fit", () => {
+  const unlimited = (overrides: Partial<OrgSnapshot> = {}) =>
+    snapshot({
+      organization: { ...snapshot().organization, edition: "Unlimited Edition" },
+      users: [user("a"), user("b"), user("c", { lastLoginDate: null })],
+      userLicenses: [{ id: "L", name: "Salesforce", total: 3, used: 3 }],
+      apiRequests: { max: 115_000, remaining: 100_000 },
+      ownCustomObjects: 40,
+      sandboxes: [],
+      ...overrides,
+    });
+  const uePrices = defaultPriceBook("Unlimited Edition");
+
+  it("prices a move to Enterprise on seats no other check claimed", () => {
+    const result = computeSavings(unlimited(), uePrices, { now: NOW });
+    // "c" is inactive and already counted at the full price.
+    expect(result.edition).toMatchObject({ seats: 2, blocked: false });
+    expect(result.edition?.signals.every((s) => s.needsUnlimited === false)).toBe(true);
+    expect(result.byCategory.edition).toBeCloseTo(2 * (330 - 165) * 12);
+    expect(result.recommendations.find((r) => r.category === "edition")).toMatchObject({ confidence: "low", advisory: false });
+  });
+
+  it("scales with the price the customer actually pays", () => {
+    const result = computeSavings(unlimited(), { ...uePrices, fullMonthly: 200, source: "manual" }, { now: NOW });
+    expect(result.byCategory.edition).toBeCloseTo(2 * 100 * 12);
+  });
+
+  it("subtracts a Full Copy sandbox add-on when its price is known", () => {
+    const sandboxes = [{ name: "uat", licenseType: "FULL", description: null }];
+    const unpriced = computeSavings(unlimited({ sandboxes }), uePrices, { now: NOW });
+    expect(unpriced.edition?.signals.find((s) => s.key === "full_sandbox")?.needsUnlimited).toBe(true);
+    expect(unpriced.recommendations.find((r) => r.category === "edition")?.detail).toContain("add-on");
+
+    const priced = computeSavings(unlimited({ sandboxes }), { ...uePrices, fullSandboxMonthly: 100 }, { now: NOW });
+    expect(priced.byCategory.edition).toBeCloseTo(2 * 165 * 12 - 100 * 12);
+  });
+
+  it("suggests nothing when the org has outgrown Enterprise limits", () => {
+    const heavyApi = computeSavings(unlimited({ apiRequests: { max: 500_000, remaining: 100_000 } }), uePrices, { now: NOW });
+    expect(heavyApi.edition?.blocked).toBe(true);
+    expect(heavyApi.byCategory.edition).toBe(0);
+    expect(heavyApi.recommendations.some((r) => r.category === "edition")).toBe(false);
+
+    const manyObjects = computeSavings(unlimited({ ownCustomObjects: 450 }), uePrices, { now: NOW });
+    expect(manyObjects.edition?.blocked).toBe(true);
+  });
+
+  it("only gives advice when the limits weren't readable", () => {
+    const result = computeSavings(unlimited({ apiRequests: null, ownCustomObjects: null }), uePrices, { now: NOW });
+    expect(result.recommendations.find((r) => r.category === "edition")).toMatchObject({ advisory: true, annualSavings: 0 });
+  });
+
+  it("skips other editions", () => {
+    expect(computeSavings(snapshot({ users: [user("a")] }), prices, { now: NOW }).edition).toBeNull();
+  });
+});

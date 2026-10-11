@@ -29,6 +29,7 @@ interface MonthAggregate {
   a?: number | null;
 }
 interface Limits {
+  DailyApiRequests?: { Max: number; Remaining: number };
   DataStorageMB?: { Max: number; Remaining: number };
   FileStorageMB?: { Max: number; Remaining: number };
 }
@@ -51,6 +52,7 @@ export const QUERIES = {
     "SELECT CALENDAR_YEAR(CreatedDate) y, CALENDAR_MONTH(CreatedDate) m, COUNT(Id) c FROM Opportunity WHERE CreatedDate = LAST_N_DAYS:180 GROUP BY CALENDAR_YEAR(CreatedDate), CALENDAR_MONTH(CreatedDate)",
   wonByMonth:
     "SELECT CALENDAR_YEAR(CloseDate) y, CALENDAR_MONTH(CloseDate) m, COUNT(Id) c, SUM(Amount) a FROM Opportunity WHERE IsWon = true AND CloseDate = LAST_N_DAYS:180 GROUP BY CALENDAR_YEAR(CloseDate), CALENDAR_MONTH(CloseDate)",
+  frozenUsers: "SELECT UserId FROM UserLogin WHERE IsFrozen = true",
   installedPackages:
     "SELECT SubscriberPackage.NamespacePrefix, SubscriberPackage.Name FROM InstalledSubscriberPackage",
 } as const;
@@ -89,7 +91,7 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     }
   };
 
-  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, leads, opps, won, writeActivity, installedPackages] =
+  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, leads, opps, won, writeActivity, installedPackages, frozen, globalDescribe] =
     await Promise.all([
       client.query<{ Id: string; Name: string; OrganizationType: string; IsSandbox: boolean }>(QUERIES.organization),
       client.query<UserRecord>(QUERIES.users),
@@ -138,6 +140,12 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
       optional("Closed-won trend", () => client.query<MonthAggregate>(QUERIES.wonByMonth), []),
       collectWriteActivity(client, warnings),
       optional("Installed apps", () => collectInstalledPackages(client), null),
+      optional("Frozen users", () => client.query<{ UserId: string }>(QUERIES.frozenUsers), null),
+      optional(
+        "Object list",
+        () => client.get<{ sobjects: { name: string; custom: boolean }[] }>(`/services/data/${SF_API_VERSION}/sobjects`),
+        null,
+      ),
     ]);
 
   const organization = org[0];
@@ -207,6 +215,9 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     sandboxes: sandboxes?.map((s) => ({ name: s.SandboxName, licenseType: s.LicenseType, description: s.Description })) ?? null,
     writeActivity,
     installedPackages,
+    frozenUserIds: frozen?.map((f) => f.UserId) ?? null,
+    apiRequests: limits?.DailyApiRequests ? { max: limits.DailyApiRequests.Max, remaining: limits.DailyApiRequests.Remaining } : null,
+    ownCustomObjects: globalDescribe ? globalDescribe.sobjects.filter((o) => isOwnCustomObject(o.name)).length : null,
     metrics: {
       leadsByMonth: leads.map((r) => ({ month: month(r), count: r.c })).sort((a, b) => a.month.localeCompare(b.month)),
       opportunitiesByMonth: [...oppMonths].sort().map((m) => {
@@ -285,4 +296,9 @@ async function collectInstalledPackages(client: SalesforceClient): Promise<Snaps
     );
   }
   return packages;
+}
+
+/** `Invoice__c` counts; `ns__Invoice__c` (a package's), `Setting__mdt` and `Change__e` don't. */
+export function isOwnCustomObject(name: string): boolean {
+  return /^[A-Za-z][A-Za-z0-9_]*__c$/.test(name) && name.split("__").length === 2;
 }
