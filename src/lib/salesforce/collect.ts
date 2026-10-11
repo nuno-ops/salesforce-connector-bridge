@@ -217,7 +217,7 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     installedPackages,
     frozenUserIds: frozen?.map((f) => f.UserId) ?? null,
     apiRequests: limits?.DailyApiRequests ? { max: limits.DailyApiRequests.Max, remaining: limits.DailyApiRequests.Remaining } : null,
-    ownCustomObjects: globalDescribe ? globalDescribe.sobjects.filter((o) => isOwnCustomObject(o.name)).length : null,
+    ownCustomObjects: Array.isArray(globalDescribe?.sobjects) ? globalDescribe.sobjects.filter((o) => isOwnCustomObject(o.name)).length : null,
     metrics: {
       leadsByMonth: leads.map((r) => ({ month: month(r), count: r.c })).sort((a, b) => a.month.localeCompare(b.month)),
       opportunitiesByMonth: [...oppMonths].sort().map((m) => {
