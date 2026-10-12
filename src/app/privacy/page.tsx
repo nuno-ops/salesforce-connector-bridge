@@ -13,6 +13,10 @@ export default function PrivacyPage() {
         <li>User records: name, username, email, profile, license type, last login and creation dates.</li>
         <li>License counts, permission set and package licenses, profile and permission set access to Opportunities, Leads and Cases.</li>
         <li>Connected app names and usage counts, org limits (storage) and sandbox names.</li>
+        <li>
+          Your own Salesforce subscription, when the connected user has the Manage Billing permission: contract number, dates,
+          renewal and billing terms, and invoice dates and totals. We never read payment card details.
+        </li>
         <li>Monthly counts of leads and opportunities, and the total amount of closed-won opportunities.</li>
       </ul>
       <p>We do not read or store the contents of your accounts, contacts, leads, opportunities, cases or files, and we never write to your org.</p>

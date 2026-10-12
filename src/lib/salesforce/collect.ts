@@ -1,5 +1,5 @@
 import { SF_API_VERSION, SalesforceAuthError, type SalesforceClient } from "./client";
-import type { OrgSnapshot, SnapshotInstalledPackage, SnapshotWriteActivity } from "./types";
+import type { OrgSnapshot, SnapshotInstalledPackage, SnapshotSalesforceAccount, SnapshotWriteActivity } from "./types";
 
 // Raw record shapes, limited to the fields we select.
 interface UserRecord {
@@ -43,6 +43,11 @@ export const QUERIES = {
   frozenUsers: "SELECT UserId FROM UserLogin WHERE IsFrozen = true",
   installedPackages:
     "SELECT SubscriberPackage.NamespacePrefix, SubscriberPackage.Name FROM InstalledSubscriberPackage",
+  // Your Account objects. SalesforceContract also holds payment card fields: never select them.
+  salesforceContracts:
+    "SELECT Id, ContractNumber, StartDate, EndDate, SalesforceContractStatus, AutoRenewCode, BillingFrequency, ContractCurrency FROM SalesforceContract",
+  salesforceInvoices:
+    "SELECT SalesforceContractId, InvoiceDate, TotalAmount, InvoiceCurrency FROM SalesforceInvoice WHERE InvoiceDate = LAST_N_DAYS:730 ORDER BY InvoiceDate DESC",
 } as const;
 
 /** Objects whose creates and edits count as someone actually working in Salesforce. */
@@ -79,7 +84,7 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     }
   };
 
-  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe] =
+  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe, salesforceAccount] =
     await Promise.all([
       client.query<{ Id: string; Name: string; OrganizationType: string; IsSandbox: boolean }>(QUERIES.organization),
       client.query<UserRecord>(QUERIES.users),
@@ -131,6 +136,13 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
         () => client.get<{ sobjects: { name: string; custom: boolean }[] }>(`/services/data/${SF_API_VERSION}/sobjects`),
         null,
       ),
+      collectSalesforceAccount(client).catch((e) => {
+        if (e instanceof SalesforceAuthError) throw e;
+        warnings.push(
+          "Your Salesforce contract and invoices weren't readable. Connect as a user with the Manage Billing permission to see your renewal date and yearly Salesforce bill.",
+        );
+        return null;
+      }),
     ]);
 
   const organization = org[0];
@@ -200,7 +212,45 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     frozenUserIds: frozen?.map((f) => f.UserId) ?? null,
     apiRequests: limits?.DailyApiRequests ? { max: limits.DailyApiRequests.Max, remaining: limits.DailyApiRequests.Remaining } : null,
     ownCustomObjects: Array.isArray(globalDescribe?.sobjects) ? globalDescribe.sobjects.filter((o) => isOwnCustomObject(o.name)).length : null,
+    salesforceAccount,
     warnings,
+  };
+}
+
+/** Reads the org's own Salesforce contracts and invoices, the data behind the Your Account app. */
+async function collectSalesforceAccount(client: SalesforceClient): Promise<SnapshotSalesforceAccount> {
+  const [contracts, invoices] = await Promise.all([
+    client.query<{
+      Id: string;
+      ContractNumber: string | null;
+      StartDate: string | null;
+      EndDate: string | null;
+      SalesforceContractStatus: string | null;
+      AutoRenewCode: string | null;
+      BillingFrequency: string | null;
+      ContractCurrency: string | null;
+    }>(QUERIES.salesforceContracts),
+    client.query<{ SalesforceContractId: string | null; InvoiceDate: string | null; TotalAmount: number | null; InvoiceCurrency: string | null }>(
+      QUERIES.salesforceInvoices,
+    ),
+  ]);
+  return {
+    contracts: contracts.map((c) => ({
+      id: c.Id,
+      number: c.ContractNumber,
+      startDate: c.StartDate,
+      endDate: c.EndDate,
+      status: c.SalesforceContractStatus,
+      autoRenew: c.AutoRenewCode === "Yes" ? true : c.AutoRenewCode === "No" ? false : null,
+      billingFrequency: c.BillingFrequency,
+      currency: c.ContractCurrency,
+    })),
+    invoices: invoices.map((i) => ({
+      contractId: i.SalesforceContractId,
+      date: i.InvoiceDate,
+      total: i.TotalAmount ?? 0,
+      currency: i.InvoiceCurrency,
+    })),
   };
 }
 

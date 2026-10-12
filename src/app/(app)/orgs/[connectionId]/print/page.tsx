@@ -4,6 +4,7 @@ import { PrintButton } from "@/components/report/print-button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
+import { summarizeContract } from "@/lib/savings/contract";
 import { reportRecommendations, type FlaggedUser } from "@/lib/savings/engine";
 import { latestScan } from "@/lib/scan";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -17,6 +18,7 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
   if (!scan?.result || !access.fullReport) notFound();
   const r = scan.result;
   const { priced, needsPrice } = reportRecommendations(r.recommendations);
+  const contract = summarizeContract(scan.snapshot?.salesforceAccount, scan.startedAt);
 
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8 bg-card p-8 print:p-0">
@@ -39,6 +41,25 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
           {r.prices.source === "edition_default" ? "list prices" : "customer prices"}).
         </p>
       </section>
+
+      {contract && (
+        <section className="flex flex-col gap-1 text-sm">
+          <h2 className="text-lg font-semibold">Salesforce contract</h2>
+          {contract.annualSpend && (
+            <p>
+              Yearly Salesforce bill: <strong>{formatCurrency(contract.annualSpend.amount, contract.annualSpend.currency)}</strong>{" "}
+              <span className="text-muted-foreground">
+                ({contract.annualSpend.basis === "invoices_on_contract" ? "from invoices on the current contract" : "invoices from the last 12 months"})
+              </span>
+            </p>
+          )}
+          <p>
+            Renews {formatDate(`${contract.endDate}T00:00:00`)} ({contract.daysLeft} days
+            {contract.autoRenew === true ? ", auto-renews" : contract.autoRenew === false ? ", doesn't auto-renew" : ""}). Notify Salesforce
+            of seat cuts by <strong>{formatDate(`${contract.noticeBy}T00:00:00`)}</strong>.
+          </p>
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Recommendations</h2>

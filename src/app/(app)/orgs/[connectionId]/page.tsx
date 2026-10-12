@@ -13,6 +13,7 @@ import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
+import { NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
 import { reportRecommendations, type Category, type Recommendation } from "@/lib/savings/engine";
 import { lastScanAttempt, latestScan, scanHistory } from "@/lib/scan";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
@@ -113,6 +114,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const result = scan.result;
   const snapshot = scan.snapshot!;
   const appReview = reviewApps(snapshot);
+  const contract = summarizeContract(snapshot.salesforceAccount, scan.startedAt);
   // Results from before engine v3 have no app prices; fall back to the unpriced review.
   const connectedApps = result.connectedApps ?? appReview.tools.map((t) => ({ ...t, monthlyPrice: null, annualSavings: 0 }));
   const connectedSavings = connectedApps.reduce((a, t) => a + t.annualSavings, 0);
@@ -200,6 +202,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           </CardContent>
         </Card>
       </div>
+
+      {contract && <ContractCard contract={contract} annualSavings={result.annualSavings} />}
 
       {!access.fullReport && <UpgradeCard returnPath={returnPath} auditHours={env().AUDIT_ACCESS_HOURS} />}
 
@@ -498,4 +502,48 @@ function AppSaving({ saving, priced, flagged, href }: { saving: number; priced: 
       </Link>
     );
   return <span className="text-muted-foreground">—</span>;
+}
+
+function ContractCard({ contract, annualSavings }: { contract: ContractSummary; annualSavings: number }) {
+  const spend = contract.annualSpend;
+  const share = spend && spend.currency === "USD" && spend.amount > 0 ? annualSavings / spend.amount : null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Your Salesforce contract</CardTitle>
+        <CardDescription>
+          Read from your Salesforce account{contract.number ? ` (contract ${contract.number})` : ""}.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6 text-sm md:grid-cols-2">
+        {spend && (
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow">What you pay Salesforce</p>
+            <p className="font-mono text-3xl font-semibold">
+              {formatCurrency(spend.amount, spend.currency)}
+              <span className="text-base font-normal text-muted-foreground"> a year</span>
+            </p>
+            <p className="text-muted-foreground">
+              {spend.basis === "invoices_on_contract"
+                ? `From your ${contract.billingFrequency?.toLowerCase()} invoices on this contract.`
+                : "Invoices from the last 12 months."}
+              {share !== null && annualSavings > 0 && ` The savings above are ${Math.max(1, Math.round(share * 100))}% of your bill.`}
+            </p>
+          </div>
+        )}
+        <div className="flex flex-col gap-1">
+          <p className="eyebrow">Renewal</p>
+          <p className="font-mono text-3xl font-semibold">
+            {formatDate(`${contract.endDate}T00:00:00`)}
+            <span className="text-base font-normal text-muted-foreground"> · {formatNumber(contract.daysLeft)} days</span>
+          </p>
+          <p className="text-muted-foreground">
+            {contract.autoRenew === true ? "Auto-renews. " : contract.autoRenew === false ? "Doesn't auto-renew. " : ""}
+            Tell your account executive about seat cuts by <strong className="text-foreground">{formatDate(`${contract.noticeBy}T00:00:00`)}</strong>.
+            Salesforce&apos;s standard terms ask for {NOTICE_DAYS} days&apos; notice; check your order form for yours.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
