@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { PrintButton } from "@/components/report/print-button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireConnection } from "@/lib/auth";
-import { getAccess } from "@/lib/billing/server";
+import { orgUnlocked } from "@/lib/billing/server";
+import { env } from "@/lib/env";
 import { loadLookups } from "@/lib/apps/aws-marketplace";
 import { CLOUD_LABEL, type LookupResults } from "@/lib/apps/marketplaces";
 import { nonprofitSaving, POWER_OF_US_LICENSES, premierSaving } from "@/lib/savings/answers";
@@ -18,8 +19,8 @@ export const metadata: Metadata = { title: "Savings report" };
 export default async function PrintPage({ params }: PageProps<"/orgs/[connectionId]/print">) {
   const { connectionId } = await params;
   const { connection, workspace } = await requireConnection(connectionId);
-  const [scan, access] = await Promise.all([latestScan(connection.id, { succeededOnly: true }), getAccess(workspace.id)]);
-  if (!scan?.result || !access.fullReport) notFound();
+  const scan = await latestScan(connection.id, { succeededOnly: true });
+  if (!scan?.result || !(await orgUnlocked(workspace.id, scan))) notFound();
   const r = scan.result;
   const { priced, needsPrice } = reportRecommendations(r.recommendations);
   const contract = summarizeContract(scan.snapshot?.salesforceAccount, scan.startedAt);
@@ -186,6 +187,16 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
       <UserSection title="View-only users" users={r.users.viewOnly ?? []} currency={currency} />
       <UserSection title="Paid in two orgs" users={r.users.crossOrg ?? []} currency={currency} />
       <UserSection title="Unused Service Cloud licenses" users={(r.users.serviceCloud ?? []).filter((u) => u.annualSavings > 0)} currency={currency} />
+
+      <footer className="break-inside-avoid-page border-t border-border pt-4 text-sm">
+        <p className="font-medium">Want help acting on this report?</p>
+        <p className="text-muted-foreground">
+          Book a call with a Salesforce specialist for the clean-up, your renewal negotiation, or any other Salesforce work:{" "}
+          <a href={env().CALENDLY_URL} className="text-cobalt underline">
+            {env().CALENDLY_URL.replace("https://", "")}
+          </a>
+        </p>
+      </footer>
     </article>
   );
 }

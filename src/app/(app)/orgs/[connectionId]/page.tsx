@@ -1,7 +1,8 @@
 import { AlertTriangle, Download, Printer, Settings2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckoutButton, UpgradeCard } from "@/components/app/upgrade-card";
+import { ExpertCallCard } from "@/components/app/expert-call";
+import { UpgradeCard } from "@/components/app/upgrade-card";
 import { ScanButton } from "@/components/report/scan-button";
 import { UserTabs } from "@/components/report/user-tabs";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,9 @@ import { loadLookups } from "@/lib/apps/aws-marketplace";
 import { CLOUD_LABEL, type LookupResults } from "@/lib/apps/marketplaces";
 import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
-import { getAccess } from "@/lib/billing/server";
+import { reportUnlocked } from "@/lib/billing/access";
+import { licensedUsers, tierLabel, unlockTier } from "@/lib/billing/pricing";
+import { accessDays, getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
 import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
 import { cloudOptions, renewalSeats, resellerQuoteApps, type CloudOption } from "@/lib/savings/cloud-options";
@@ -164,6 +167,17 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
     // Unpriced Service Cloud users would show a zero saving; they're listed once a price is entered.
     { key: "serviceCloud", label: "Service Cloud", users: (result.users.serviceCloud ?? []).filter((u) => u.annualSavings > 0) },
   ].filter((t) => t.users.length > 0);
+  const tier = unlockTier(licensedUsers(snapshot));
+  const unlocked = reportUnlocked(access, { users: licensedUsers(snapshot), annualSavings: result.annualSavings, price: tier.price });
+  const flaggedUserCount = new Set(userTabs.flatMap((t) => t.users.map((u) => u.id))).size;
+  const lockedItems = [
+    flaggedUserCount > 0 && `${formatNumber(flaggedUserCount)} ${flaggedUserCount === 1 ? "user" : "users"} to act on, by name`,
+    flaggedConnected.length + idleApps.length > 0 &&
+      `${formatNumber(flaggedConnected.length + idleApps.length)} ${flaggedConnected.length + idleApps.length === 1 ? "app" : "apps"} to cancel or consolidate`,
+    strategies.length > 0 && `${strategies.length} renewal buying ${strategies.length === 1 ? "option" : "options"}`,
+    result.edition && result.edition.annualSavings > 0 && "Edition fit check",
+    "CSV export and printable report",
+  ].filter((x): x is string => Boolean(x));
 
   return (
     <div className="flex flex-col gap-6">
@@ -209,18 +223,20 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           <CardContent className="flex flex-col divide-y divide-border">
             {priced.length === 0 && <p className="text-sm text-muted-foreground">No license waste found. Your org is in good shape.</p>}
             {priced.map((r) => (
-              <RecommendationRow key={r.id} rec={r} currency={currency} />
+              <RecommendationRow key={r.id} rec={r} currency={currency} showDetail={unlocked} />
             ))}
             {strategies.length > 0 && (
               <div className="flex flex-col py-3 last:pb-0">
                 <p className="eyebrow">
                   At renewal: buying options, not in the total{" "}
-                  <a href="#contract" className="normal-case tracking-normal text-cobalt hover:underline">
-                    Details
-                  </a>
+                  {unlocked && (
+                    <a href="#contract" className="normal-case tracking-normal text-cobalt hover:underline">
+                      Details
+                    </a>
+                  )}
                 </p>
                 {strategies.map((st) => (
-                  <StrategyRow key={st.id} strategy={st} currency={currency} answersHref={answersHref} pricesHref={appPricesHref} />
+                  <StrategyRow key={st.id} strategy={st} currency={currency} answersHref={answersHref} pricesHref={appPricesHref} showDetail={unlocked} />
                 ))}
               </div>
             )}
@@ -243,7 +259,33 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         </Card>
       </div>
 
-      {contract && (
+      {!unlocked && (
+        <UpgradeCard
+          returnPath={returnPath}
+          connectionId={connection.id}
+          price={tier.price}
+          sizeLabel={tierLabel(tier)}
+          access={accessDays(env().AUDIT_ACCESS_HOURS)}
+          locked={lockedItems}
+        />
+      )}
+
+      <ExpertCallCard returnPath={returnPath} />
+
+      {contract && !unlocked && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Salesforce renewal</CardTitle>
+            <CardDescription>
+              Renews {formatDate(`${contract.endDate}T00:00:00`)}, {formatNumber(contract.daysLeft)} days from now. Tell your account
+              executive about seat cuts by <strong className="text-foreground">{formatDate(`${contract.noticeBy}T00:00:00`)}</strong>{" "}
+              (Salesforce&apos;s standard {NOTICE_DAYS} days&apos; notice).
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {contract && unlocked && (
         <ContractCard
           contract={contract}
           result={result}
@@ -256,9 +298,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         />
       )}
 
-      {!access.fullReport && <UpgradeCard returnPath={returnPath} auditHours={env().AUDIT_ACCESS_HOURS} />}
-
-      {access.fullReport && (
+      {unlocked && (
         <>
           <div className="no-print flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
@@ -466,18 +506,13 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         </>
       )}
 
-      {(access.monitoring || access.billingEnabled) && (
+      {access.monitoring && (
       <Card className="no-print">
         <CardHeader>
           <CardTitle>Monitoring</CardTitle>
-          <CardDescription>
-            {access.monitoring
-              ? "We rescan this org every week and keep the history here."
-              : "Subscribe to rescan automatically every week and track savings over time."}
-          </CardDescription>
+          <CardDescription>We rescan this org every week and keep the history here.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {access.monitoring ? (
             <Table>
               <THead>
                 <tr>
@@ -496,11 +531,6 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                 ))}
               </TBody>
             </Table>
-          ) : (
-            <CheckoutButton product="monitor" returnPath={returnPath} variant="outline">
-              Start monitoring · $39/month
-            </CheckoutButton>
-          )}
         </CardContent>
       </Card>
       )}
@@ -535,11 +565,13 @@ function StrategyRow({
   currency,
   answersHref,
   pricesHref,
+  showDetail,
 }: {
   strategy: Strategy;
   currency: string;
   answersHref: string;
   pricesHref: string;
+  showDetail: boolean;
 }) {
   const link = "text-xs font-semibold text-cobalt underline-offset-4 hover:underline";
   return (
@@ -548,7 +580,7 @@ function StrategyRow({
         <p className="font-medium">
           {strategy.title} <Badge variant="muted">Option</Badge>
         </p>
-        <p className="text-sm text-muted-foreground">{strategy.detail}</p>
+        {showDetail && <p className="text-sm text-muted-foreground">{strategy.detail}</p>}
       </div>
       <p className="shrink-0 text-right font-mono font-semibold">
         {strategy.amount !== null ? (
@@ -574,7 +606,7 @@ function StrategyRow({
   );
 }
 
-function RecommendationRow({ rec, currency }: { rec: Recommendation; currency: string }) {
+function RecommendationRow({ rec, currency, showDetail }: { rec: Recommendation; currency: string; showDetail: boolean }) {
   const money = (n: number) => formatCurrency(n, currency);
   return (
     <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
@@ -582,7 +614,7 @@ function RecommendationRow({ rec, currency }: { rec: Recommendation; currency: s
         <p className="font-medium">
           {rec.title} <Badge variant={confidenceVariant[rec.confidence]}>{rec.confidence} confidence</Badge>
         </p>
-        <p className="text-sm text-muted-foreground">{rec.detail}</p>
+        {showDetail && <p className="text-sm text-muted-foreground">{rec.detail}</p>}
       </div>
       <p className="shrink-0 text-right font-mono font-semibold">{rec.advisory ? <span className="text-xs font-normal text-muted-foreground">Advice</span> : money(rec.annualSavings)}</p>
     </div>

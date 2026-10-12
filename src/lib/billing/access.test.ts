@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { auditPurchaseUpdate, resolveAccess, subscriptionUpdate, type EntitlementState } from "./access";
+import { auditPurchaseUpdate, reportUnlocked, resolveAccess, subscriptionUpdate, type EntitlementState } from "./access";
+import { licensedUsers, unlockTier, tierLabel } from "./pricing";
 
 const now = new Date("2026-10-01T12:00:00Z");
 const hours = (h: number) => new Date(now.getTime() + h * 3_600_000);
@@ -43,11 +44,55 @@ describe("subscriptionUpdate", () => {
 
 describe("auditPurchaseUpdate", () => {
   it("starts a new window from now", () => {
-    expect(auditPurchaseUpdate(free, 48, now)).toEqual({ auditAccessUntil: hours(48), plan: "audit" });
+    expect(auditPurchaseUpdate(free, 48, 50, now)).toEqual({ auditAccessUntil: hours(48), auditUserLimit: 50, plan: "audit" });
   });
 
   it("extends a running window and never downgrades a subscriber", () => {
-    const state = { ...free, plan: "monitor" as const, auditAccessUntil: hours(10) };
-    expect(auditPurchaseUpdate(state, 48, now)).toEqual({ auditAccessUntil: hours(58), plan: "monitor" });
+    const state = { ...free, plan: "monitor" as const, auditAccessUntil: hours(10), auditUserLimit: 30 };
+    expect(auditPurchaseUpdate(state, 48, 50, now)).toEqual({ auditAccessUntil: hours(58), auditUserLimit: 50, plan: "monitor" });
+  });
+
+  it("keeps the larger org size while a window runs, and forgets an expired one", () => {
+    const running = { ...free, plan: "audit" as const, auditAccessUntil: hours(10), auditUserLimit: 250 };
+    expect(auditPurchaseUpdate(running, 48, 50, now).auditUserLimit).toBe(250);
+    expect(auditPurchaseUpdate({ ...running, auditUserLimit: null }, 48, 50, now).auditUserLimit).toBeNull();
+    expect(auditPurchaseUpdate({ ...running, auditAccessUntil: hours(-1) }, 48, 50, now).auditUserLimit).toBe(50);
+  });
+});
+
+describe("reportUnlocked", () => {
+  const org = { users: 120, annualSavings: 20_000, price: 590 };
+  const on = (state: EntitlementState) => resolveAccess(state, { billingEnabled: true, now });
+
+  it("is open while billing is off and locked for a free workspace", () => {
+    expect(reportUnlocked(resolveAccess(free, { billingEnabled: false, now }), org)).toBe(true);
+    expect(reportUnlocked(on(free), org)).toBe(false);
+  });
+
+  it("is free when the savings found are below the price", () => {
+    expect(reportUnlocked(on(free), { ...org, annualSavings: 400 })).toBe(true);
+  });
+
+  it("opens orgs up to the size paid for", () => {
+    const paid = { ...free, plan: "audit" as const, auditAccessUntil: hours(5), auditUserLimit: 250 };
+    expect(reportUnlocked(on(paid), org)).toBe(true);
+    expect(reportUnlocked(on({ ...paid, auditUserLimit: 50 }), org)).toBe(false);
+    expect(reportUnlocked(on({ ...paid, auditUserLimit: null }), { ...org, users: 5000 })).toBe(true);
+  });
+});
+
+describe("pricing", () => {
+  it("prices by licensed users", () => {
+    expect(unlockTier(50).price).toBe(290);
+    expect(unlockTier(51).price).toBe(590);
+    expect(unlockTier(250).price).toBe(590);
+    expect(unlockTier(251).price).toBe(990);
+    expect(tierLabel(unlockTier(100))).toBe("51 to 250 users");
+    expect(tierLabel(unlockTier(900))).toBe("over 250 users");
+  });
+
+  it("counts only internal users", () => {
+    const user = (userType: string) => ({ userType }) as never;
+    expect(licensedUsers({ users: [user("Standard"), user("Standard"), user("PowerPartner"), user("CspLitePortal")] })).toBe(2);
   });
 });

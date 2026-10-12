@@ -1,6 +1,13 @@
 import "server-only";
 import { z } from "zod";
 
+const DEFAULT_CALENDLY_URL = "https://calendly.com/salesforcesaver-support/30min";
+
+/** Booking link for expert calls. Safe in prerendered pages, which build without the server secrets. */
+export function calendlyUrl(): string {
+  return process.env.CALENDLY_URL || DEFAULT_CALENDLY_URL;
+}
+
 const schema = z.object({
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
   DATABASE_URL: z.string().min(1),
@@ -14,10 +21,10 @@ const schema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_MONITOR: z.string().optional(),
-  STRIPE_PRICE_AUDIT: z.string().optional(),
   STRIPE_PRICE_CONSULT: z.string().optional(),
-  AUDIT_ACCESS_HOURS: z.coerce.number().int().positive().default(48),
-  CALENDLY_URL: z.url().default("https://calendly.com/salesforcesaver-support/30min"),
+  /** How long a one-off unlock lasts; 2160 hours = 90 days. */
+  AUDIT_ACCESS_HOURS: z.coerce.number().int().positive().default(2160),
+  CALENDLY_URL: z.url().default(DEFAULT_CALENDLY_URL),
   ANTHROPIC_API_KEY: z.string().optional(),
   CRON_SECRET: z.string().optional(),
   /** Read-only AWS keys for the Marketplace Discovery API. Netlify reserves the AWS_* names. */

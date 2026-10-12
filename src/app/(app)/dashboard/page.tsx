@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ConnectForm } from "@/components/app/connect-form";
+import { ExpertCallCard } from "@/components/app/expert-call";
 import { PendingHint } from "@/components/app/pending-hint";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -109,6 +110,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           <ConnectForm />
         </CardContent>
       </Card>
+
+      <ExpertCallCard
+        returnPath="/dashboard"
+        description="Get a Salesforce specialist's help with your licenses, your renewal negotiation, or any other Salesforce work."
+      />
     </div>
   );
 }

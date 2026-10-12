@@ -5,15 +5,18 @@ export interface EntitlementState {
   subscriptionStatus: string | null;
   currentPeriodEnd: Date | null;
   auditAccessUntil: Date | null;
+  /** Largest org (in licensed users) the unlock covers; `null` covers any size. */
+  auditUserLimit?: number | null;
 }
 
 export interface Access {
   plan: Plan;
-  /** User-level detail, CSV export, printable report and AI tool review. */
+  /** Paid for the full report: a subscription, or an unlock window. Use `reportUnlocked` per org. */
   fullReport: boolean;
   /** Weekly automatic rescans and savings history. */
   monitoring: boolean;
   auditAccessUntil: Date | null;
+  auditUserLimit: number | null;
   /** When false, nothing is for sale and paid upsells are hidden. */
   billingEnabled: boolean;
 }
@@ -36,8 +39,19 @@ export function resolveAccess(
     fullReport: !billingEnabled || monitor || audit,
     monitoring: monitor,
     auditAccessUntil: audit ? state!.auditAccessUntil : null,
+    auditUserLimit: audit ? (state!.auditUserLimit ?? null) : null,
     billingEnabled,
   };
+}
+
+/**
+ * Whether one org's full report is open: billing off, a subscription, an unlock that covers
+ * an org this size, or the savings found are below the unlock price (then it's free).
+ */
+export function reportUnlocked(access: Access, org: { users: number; annualSavings: number; price: number }): boolean {
+  if (!access.billingEnabled || access.monitoring) return true;
+  if (org.annualSavings < org.price) return true;
+  return access.plan === "audit" && (access.auditUserLimit === null || org.users <= access.auditUserLimit);
 }
 
 /** Entitlement fields to write when a subscription changes. */
@@ -56,11 +70,17 @@ export function subscriptionUpdate(
   };
 }
 
-/** Entitlement fields to write after a one-off audit payment. Extends any remaining window. */
-export function auditPurchaseUpdate(current: EntitlementState | null, hours: number, now = new Date()) {
-  const start = current?.auditAccessUntil && current.auditAccessUntil > now ? current.auditAccessUntil : now;
+/**
+ * Entitlement fields to write after a one-off unlock. Extends any remaining window and keeps
+ * the larger org size of the two (`null` = any size).
+ */
+export function auditPurchaseUpdate(current: EntitlementState | null, hours: number, userLimit: number | null, now = new Date()) {
+  const valid = Boolean(current?.auditAccessUntil && current.auditAccessUntil > now);
+  const start = valid ? current!.auditAccessUntil! : now;
+  const previous = valid ? (current!.auditUserLimit ?? null) : undefined;
   return {
     auditAccessUntil: new Date(start.getTime() + hours * 3_600_000),
+    auditUserLimit: previous === null || userLimit === null ? null : Math.max(previous ?? 0, userLimit),
     // A live subscription outranks an audit.
     plan: (current?.plan === "monitor" ? "monitor" : "audit") as Plan,
   };

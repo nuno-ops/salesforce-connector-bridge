@@ -3,7 +3,9 @@ import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { auditPurchaseUpdate, resolveAccess, subscriptionUpdate, type Access, type EntitlementState } from "./access";
+import { auditPurchaseUpdate, reportUnlocked, resolveAccess, subscriptionUpdate, type Access, type EntitlementState } from "./access";
+import type { OrgSnapshot } from "@/lib/salesforce/types";
+import { licensedUsers, tierLabel, unlockTier } from "./pricing";
 
 export type Product = "monitor" | "audit" | "consult";
 
@@ -17,11 +19,31 @@ export function stripe(): Stripe {
   return client;
 }
 
-export function priceFor(product: Product): string {
+export function priceFor(product: Exclude<Product, "audit">): string {
   const e = env();
-  const price = { monitor: e.STRIPE_PRICE_MONITOR, audit: e.STRIPE_PRICE_AUDIT, consult: e.STRIPE_PRICE_CONSULT }[product];
+  const price = { monitor: e.STRIPE_PRICE_MONITOR, consult: e.STRIPE_PRICE_CONSULT }[product];
   if (!price) throw new Error(`No Stripe price configured for ${product}`);
   return price;
+}
+
+export function accessDays(hours: number): string {
+  return hours < 72 ? `${hours} hours` : `${Math.round(hours / 24)} days`;
+}
+
+/** The full-report unlock is priced by org size in code, so it needs no Stripe price ids. */
+function unlockLineItem(users: number): Stripe.Checkout.SessionCreateParams.LineItem {
+  const tier = unlockTier(users);
+  return {
+    quantity: 1,
+    price_data: {
+      currency: "usd",
+      unit_amount: tier.price * 100,
+      product_data: {
+        name: `Salesforce Saver full report (${tierLabel(tier)})`,
+        description: `${accessDays(env().AUDIT_ACCESS_HOURS)} of full access with rescans.`,
+      },
+    },
+  };
 }
 
 async function entitlementRow(workspaceId: string) {
@@ -31,6 +53,13 @@ async function entitlementRow(workspaceId: string) {
 
 export async function getAccess(workspaceId: string): Promise<Access> {
   return resolveAccess(await entitlementRow(workspaceId), { billingEnabled: env().BILLING_ENABLED });
+}
+
+/** Whether this org's full report is open for the workspace. */
+export async function orgUnlocked(workspaceId: string, scan: { snapshot: OrgSnapshot | null; annualSavings: number | null }) {
+  const access = await getAccess(workspaceId);
+  const users = scan.snapshot ? licensedUsers(scan.snapshot) : 0;
+  return reportUnlocked(access, { users, annualSavings: scan.annualSavings ?? 0, price: unlockTier(users).price });
 }
 
 async function ensureCustomer(workspaceId: string, email: string): Promise<string> {
@@ -50,14 +79,23 @@ export async function createCheckout(params: {
   userId: string;
   email: string;
   returnPath: string;
+  /** Licensed users in the org being unlocked; required for the audit product. */
+  users?: number;
 }): Promise<string> {
   const appUrl = env().NEXT_PUBLIC_APP_URL;
   const customer = await ensureCustomer(params.workspaceId, params.email);
-  const metadata = { workspaceId: params.workspaceId, userId: params.userId, product: params.product };
+  if (params.product === "audit" && params.users === undefined) throw new Error("Unlocking needs the org's user count");
+  const tier = params.product === "audit" ? unlockTier(params.users!) : null;
+  const metadata = {
+    workspaceId: params.workspaceId,
+    userId: params.userId,
+    product: params.product,
+    ...(tier ? { userLimit: tier.maxUsers === null ? "any" : String(tier.maxUsers) } : {}),
+  };
   const session = await stripe().checkout.sessions.create({
     mode: params.product === "monitor" ? "subscription" : "payment",
     customer,
-    line_items: [{ price: priceFor(params.product), quantity: 1 }],
+    line_items: [params.product === "audit" ? unlockLineItem(params.users!) : { price: priceFor(params.product), quantity: 1 }],
     metadata,
     ...(params.product === "monitor" ? { subscription_data: { metadata } } : {}),
     success_url: `${appUrl}${params.returnPath}${params.returnPath.includes("?") ? "&" : "?"}checkout=success`,
@@ -92,6 +130,7 @@ function toState(row: Awaited<ReturnType<typeof entitlementRow>>): EntitlementSt
         subscriptionStatus: row.subscriptionStatus,
         currentPeriodEnd: row.currentPeriodEnd,
         auditAccessUntil: row.auditAccessUntil,
+        auditUserLimit: row.auditUserLimit,
       }
     : null;
 }
@@ -115,10 +154,12 @@ async function applySubscription(sub: Stripe.Subscription) {
 }
 
 async function applyCheckout(session: Stripe.Checkout.Session) {
-  const { workspaceId, product } = session.metadata ?? {};
+  const { workspaceId, product, userLimit } = session.metadata ?? {};
   if (!workspaceId) return;
   if (product === "audit" && session.payment_status === "paid") {
-    const update = auditPurchaseUpdate(toState(await entitlementRow(workspaceId)), env().AUDIT_ACCESS_HOURS);
+    // Older checkouts carry no size: they cover any org.
+    const limit = userLimit && userLimit !== "any" ? Number(userLimit) : null;
+    const update = auditPurchaseUpdate(toState(await entitlementRow(workspaceId)), env().AUDIT_ACCESS_HOURS, limit);
     await db()
       .insert(schema.entitlements)
       .values({ workspaceId, ...update })

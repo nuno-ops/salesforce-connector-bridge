@@ -181,6 +181,8 @@ export const entitlements = pgTable("entitlements", {
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
   /** End of the window a one-off audit unlocks the full report for. */
   auditAccessUntil: timestamp("audit_access_until", { withTimezone: true }),
+  /** Largest org, in licensed users, the unlock covers. `null` covers any size. */
+  auditUserLimit: integer("audit_user_limit"),
   updatedAt: updatedAt(),
 }).enableRLS();
 

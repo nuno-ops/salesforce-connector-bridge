@@ -16,8 +16,8 @@ export default function TermsPage() {
       <p>Only connect orgs you are authorised to administer, and keep your sign-in secure.</p>
       <h2>Payments</h2>
       <p>
-        Savings Monitor renews monthly until cancelled from the billing portal. A one-off audit unlocks the full report for the period
-        shown at checkout. Consultations are booked separately and don&apos;t include report access.
+        A one-off payment unlocks the full report for the period shown at checkout. It is priced by the size of the org and does not
+        renew. Consultations are booked separately and don&apos;t include report access.
       </p>
       <h2>Not affiliated with Salesforce</h2>
       <p>Salesforce is a trademark of Salesforce, Inc. Salesforce Saver is an independent product.</p>
