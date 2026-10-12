@@ -18,6 +18,7 @@ import { env } from "@/lib/env";
 import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
 import { cloudOptions, renewalSeats, resellerQuoteApps, type CloudOption } from "@/lib/savings/cloud-options";
 import { AWS_MARKETPLACE_CAP, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
+import { contractStrategies, type Strategy } from "@/lib/savings/strategies";
 import { reportRecommendations, type Category, type Recommendation, type SavingsResult } from "@/lib/savings/engine";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
 import { ENTERPRISE_SHARE_OF_UNLIMITED, type PriceBook } from "@/lib/savings/prices";
@@ -144,6 +145,10 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const history = access.monitoring ? await scanHistory(connection.id) : [];
   const categories = (Object.entries(result.byCategory) as [Category, number][]).filter(([, v]) => v > 0);
   const { priced, needsPrice } = reportRecommendations(result.recommendations);
+  const answersHref = `/welcome?next=${encodeURIComponent(`/orgs/${connection.id}`)}`;
+  const strategies = contract
+    ? contractStrategies({ contract, result, snapshot, edition: connection.edition, answers: workspace.answers, lookups })
+    : [];
   // Only apps with something to cancel or consolidate; the rest are counted, not listed.
   const flaggedConnected = connectedApps.filter((t) => t.verdict === "remove" || t.verdict === "consolidate");
   const idleApps = (result.apps ?? []).filter((a) => a.status === "idle");
@@ -206,6 +211,19 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             {priced.map((r) => (
               <RecommendationRow key={r.id} rec={r} currency={currency} />
             ))}
+            {strategies.length > 0 && (
+              <div className="flex flex-col py-3 last:pb-0">
+                <p className="eyebrow">
+                  At renewal: buying options, not in the total{" "}
+                  <a href="#contract" className="normal-case tracking-normal text-cobalt hover:underline">
+                    Details
+                  </a>
+                </p>
+                {strategies.map((st) => (
+                  <StrategyRow key={st.id} strategy={st} currency={currency} answersHref={answersHref} pricesHref={appPricesHref} />
+                ))}
+              </div>
+            )}
             {needsPrice.length > 0 && (
               <div className="py-3 last:pb-0">
                 <p className="text-sm font-medium">
@@ -512,6 +530,50 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   );
 }
 
+function StrategyRow({
+  strategy,
+  currency,
+  answersHref,
+  pricesHref,
+}: {
+  strategy: Strategy;
+  currency: string;
+  answersHref: string;
+  pricesHref: string;
+}) {
+  const link = "text-xs font-semibold text-cobalt underline-offset-4 hover:underline";
+  return (
+    <div className="flex items-start justify-between gap-4 pt-3">
+      <div>
+        <p className="font-medium">
+          {strategy.title} <Badge variant="muted">Option</Badge>
+        </p>
+        <p className="text-sm text-muted-foreground">{strategy.detail}</p>
+      </div>
+      <p className="shrink-0 text-right font-mono font-semibold">
+        {strategy.amount !== null ? (
+          <>
+            {formatCurrency(strategy.amount, currency)}
+            <span className="block text-xs font-normal text-muted-foreground">a year</span>
+          </>
+        ) : strategy.missing === "answers" ? (
+          <Link href={answersHref} className={link}>
+            Add your numbers
+          </Link>
+        ) : strategy.missing === "prices" ? (
+          <Link href={pricesHref} className={link}>
+            Add your numbers
+          </Link>
+        ) : strategy.missing === "negotiated" ? (
+          <span className="text-xs font-normal text-muted-foreground">Ask for a quote</span>
+        ) : (
+          <span className="text-xs font-normal text-muted-foreground">Advice</span>
+        )}
+      </p>
+    </div>
+  );
+}
+
 function RecommendationRow({ rec, currency }: { rec: Recommendation; currency: string }) {
   const money = (n: number) => formatCurrency(n, currency);
   return (
@@ -603,7 +665,7 @@ function ContractCard({
   );
   const day = (d: string) => formatDate(`${d}T00:00:00`);
   return (
-    <Card>
+    <Card id="contract" className="scroll-mt-6">
       <CardHeader>
         <CardTitle>Your Salesforce contract</CardTitle>
         <CardDescription>
