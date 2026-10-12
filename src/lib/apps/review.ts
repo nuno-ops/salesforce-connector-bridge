@@ -68,7 +68,40 @@ const CATALOG: CatalogEntry[] = [
   { match: /gearset|copado|flosum|autorabit|blue canvas/i, category: "DevOps" },
   { match: /demandtools|cloudingo|dupeblocker|ringlead|duplicatecheck/i, category: "Deduplication", alternative: DEDUPE },
   { match: /zendesk|intercom|freshdesk|helpscout|help scout/i, category: "Customer support" },
+  { match: /justcall|dialpad(?! meetings)|aircall|ringcentral|talkdesk|five9|vonage|8x8|nooks|orum|kixie|cloudtalk|zoom phone/i, category: "Telephony" },
 ];
+
+/** Categories of apps that sync systems through a shared account, rather than tools each person signs in to. */
+const SYSTEM_CATEGORIES = new Set(["Integration platform", "Data pipeline", "BI and reporting", "Marketing automation", "Customer support"]);
+/** Tools a person signs in to for themselves. Anyone using one is a person, not an integration. */
+const PERSONAL_CATEGORIES = new Set([
+  "Collaboration",
+  "Telephony",
+  "Email and calendar sync",
+  "Scheduling",
+  "Sales engagement",
+  "Conversation intelligence",
+  "Data enrichment",
+]);
+const MOBILE = /salesforce (mobile|for (ios|android))/i;
+
+/** Whether using this app marks the account as a person's: chat, phone, mobile, email sync and the like. */
+export function isPersonalApp(appName: string): boolean {
+  if (MOBILE.test(appName)) return true;
+  const entry = classify(appName);
+  return entry ? PERSONAL_CATEGORIES.has(entry.category) : false;
+}
+
+/**
+ * Whether heavy use of this app suggests the user is an integration rather than a person.
+ * Recognised per-person tools (Slack, mobile, dialers, email sync and the like) never count. An app
+ * we don't recognise counts only when one or two accounts use it, as a shared integration login would.
+ */
+export function isIntegrationApp(appName: string, usersOfApp: number): boolean {
+  const entry = classify(appName);
+  if (entry) return SYSTEM_CATEGORIES.has(entry.category);
+  return usersOfApp <= 2;
+}
 
 function classify(appName: string): CatalogEntry | null {
   return CATALOG.find((c) => c.match.test(appName)) ?? null;
