@@ -114,7 +114,7 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
               {awsSaving !== null
                 ? ` With the AWS numbers entered, that saves about ${money(awsSaving)} a year.`
                 : " Enter the AWS commitment and expected unused amount on the Prices page to see the saving."}{" "}
-              {clouds.aws.apps.length > 0 && `Apps that count too, included above: ${appList(clouds.aws)}. `}
+              {clouds.aws.apps.length > 0 && `Apps that count too${awsSaving !== null ? ", included above" : ""}: ${appList(clouds.aws)}. `}
               A possible approach, not added to the total.
             </p>
           )}
