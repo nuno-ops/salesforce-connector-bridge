@@ -1152,3 +1152,26 @@ describe("stale sandboxes", () => {
     expect(undated.staleSandboxes).toEqual([]);
   });
 });
+
+describe("installed app usage", () => {
+  const obj = (apiName: string, lastCreated: string | null) => ({ apiName, label: apiName, lastCreated, lastModified: lastCreated, unreadable: false });
+
+  it("ignores housekeeping objects and Salesforce's own free packages", () => {
+    const result = computeSavings(
+      snapshot({
+        installedPackages: [
+          // Only an error log: a quiet log says nothing about whether the app is used.
+          { namespace: "ZeroBounce", name: "ZeroBounce", objects: [obj("ZeroBounce__Error_Log__c", daysAgo(200))], truncated: false },
+          { namespace: "CodeBuilder", name: "Code Builder", objects: [obj("CodeBuilder__Project__c", daysAgo(200))], truncated: false },
+          { namespace: "dial", name: "Dialer", objects: [obj("dial__Call_Log__c", daysAgo(200)), obj("dial__Settings__c", daysAgo(1))], truncated: false },
+        ],
+      }),
+      prices,
+      { now: NOW, listPrices: {} },
+    );
+    expect(result.apps?.map((a) => [a.name, a.status, a.objectCount])).toEqual([
+      ["Dialer", "idle", 1],
+      ["ZeroBounce", "unknown", 0],
+    ]);
+  });
+});

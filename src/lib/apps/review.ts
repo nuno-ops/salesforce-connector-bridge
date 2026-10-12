@@ -47,7 +47,12 @@ const CONVERSATION = "Einstein Conversation Insights (in some Sales Cloud editio
 
 // Order matters: the first match wins.
 const CATALOG: CatalogEntry[] = [
-  { match: /data ?loader(?!\.io)|workbench|salesforce cli|sfdx|salesforce (mobile|for (ios|android))|salesforce inspector|chatter/i, category: "Salesforce tool", salesforce: true },
+  {
+    match:
+      /data ?loader(?!\.io)|workbench|salesforce cli|sfdx|code builder|salesforce (mobile|for (ios|android|google chat))|salesforce inspector|salesforce auth\b|chatter|lightning (readiness|configuration conver)|trailblazer|tbid\.digital\.salesforce\.com/i,
+    category: "Salesforce tool",
+    salesforce: true,
+  },
   { match: /salesforce for outlook|salesforce inbox|einstein activity/i, category: "Email and calendar sync", salesforce: true },
   { match: /slack/i, category: "Collaboration", salesforce: true },
   { match: /tableau/i, category: "BI and reporting", salesforce: true },

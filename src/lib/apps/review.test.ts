@@ -25,6 +25,12 @@ describe("reviewApps", () => {
     expect(tools[0]).toMatchObject({ verdict: "remove", lastUsed: "2026-05-01" });
   });
 
+  it("treats Salesforce's developer tools as free", () => {
+    const { tools } = reviewApps({ capturedAt, oauthTokens: [token("Code Builder", "u1", 50, "2026-06-10T10:00:00.000Z")] });
+    expect(tools[0]).toMatchObject({ verdict: "remove", salesforce: true, category: "Salesforce tool" });
+    expect(tools[0].reason).toContain("no separate cost");
+  });
+
   it("groups third-party apps doing the same job", () => {
     const review = reviewApps({
       capturedAt,
