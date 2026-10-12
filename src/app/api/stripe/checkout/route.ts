@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireConnection, requireWorkspace } from "@/lib/auth";
-import { createCheckout } from "@/lib/billing/server";
+import { createCheckout, getAccess, previewUnlock } from "@/lib/billing/server";
 import { licensedUsers } from "@/lib/billing/pricing";
-import { env } from "@/lib/env";
 import { latestScan } from "@/lib/scan";
 import { safeNext } from "@/lib/safe-redirect";
 
@@ -18,7 +17,9 @@ export async function POST(request: NextRequest) {
   const { user, workspace } = await requireWorkspace();
   const parsed = body.safeParse(Object.fromEntries(await request.formData()));
   const origin = request.nextUrl.origin;
-  if (!parsed.success || !env().BILLING_ENABLED) return NextResponse.redirect(new URL("/settings", origin), 303);
+  if (!parsed.success) return NextResponse.redirect(new URL("/settings", origin), 303);
+  const access = await getAccess(workspace.id);
+  if (!access.billingEnabled) return NextResponse.redirect(new URL("/settings", origin), 303);
   const returnPath = safeNext(parsed.data.returnPath, "/settings");
   let users: number | undefined;
   if (parsed.data.product === "audit") {
@@ -26,7 +27,13 @@ export async function POST(request: NextRequest) {
     const scan = parsed.data.connectionId ? await latestScan((await requireConnection(parsed.data.connectionId)).connection.id, { succeededOnly: true }) : null;
     if (!scan?.snapshot) return NextResponse.redirect(new URL("/dashboard", origin), 303);
     users = licensedUsers(scan.snapshot);
+    if (access.preview) {
+      await previewUnlock(workspace.id, users);
+      return NextResponse.redirect(new URL(`${returnPath}${returnPath.includes("?") ? "&" : "?"}checkout=preview`, origin), 303);
+    }
   }
+  // Only the unlock can be previewed; nothing else is for sale without real billing.
+  if (access.preview) return NextResponse.redirect(new URL(returnPath, origin), 303);
   try {
     const url = await createCheckout({
       product: parsed.data.product,

@@ -9,6 +9,7 @@ import { requireWorkspace } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { db, schema } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
+import { relockPreviewAction } from "./actions";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -41,6 +42,7 @@ export default async function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Plan <Badge>{PLAN_LABEL[access.plan]}</Badge>
+              {access.preview && <Badge variant="warning">Preview</Badge>}
             </CardTitle>
             <CardDescription>
               {access.plan === "monitor" && entitlement?.currentPeriodEnd && `Renews ${formatDate(entitlement.currentPeriodEnd)}.`}
@@ -49,6 +51,21 @@ export default async function SettingsPage() {
                 "Scans are free and show your total savings. Unlock the full report from an org's report page: a one-off payment priced by the org's size."}
             </CardDescription>
           </CardHeader>
+          {access.preview && (
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">
+                Billing preview: this account sees the paywall that customers will see, and unlocking is free. Customers aren&apos;t
+                affected.
+              </p>
+              {access.plan === "audit" && (
+                <form action={relockPreviewAction}>
+                  <Button variant="outline" type="submit">
+                    Lock the report again
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          )}
           {entitlement?.stripeCustomerId && (
             <CardContent className="flex flex-wrap gap-3">
               <form action="/api/stripe/portal" method="post">

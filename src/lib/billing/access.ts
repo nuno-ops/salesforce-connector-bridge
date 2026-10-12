@@ -7,6 +7,8 @@ export interface EntitlementState {
   auditAccessUntil: Date | null;
   /** Largest org (in licensed users) the unlock covers; `null` covers any size. */
   auditUserLimit?: number | null;
+  /** See the paywall while billing is off; unlocks are free. */
+  billingPreview?: boolean;
 }
 
 export interface Access {
@@ -19,6 +21,8 @@ export interface Access {
   auditUserLimit: number | null;
   /** When false, nothing is for sale and paid upsells are hidden. */
   billingEnabled: boolean;
+  /** Billing is only on for this workspace as a preview: unlocks skip Stripe. */
+  preview: boolean;
 }
 
 const LIVE_SUBSCRIPTION = new Set(["active", "trialing", "past_due"]);
@@ -26,8 +30,10 @@ const LIVE_SUBSCRIPTION = new Set(["active", "trialing", "past_due"]);
 /** What a workspace can see. With billing switched off everyone gets the full report, as today. */
 export function resolveAccess(
   state: EntitlementState | null,
-  { billingEnabled, now = new Date() }: { billingEnabled: boolean; now?: Date },
+  { billingEnabled: billingOn, now = new Date() }: { billingEnabled: boolean; now?: Date },
 ): Access {
+  const preview = !billingOn && Boolean(state?.billingPreview);
+  const billingEnabled = billingOn || preview;
   const monitor =
     state?.plan === "monitor" &&
     LIVE_SUBSCRIPTION.has(state.subscriptionStatus ?? "") &&
@@ -41,6 +47,7 @@ export function resolveAccess(
     auditAccessUntil: audit ? state!.auditAccessUntil : null,
     auditUserLimit: audit ? (state!.auditUserLimit ?? null) : null,
     billingEnabled,
+    preview,
   };
 }
 
