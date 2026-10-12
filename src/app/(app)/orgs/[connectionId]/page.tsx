@@ -13,7 +13,7 @@ import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
-import { NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
+import { AWS_MARKETPLACE_CAP, awsCommitSaving, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
 import { reportRecommendations, type Category, type Recommendation, type SavingsResult } from "@/lib/savings/engine";
 import type { PriceBook } from "@/lib/savings/prices";
 import { lastScanAttempt, latestScan, scanHistory } from "@/lib/scan";
@@ -218,7 +218,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         </Card>
       </div>
 
-      {contract && <ContractCard contract={contract} result={result} />}
+      {contract && <ContractCard contract={contract} result={result} pricesHref={`/orgs/${connection.id}/prices#apps`} />}
 
       {!access.fullReport && <UpgradeCard returnPath={returnPath} auditHours={env().AUDIT_ACCESS_HOURS} />}
 
@@ -537,7 +537,7 @@ function AppSaving({
 /** Seats a renewal can drop: unassigned ones, plus the ones flagged users free up when deactivated. */
 const SEAT_CATEGORIES: Category[] = ["unused_seats", "frozen_users", "inactive_users", "duplicate_users", "cross_org_users", "integration_users"];
 
-function ContractCard({ contract, result }: { contract: ContractSummary; result: SavingsResult }) {
+function ContractCard({ contract, result, pricesHref }: { contract: ContractSummary; result: SavingsResult; pricesHref: string }) {
   const currency = result.prices.currency ?? "USD";
   const spend = contract.annualSpend;
   const annualSavings = result.annualSavings;
@@ -550,6 +550,8 @@ function ContractCard({ contract, result }: { contract: ContractSummary; result:
   const seatSavings = SEAT_CATEGORIES.reduce((a, c) => a + result.byCategory[c], 0);
   const rise = contract.priceChange && contract.priceChange.rate >= 0.01 ? contract.priceChange : null;
   const nextRise = rise && spend ? spend.amount * rise.rate : null;
+  // AWS numbers are entered in the report currency, so they only compare with a bill in the same currency.
+  const awsSaving = spend && spend.currency === currency ? awsCommitSaving(spend.amount, result.prices.apps?.addOns) : null;
   const day = (d: string) => formatDate(`${d}T00:00:00`);
   return (
     <Card>
@@ -617,20 +619,31 @@ function ContractCard({ contract, result }: { contract: ContractSummary; result:
             </p>
           </div>
         )}
-        {spend && (
+        {spend && spend.currency === currency && (
           <div className="flex flex-col gap-1">
             <p className="eyebrow">Option to save: pay through AWS</p>
-            <p className="font-mono text-3xl font-semibold">
-              Up to {formatCurrency(spend.amount, spend.currency)}
-              <span className="text-base font-normal text-muted-foreground"> a year</span>
-            </p>
+            {awsSaving !== null ? (
+              <p className="font-mono text-3xl font-semibold">
+                {formatCurrency(awsSaving, currency)}
+                <span className="text-base font-normal text-muted-foreground"> a year</span>
+              </p>
+            ) : (
+              <p className="font-semibold">
+                <Link href={pricesHref} className="text-cobalt hover:underline">
+                  Add your AWS numbers to see the saving
+                </Link>
+              </p>
+            )}
             <p className="text-muted-foreground">
-              We can&apos;t see whether your company uses AWS, so this is only a possible approach. Salesforce sells through AWS Marketplace in
-              the US, UK, much of the EU, Canada, Australia, India, Chile, Colombia and Mexico. If your company has an AWS spend commitment,
-              buying your renewal there can count your Salesforce bill toward it, which saves money if you&apos;d otherwise fall short or are
-              near a better AWS discount tier. AWS usually counts Marketplace spend up to 25% of the yearly commitment, and only for listings
-              marked &quot;Deployed on AWS&quot;. Ask your account executive for an AWS Marketplace private offer before {day(contract.noticeBy)}.
-              Not added to your savings total.{" "}
+              A possible approach: we can&apos;t see whether your company uses AWS. Salesforce sells through AWS Marketplace in the US, UK,
+              much of the EU, Canada, Australia, India, Chile, Colombia and Mexico. If your company has an AWS spend commitment it expects to
+              leave partly unused, buying your renewal there counts your Salesforce bill toward it, so money you&apos;d lose to AWS pays for
+              Salesforce instead.{" "}
+              {awsSaving !== null
+                ? `That's the smallest of your Salesforce bill, ${AWS_MARKETPLACE_CAP * 100}% of your AWS commitment (AWS's usual Marketplace cap) and the amount you expect to leave unused.`
+                : `The saving is at most the commitment you'd leave unused, and AWS usually counts Marketplace purchases up to ${AWS_MARKETPLACE_CAP * 100}% of the commitment.`}{" "}
+              Only listings marked &quot;Deployed on AWS&quot; count. Ask your account executive for an AWS Marketplace private offer before{" "}
+              {day(contract.noticeBy)}. Not added to your savings total.{" "}
               <Link href="/settings#expert-review" className="text-foreground underline underline-offset-2 hover:text-cobalt">
                 Questions? Book an expert review.
               </Link>

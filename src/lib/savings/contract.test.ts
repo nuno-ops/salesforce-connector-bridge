@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SnapshotSalesforceAccount } from "@/lib/salesforce/types";
-import { priceChange, summarizeContract } from "./contract";
+import { awsCommitSaving, priceChange, summarizeContract } from "./contract";
 
 const now = new Date("2026-10-11T12:00:00Z");
 
@@ -120,5 +120,22 @@ describe("priceChange", () => {
     expect(priceChange([inv("2026-09-30", 1000), inv("2026-03-31", 900)])).toBeNull();
     expect(priceChange([inv("2026-09-30", 1000, "EUR"), inv("2025-09-30", 900, "USD")])).toBeNull();
     expect(priceChange([])).toBeNull();
+  });
+});
+
+describe("awsCommitSaving", () => {
+  it("is unknown until both AWS numbers are entered", () => {
+    expect(awsCommitSaving(100_000, undefined)).toBeNull();
+    expect(awsCommitSaving(100_000, { awsCommitmentYearly: 1_000_000 })).toBeNull();
+  });
+
+  it("is the smallest of the bill, the Marketplace cap and the unused commitment", () => {
+    expect(awsCommitSaving(100_000, { awsCommitmentYearly: 1_000_000, awsUnusedYearly: 40_000 })).toBe(40_000);
+    expect(awsCommitSaving(100_000, { awsCommitmentYearly: 200_000, awsUnusedYearly: 150_000 })).toBe(50_000);
+    expect(awsCommitSaving(30_000, { awsCommitmentYearly: 1_000_000, awsUnusedYearly: 500_000 })).toBe(30_000);
+  });
+
+  it("saves nothing when the commitment will be used up", () => {
+    expect(awsCommitSaving(100_000, { awsCommitmentYearly: 1_000_000, awsUnusedYearly: 0 })).toBe(0);
   });
 });

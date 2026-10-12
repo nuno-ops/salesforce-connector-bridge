@@ -4,7 +4,7 @@ import { PrintButton } from "@/components/report/print-button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
-import { summarizeContract } from "@/lib/savings/contract";
+import { awsCommitSaving, summarizeContract } from "@/lib/savings/contract";
 import { reportRecommendations, type FlaggedUser } from "@/lib/savings/engine";
 import { latestScan } from "@/lib/scan";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -22,6 +22,8 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
   const currency = r.prices.currency ?? "USD";
   const money = (n: number) => formatCurrency(n, currency);
   const rise = contract?.priceChange && contract.priceChange.rate >= 0.01 ? contract.priceChange : null;
+  const spend = contract?.annualSpend && contract.annualSpend.currency === currency ? contract.annualSpend : null;
+  const awsSaving = spend ? awsCommitSaving(spend.amount, r.prices.apps?.addOns) : null;
 
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8 bg-card p-8 print:p-0">
@@ -68,11 +70,14 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
               {contract.annualSpend && ` The same rise at renewal would add about ${formatCurrency(contract.annualSpend.amount * rise.rate, contract.annualSpend.currency)} a year.`}
             </p>
           )}
-          {contract.annualSpend && (
+          {spend && (
             <p>
-              Option to save: if your company has an AWS spend commitment, buying the renewal through AWS Marketplace can count up to{" "}
-              {formatCurrency(contract.annualSpend.amount, contract.annualSpend.currency)} a year toward it (AWS usually caps this at 25% of the
-              yearly commitment, &quot;Deployed on AWS&quot; listings only). A possible approach, not added to the total.
+              Option to save: if your company has an AWS spend commitment it expects to leave partly unused, buying the renewal through AWS
+              Marketplace counts the Salesforce bill toward it (&quot;Deployed on AWS&quot; listings only, usually up to 25% of the commitment).
+              {awsSaving !== null
+                ? ` With the AWS numbers entered, that saves about ${money(awsSaving)} a year.`
+                : " Enter the AWS commitment and expected unused amount on the Prices page to see the saving."}{" "}
+              A possible approach, not added to the total.
             </p>
           )}
         </section>

@@ -1,4 +1,5 @@
 import type { SnapshotSalesforceAccount, SnapshotSalesforceInvoice } from "@/lib/salesforce/types";
+import type { AddOnPrices } from "./prices";
 
 /** Salesforce's standard terms ask for notice of non-renewal at least 30 days before the term ends. */
 export const NOTICE_DAYS = 30;
@@ -123,4 +124,22 @@ function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Share of a yearly AWS commitment that AWS Marketplace purchases can count toward, for
+ * commitments signed since 2022. Each customer's AWS contract has the exact figure.
+ */
+export const AWS_MARKETPLACE_CAP = 0.25;
+
+/**
+ * What buying Salesforce through AWS Marketplace saves: the AWS commitment that would otherwise go
+ * unused, limited by the Salesforce bill and AWS's Marketplace cap. `null` until the customer enters
+ * both AWS numbers, because we can't see whether they use AWS.
+ */
+export function awsCommitSaving(annualSpend: number, addOns: AddOnPrices | undefined): number | null {
+  const commitment = addOns?.awsCommitmentYearly;
+  const unused = addOns?.awsUnusedYearly;
+  if (commitment === undefined || unused === undefined) return null;
+  return Math.max(0, Math.min(annualSpend, commitment * AWS_MARKETPLACE_CAP, unused));
 }

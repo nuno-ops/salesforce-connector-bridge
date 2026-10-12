@@ -59,6 +59,8 @@ export async function resetPricesAction(connectionId: string) {
 }
 
 const appPrice = z.union([z.literal("").transform(() => null), price]);
+/** AWS commitments are yearly totals, so they run far above any per-seat price. */
+const awsAmount = z.union([z.literal("").transform(() => null), z.coerce.number().min(0).max(1_000_000_000)]);
 
 /** Fields are named `package:<namespace>`, `connected:<app name>` and `addon:<key>`; blank removes a price. */
 export async function saveAppPricesAction(connectionId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -69,8 +71,11 @@ export async function saveAppPricesAction(connectionId: string, _prev: ActionSta
     const [kind, ...rest] = key.split(":");
     const name = rest.join(":");
     if ((kind !== "package" && kind !== "connected" && kind !== "addon") || !name || typeof value !== "string") continue;
-    const parsed = appPrice.safeParse(value.trim());
-    if (!parsed.success) return { status: "error", message: `The price for ${name} must be a number between 0 and 100,000.` };
+    const isAws = kind === "addon" && name.startsWith("aws");
+    const parsed = (isAws ? awsAmount : appPrice).safeParse(value.trim());
+    if (!parsed.success) {
+      return { status: "error", message: isAws ? "AWS amounts must be positive numbers." : `The price for ${name} must be a number between 0 and 100,000.` };
+    }
     if (parsed.data === null) continue;
     if (kind === "addon") {
       const addOn = ADD_ON_KEYS.find((k) => k === name);
