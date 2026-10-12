@@ -185,6 +185,13 @@ export function toOtherOrg(snapshot: OrgSnapshot): OtherOrg {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Salesforce's own free packages, by namespace: nothing to cancel. */
+const FREE_SALESFORCE_PACKAGES = new Set(["CodeBuilder"]);
+/**
+ * Package objects that only hold the app's own housekeeping. An app can be busy updating your
+ * Leads or Contacts while these stay quiet, so they say nothing about whether it's used.
+ */
+const HOUSEKEEPING_OBJECT = /((error|debug|audit|integration|sync|api|exception)_?logs?|settings?|config(uration)?s?|jobs?|queues?|batch(es)?)__c$/i;
 const PAID_LICENSES = new Set(["Salesforce", "Salesforce Platform"]);
 const INTEGRATION_EXAMPLE = "for example a Zapier, MuleSoft or data-sync connection, or a name like \"API User\"";
 /** A Full or Partial Copy sandbox not refreshed for this long is probably not in use. */
@@ -592,8 +599,8 @@ export function computeSavings(
     notes.push("Installed apps need the Tooling API and weren't readable for the connected user.");
   } else if (snapshot.installedPackages) {
     const seatsByNamespace = new Map(snapshot.packageLicenses.map((p) => [p.namespace, p]));
-    apps = snapshot.installedPackages.map((p) => {
-      const readable = p.objects.filter((o) => !o.unreadable);
+    apps = snapshot.installedPackages.filter((p) => !p.namespace || !FREE_SALESFORCE_PACKAGES.has(p.namespace)).map((p) => {
+      const readable = p.objects.filter((o) => !o.unreadable && !HOUSEKEEPING_OBJECT.test(o.apiName));
       const lastActivity = readable.reduce<string | null>((latest, o) => {
         for (const d of [o.lastCreated, o.lastModified]) if (d && (!latest || d > latest)) latest = d;
         return latest;
@@ -611,7 +618,7 @@ export function computeSavings(
         seats,
         lastActivity,
         status,
-        objectCount: p.objects.length,
+        objectCount: readable.length,
         monthlyPrice: p.namespace ? (packagePrices[p.namespace] ?? null) : null,
         listPrice: price.list,
         priceSource: cost !== null ? price.source : null,
