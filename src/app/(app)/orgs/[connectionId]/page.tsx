@@ -186,6 +186,14 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
       {checkout === "success" && (
         <p className="rounded-md bg-accent p-3 text-sm text-accent-foreground">Thanks! Your purchase is being applied; refresh in a moment if the report is still locked.</p>
       )}
+      {checkout === "preview" && (
+        <p className="rounded-md bg-accent p-3 text-sm text-accent-foreground">
+          Preview: the full report is unlocked with no charge. A customer would see this after paying.{" "}
+          <Link href="/settings" className="underline">
+            Lock it again in Settings
+          </Link>
+        </p>
+      )}
       {failed && failed.startedAt > scan.startedAt && (
         <p className="flex items-center gap-2 rounded-md bg-warning-bg p-3 text-sm text-warning">
           <AlertTriangle className="size-4" /> The latest rescan failed ({failed.error}). Showing the previous results.

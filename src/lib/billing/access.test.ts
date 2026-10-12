@@ -60,6 +60,18 @@ describe("auditPurchaseUpdate", () => {
   });
 });
 
+describe("billing preview", () => {
+  it("shows one workspace the paywall while billing is off", () => {
+    const preview = { ...free, billingPreview: true };
+    expect(resolveAccess(preview, { billingEnabled: false, now })).toMatchObject({ billingEnabled: true, preview: true, fullReport: false });
+    expect(resolveAccess(free, { billingEnabled: false, now })).toMatchObject({ billingEnabled: false, preview: false });
+  });
+
+  it("is a no-op once billing is really on", () => {
+    expect(resolveAccess({ ...free, billingPreview: true }, { billingEnabled: true, now }).preview).toBe(false);
+  });
+});
+
 describe("reportUnlocked", () => {
   const org = { users: 120, annualSavings: 20_000, price: 590 };
   const on = (state: EntitlementState) => resolveAccess(state, { billingEnabled: true, now });

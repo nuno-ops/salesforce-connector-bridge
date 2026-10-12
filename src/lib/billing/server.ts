@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -131,6 +131,7 @@ function toState(row: Awaited<ReturnType<typeof entitlementRow>>): EntitlementSt
         currentPeriodEnd: row.currentPeriodEnd,
         auditAccessUntil: row.auditAccessUntil,
         auditUserLimit: row.auditUserLimit,
+        billingPreview: row.billingPreview,
       }
     : null;
 }
@@ -151,6 +152,21 @@ async function applySubscription(sub: Stripe.Subscription) {
     .insert(schema.entitlements)
     .values({ workspaceId, ...update })
     .onConflictDoUpdate({ target: schema.entitlements.workspaceId, set: update });
+}
+
+/** Preview only: grants the unlock a paid checkout would, without Stripe. */
+export async function previewUnlock(workspaceId: string, users: number) {
+  const tier = unlockTier(users);
+  const update = auditPurchaseUpdate(toState(await entitlementRow(workspaceId)), env().AUDIT_ACCESS_HOURS, tier.maxUsers);
+  await db().update(schema.entitlements).set(update).where(eq(schema.entitlements.workspaceId, workspaceId));
+}
+
+/** Preview only: locks the report again so the unlock can be tried again. */
+export async function previewRelock(workspaceId: string) {
+  await db()
+    .update(schema.entitlements)
+    .set({ auditAccessUntil: null, auditUserLimit: null, plan: "free" })
+    .where(and(eq(schema.entitlements.workspaceId, workspaceId), eq(schema.entitlements.billingPreview, true)));
 }
 
 async function applyCheckout(session: Stripe.Checkout.Session) {

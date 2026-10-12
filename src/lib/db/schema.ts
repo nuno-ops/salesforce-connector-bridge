@@ -183,6 +183,8 @@ export const entitlements = pgTable("entitlements", {
   auditAccessUntil: timestamp("audit_access_until", { withTimezone: true }),
   /** Largest org, in licensed users, the unlock covers. `null` covers any size. */
   auditUserLimit: integer("audit_user_limit"),
+  /** Shows this workspace the paywall while billing is off, with free unlocks. For walking through the paid flow. */
+  billingPreview: boolean("billing_preview").notNull().default(false),
   updatedAt: updatedAt(),
 }).enableRLS();
 
