@@ -1,6 +1,6 @@
 import type { OrgSnapshot, SnapshotUser } from "@/lib/salesforce/types";
 import { LIST_PRICES, type ListPrice } from "@/lib/apps/list-prices";
-import { reviewApps, type AppReviewItem } from "@/lib/apps/review";
+import { isIntegrationApp, isPersonalApp, reviewApps, type AppReviewItem } from "@/lib/apps/review";
 import { formatDate } from "@/lib/utils";
 import { summarizeContract } from "./contract";
 import { editionKey, effectivePriceBook, ENTERPRISE_SHARE_OF_UNLIMITED, priceForLicense, type PriceBook } from "./prices";
@@ -186,6 +186,7 @@ export function toOtherOrg(snapshot: OrgSnapshot): OtherOrg {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PAID_LICENSES = new Set(["Salesforce", "Salesforce Platform"]);
+const INTEGRATION_EXAMPLE = "for example a Zapier, MuleSoft or data-sync connection, or a name like \"API User\"";
 /** A Full or Partial Copy sandbox not refreshed for this long is probably not in use. */
 const STALE_SANDBOX_DAYS = 365;
 const CRM_OBJECTS = ["Opportunity", "Lead", "Case"];
@@ -280,11 +281,19 @@ export function computeSavings(
     });
   }
 
-  // 2. Human licenses used by integrations.
-  const tokensByUser = new Map<string, { count: number; maxUse: number; apps: Set<string> }>();
+  // 2. Accounts that only an integration uses: heavy use of an app that syncs systems, and none of the
+  // tools a person signs in to. A person whose login also runs a connector still needs their seat.
+  const usersByApp = new Map<string, Set<string>>();
+  const people = new Set<string>();
   for (const t of snapshot.oauthTokens) {
-    const entry = tokensByUser.get(t.userId) ?? { count: 0, maxUse: 0, apps: new Set() };
-    entry.count += 1;
+    usersByApp.set(t.appName, (usersByApp.get(t.appName) ?? new Set()).add(t.userId));
+    if (isPersonalApp(t.appName)) people.add(t.userId);
+  }
+  const tokensByUser = new Map<string, { maxUse: number; apps: Set<string> }>();
+  for (const t of snapshot.oauthTokens) {
+    if (people.has(t.userId)) continue;
+    if (t.useCount <= integrationUseCount || !isIntegrationApp(t.appName, usersByApp.get(t.appName)!.size)) continue;
+    const entry = tokensByUser.get(t.userId) ?? { maxUse: 0, apps: new Set() };
     entry.maxUse = Math.max(entry.maxUse, t.useCount);
     entry.apps.add(t.appName);
     tokensByUser.set(t.userId, entry);
@@ -299,7 +308,7 @@ export function computeSavings(
     if (u.licenseName !== "Salesforce" && u.licenseName !== "Salesforce Platform") continue;
     const price = priceForLicense(prices, u.licenseName) ?? 0;
     const tokens = tokensByUser.get(u.id);
-    if (tokens && tokens.count >= 2 && tokens.maxUse > integrationUseCount) {
+    if (tokens) {
       integrationCandidates.push({
         user: u,
         reason: `Heavy API use via ${[...tokens.apps].slice(0, 3).join(", ")}`,
@@ -327,13 +336,15 @@ export function computeSavings(
   }
   if (integration.length) {
     const priced = integration.filter((u) => u.annualSavings > 0);
+    const free = integrationLicense ? integrationLicense.total - integrationLicense.used : 0;
+    const waiting = integration.length - priced.length;
     recommendations.push({
       id: "integration_users",
       category: "integration_users",
-      title: `Move ${integration.length} integration ${plural(integration.length, "user")} to Integration licenses`,
-      detail: integrationLicense
-        ? `${integrationLicense.total - integrationLicense.used} free Salesforce Integration ${plural(integrationLicense.total - integrationLicense.used, "license")} available. ${priced.length} of these users can move at no extra cost.`
-        : "No Salesforce Integration licenses found. Most editions include 5 free; ask your account executive to provision them.",
+      title: priced.length
+        ? `Move ${priced.length} integration ${plural(priced.length, "user")} to a free Integration license`
+        : `Review ${integration.length} possible integration ${plural(integration.length, "user")}`,
+      detail: `These users hold a full Salesforce license, but their logins are used by integrations (${INTEGRATION_EXAMPLE}). An integration can run on the Salesforce Integration license instead, which ${integrationLicense ? `you have ${free} free ${plural(free, "copy", "copies")} of` : "most editions include 5 of for free"}. Moving it frees the full license to drop at renewal.${waiting && integrationLicense ? ` ${waiting} more ${plural(waiting, "looks", "look")} like ${plural(waiting, "an integration", "integrations")}, but there are no free Integration licenses left for ${plural(waiting, "it", "them")}; ask your account executive what extra ones cost.` : ""}${integrationLicense ? "" : " Ask your account executive to provision them."}`,
       count: integration.length,
       annualSavings: sum(integration),
       confidence: integration.some((u) => u.confidence === "medium") ? "medium" : "low",

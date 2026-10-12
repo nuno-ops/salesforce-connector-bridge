@@ -192,8 +192,21 @@ describe("computeSavings", () => {
     ];
     const result = computeSavings(
       snapshot({
-        users: [user("i1"), user("i2"), user("human")],
-        oauthTokens: [...tokens("i1"), ...tokens("i2"), tokens("human")[0]],
+        users: [user("i1"), user("i2"), user("human"), user("rep")],
+        oauthTokens: [
+          ...tokens("i1"),
+          ...tokens("i2"),
+          // People using per-person tools heavily (chat, dialer, mobile) aren't integrations.
+          ...["human", "rep"].flatMap((userId) =>
+            ["Slack", "JustCall SoftPhone Dialer", "Salesforce for iOS"].map((appName) => ({
+              id: `${userId}-${appName}`,
+              appName,
+              userId,
+              useCount: 9000,
+              lastUsedDate: daysAgo(1),
+            })),
+          ),
+        ],
         userLicenses: [
           { id: "L1", name: "Salesforce Integration", total: 5, used: 4 },
         ],
@@ -209,6 +222,28 @@ describe("computeSavings", () => {
       result.users.integration.filter((u) => u.annualSavings > 0),
     ).toHaveLength(1);
     expect(result.byCategory.integration_users).toBe(165 * 12);
+  });
+
+  it("only counts accounts no person uses, and unrecognised apps only when one or two accounts use them", () => {
+    const token = (userId: string, appName: string, useCount = 20_000) => ({ id: `${userId}-${appName}`, appName, userId, useCount, lastUsedDate: daysAgo(1) });
+    const result = computeSavings(
+      snapshot({
+        users: [user("admin"), user("connector"), user("bot")],
+        oauthTokens: [
+          // An admin whose login also runs a connector still needs the seat.
+          token("admin", "Windsor Connector"),
+          token("admin", "Slack", 50),
+          token("connector", "Windsor Connector"),
+          token("bot", "Fivetran"),
+        ],
+        userLicenses: [{ id: "L1", name: "Salesforce Integration", total: 5, used: 0 }],
+      }),
+      prices,
+      { now: NOW },
+    );
+    expect(result.users.integration.map((u) => u.id).sort()).toEqual(["bot", "connector"]);
+    const rec = result.recommendations.find((r) => r.category === "integration_users");
+    expect(rec?.title).toBe("Move 2 integration users to a free Integration license");
   });
 
   it("treats integration savings as advisory when no Integration licenses exist", () => {
