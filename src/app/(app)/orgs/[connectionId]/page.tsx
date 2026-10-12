@@ -747,7 +747,7 @@ function ContractCard({
               {clouds.aws.apps.length > 0 && (
                 <>
                   <EligibleAppsList option={clouds.aws} currency={currency} /> Buying {clouds.aws.apps.length === 1 ? "it" : "them"} through AWS
-                  Marketplace counts too, and is included above.{" "}
+                  Marketplace counts too{awsSaving !== null ? ", and is included above" : ""}.{" "}
                 </>
               )}
               Not added to your savings total.{" "}
