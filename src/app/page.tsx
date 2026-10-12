@@ -1,6 +1,7 @@
 import "./landing.css";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import { env } from "@/lib/env";
 
 const CHECKS = [
   ["01", "Inactive users", "Find paid seats held by people who haven't logged in for 30 days or more."],
@@ -22,22 +23,30 @@ const PLANS = [
     tone: "free",
   },
   {
-    name: "One-off audit",
-    price: "$99",
+    name: "Full report",
+    price: "From $290",
     suffix: " once",
-    desc: "The evidence behind every recommendation, ready for action or renewal.",
-    items: ["Every user behind the numbers", "CSV export + printable report", "Connected app review", "Prices read from your contract"],
-    cta: "Run full audit",
+    desc: "The evidence behind every saving, ready for finance and your renewal. Priced by org size.",
+    items: [
+      "Every user and app behind the numbers",
+      "Renewal buying options",
+      "CSV export + printable report",
+      "90 days of access, rescans included",
+      "$290 up to 50 users, $590 up to 250, $990 above",
+      "Free if we find less than the price",
+    ],
+    cta: "Start free scan",
     tone: "audit",
   },
   {
-    name: "Savings Monitor",
-    price: "$39",
-    suffix: "/month",
-    desc: "Keep waste from creeping back as your org changes.",
-    items: ["Everything in the audit", "Automatic weekly rescans", "Savings history per org", "Cancel any time"],
-    cta: "Start monitoring",
+    name: "Expert call",
+    price: "Talk to us",
+    suffix: "",
+    desc: "A Salesforce specialist helps you act on the report and get more from Salesforce.",
+    items: ["Walk through your savings", "Plan your renewal negotiation", "Help with the clean-up", "Any other Salesforce work"],
+    cta: "Book a call",
     tone: "monitor",
+    expert: true,
   },
 ] as const;
 
@@ -337,10 +346,17 @@ export default async function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link href={start} className={`plan-cta ${p.tone}`}>
-                  {p.cta}
-                  <span>→</span>
-                </Link>
+                {"expert" in p ? (
+                  <a href={env().CALENDLY_URL} target="_blank" rel="noreferrer" className={`plan-cta ${p.tone}`}>
+                    {p.cta}
+                    <span>→</span>
+                  </a>
+                ) : (
+                  <Link href={start} className={`plan-cta ${p.tone}`}>
+                    {p.cta}
+                    <span>→</span>
+                  </Link>
+                )}
               </article>
             ))}
           </div>

@@ -16,7 +16,7 @@ Finds wasted Salesforce spend: inactive users, integration accounts on full lice
 1. A signed-in user connects an org (`/api/salesforce/connect` → Salesforce → `/api/salesforce/callback`).
 2. A scan (`src/lib/scan.ts`) runs the read-only queries in `src/lib/salesforce/collect.ts` and stores a snapshot.
 3. The pure savings engine (`src/lib/savings/engine.ts`) prices the snapshot. Each user lands in at most one bucket (inactive → integration → platform), so savings are never double counted. Editing prices re-prices the stored snapshot without calling Salesforce.
-4. Access (`src/lib/billing/access.ts`): with `BILLING_ENABLED=false` everyone sees the full report, matching today's site. With billing on, free users see totals and recommendations; an audit unlocks the full report for `AUDIT_ACCESS_HOURS`; Monitor adds weekly rescans and history.
+4. Access (`src/lib/billing/access.ts`): with `BILLING_ENABLED=false` everyone sees the full report, matching today's site. With billing on, a free scan shows the total, each recommendation's title and amount, and the renewal date; a one-off unlock opens the full report for `AUDIT_ACCESS_HOURS` (default 90 days), priced by the org's licensed users (`src/lib/billing/pricing.ts`: $290 up to 50, $590 up to 250, $990 above). An org whose savings are below its unlock price gets the full report free. Monitor (weekly rescans) is no longer sold but still honoured for existing subscribers.
 
 ## Setup
 
@@ -39,7 +39,7 @@ Enable the Email (magic link) and Google providers, and add `${NEXT_PUBLIC_APP_U
 
 ### Stripe
 
-Create three prices and set `STRIPE_PRICE_MONITOR` (recurring), `STRIPE_PRICE_AUDIT` and `STRIPE_PRICE_CONSULT` (one-time). Point a webhook at `/api/stripe/webhook` with `checkout.session.completed`, `checkout.session.async_payment_succeeded` and `customer.subscription.*`.
+The unlock is priced in code, so it needs no Stripe price. Set `STRIPE_PRICE_CONSULT` (one-time) only to charge for expert calls; without it the call button opens `CALENDLY_URL`. `STRIPE_PRICE_MONITOR` is only needed for existing subscriptions. Point a webhook at `/api/stripe/webhook` with `checkout.session.completed`, `checkout.session.async_payment_succeeded` and `customer.subscription.*`.
 
 ### Weekly rescans
 

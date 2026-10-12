@@ -1,19 +1,18 @@
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckoutButton } from "@/components/app/upgrade-card";
+import { ExpertCallCard } from "@/components/app/expert-call";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspace } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { db, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Settings" };
 
-const PLAN_LABEL = { free: "Free", audit: "One-off audit", monitor: "Savings Monitor" } as const;
+const PLAN_LABEL = { free: "Free", audit: "Full report", monitor: "Savings Monitor" } as const;
 
 export default async function SettingsPage() {
   const { user, workspace } = await requireWorkspace();
@@ -22,7 +21,6 @@ export default async function SettingsPage() {
     db().select().from(schema.entitlements).where(eq(schema.entitlements.workspaceId, workspace.id)).limit(1),
     db().select().from(schema.sfConnections).where(eq(schema.sfConnections.workspaceId, workspace.id)),
   ]);
-  const e = env();
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -46,29 +44,20 @@ export default async function SettingsPage() {
             </CardTitle>
             <CardDescription>
               {access.plan === "monitor" && entitlement?.currentPeriodEnd && `Renews ${formatDate(entitlement.currentPeriodEnd)}.`}
-              {access.plan === "audit" && access.auditAccessUntil && `Full report unlocked until ${access.auditAccessUntil.toLocaleString("en-US")}.`}
-              {access.plan === "free" && "You can see total savings and recommendations. Upgrade for user-level detail and exports."}
+              {access.plan === "audit" && access.auditAccessUntil && `Full report unlocked until ${formatDate(access.auditAccessUntil)}, rescans included.`}
+              {access.plan === "free" &&
+                "Scans are free and show your total savings. Unlock the full report from an org's report page: a one-off payment priced by the org's size."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            {access.plan !== "monitor" && (
-              <CheckoutButton product="monitor" returnPath="/settings">
-                Start monitoring · $39/month
-              </CheckoutButton>
-            )}
-            {access.plan === "free" && (
-              <CheckoutButton product="audit" returnPath="/settings" variant="outline">
-                One-off audit · $99
-              </CheckoutButton>
-            )}
-            {entitlement?.stripeCustomerId && (
+          {entitlement?.stripeCustomerId && (
+            <CardContent className="flex flex-wrap gap-3">
               <form action="/api/stripe/portal" method="post">
                 <Button variant="outline" type="submit">
-                  Manage billing
+                  Billing history
                 </Button>
               </form>
-            )}
-          </CardContent>
+            </CardContent>
+          )}
         </Card>
       )}
 
@@ -88,25 +77,11 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card id="expert-review" className="scroll-mt-24">
-        <CardHeader>
-          <CardTitle>Expert review</CardTitle>
-          <CardDescription>Walk through your report with a Salesforce licensing specialist before your renewal.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          {access.billingEnabled && e.STRIPE_PRICE_CONSULT ? (
-            <CheckoutButton product="consult" returnPath="/settings?booked=1">
-              Book a paid consultation
-            </CheckoutButton>
-          ) : (
-            <Button asChild variant="outline">
-              <a href={e.CALENDLY_URL} target="_blank" rel="noreferrer">
-                Book a call
-              </a>
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+      <ExpertCallCard
+        id="expert-review"
+        returnPath="/settings"
+        description="Walk through your report with a Salesforce specialist before your renewal, and get help with the clean-up, the renewal negotiation, or any other Salesforce work."
+      />
 
       <Card>
         <CardHeader>

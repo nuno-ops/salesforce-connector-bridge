@@ -14,9 +14,9 @@ const schema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_MONITOR: z.string().optional(),
-  STRIPE_PRICE_AUDIT: z.string().optional(),
   STRIPE_PRICE_CONSULT: z.string().optional(),
-  AUDIT_ACCESS_HOURS: z.coerce.number().int().positive().default(48),
+  /** How long a one-off unlock lasts; 2160 hours = 90 days. */
+  AUDIT_ACCESS_HOURS: z.coerce.number().int().positive().default(2160),
   CALENDLY_URL: z.url().default("https://calendly.com/salesforcesaver-support/30min"),
   ANTHROPIC_API_KEY: z.string().optional(),
   CRON_SECRET: z.string().optional(),
