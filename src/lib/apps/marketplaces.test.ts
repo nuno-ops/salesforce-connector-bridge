@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestAwsMatch, eligibleApps, lookupKey, marketplaceStatus, normalizeAppName, type LookupResults } from "./marketplaces";
+import { awsListedApps, bestAwsMatch, eligibleApps, lookupKey, marketplaceStatus, normalizeAppName, type LookupResults } from "./marketplaces";
 
 const lookup = (counts: boolean, listingName = "Listing") =>
   ({ counts, source: "https://aws.amazon.com/marketplace", checked: "2026-10-12", via: "lookup", listingName }) as const;
@@ -64,5 +64,16 @@ describe("bestAwsMatch", () => {
   it("doesn't match partial words or very short names", () => {
     expect(bestAwsMatch("Acme Sy", listings)).toBeNull();
     expect(bestAwsMatch("AB", [{ listingName: "AB", deployedOnAws: true }])).toBeNull();
+  });
+});
+
+describe("awsListedApps", () => {
+  it("keeps apps with a listing, including ones that don't count toward a commitment", () => {
+    const apps = [
+      { name: "OwnBackup", annualCost: 8_000 },
+      { name: "Conga Composer", annualCost: null },
+      { name: "Unknown", annualCost: 1_000 },
+    ];
+    expect(awsListedApps(apps).map((a) => a.name)).toEqual(["OwnBackup", "Conga Composer"]);
   });
 });

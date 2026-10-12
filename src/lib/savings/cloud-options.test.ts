@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cloudOptions, pricedApps } from "./cloud-options";
+import { lookupKey, type LookupResults } from "@/lib/apps/marketplaces";
+import { cloudOptions, pricedApps, resellerQuoteApps } from "./cloud-options";
 import type { SavingsResult } from "./engine";
 
 const result = {
@@ -46,5 +47,22 @@ describe("cloudOptions", () => {
     );
     expect(o.azure).toMatchObject({ saving: 4_000, appSpend: 6_000 });
     expect(o.google).toMatchObject({ saving: null, apps: [] });
+  });
+});
+
+describe("resellerQuoteApps", () => {
+  it("lists apps with any AWS listing, priced or not, costliest first", () => {
+    const lookups: LookupResults = new Map([
+      [lookupKey("aws", "Free Thing"), { counts: false, source: "https://aws/free", checked: "2026-10-12", via: "lookup", listingName: "Free Thing" }],
+      [lookupKey("aws", "Docusign"), { counts: false, source: "https://aws/docusign", checked: "2026-10-12", via: "lookup" }],
+    ]);
+    expect(resellerQuoteApps(result, lookups).map((a) => [a.name, a.annualCost])).toEqual([
+      ["Conga Composer", 12_000],
+      ["Free Thing", null],
+    ]);
+  });
+
+  it("is empty when nothing is listed", () => {
+    expect(resellerQuoteApps({ ...result, apps: [] }, new Map())).toEqual([]);
   });
 });

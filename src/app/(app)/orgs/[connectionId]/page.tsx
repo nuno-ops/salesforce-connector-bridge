@@ -16,7 +16,7 @@ import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
 import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
-import { cloudOptions, renewalSeats, type CloudOption } from "@/lib/savings/cloud-options";
+import { cloudOptions, renewalSeats, resellerQuoteApps, type CloudOption } from "@/lib/savings/cloud-options";
 import { AWS_MARKETPLACE_CAP, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
 import { reportRecommendations, type Category, type Recommendation, type SavingsResult } from "@/lib/savings/engine";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
@@ -593,6 +593,7 @@ function ContractCard({
   // AWS numbers entered for this org win over the ones given at sign-up.
   const clouds = cloudOptions(result, answers, spend && spend.currency === currency ? spend.amount : null, lookups);
   const awsSaving = clouds.aws?.saving ?? null;
+  const resellerApps = resellerQuoteApps(result, lookups);
   const premier = premierSaving(answers, edition, spend && spend.currency === currency ? spend.amount : null);
   const nonprofit = nonprofitSaving(
     answers,
@@ -753,6 +754,30 @@ function ContractCard({
               <Link href="/settings#expert-review" className="text-foreground underline underline-offset-2 hover:text-cobalt">
                 Questions? Book an expert review.
               </Link>
+            </p>
+          </div>
+        )}
+        {resellerApps.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow">Option to save: reseller quotes on AWS Marketplace</p>
+            <p className="font-semibold">
+              {formatNumber(resellerApps.length)} {resellerApps.length === 1 ? "app" : "apps"} you use{" "}
+              {resellerApps.length === 1 ? "is" : "are"} sold on AWS Marketplace
+            </p>
+            <p className="text-muted-foreground">
+              {resellerApps.map((a, i) => (
+                <span key={a.status.source}>
+                  {i > 0 && ", "}
+                  <a href={a.status.source} target="_blank" rel="noreferrer" className="text-foreground underline underline-offset-2 hover:text-cobalt">
+                    {a.name}
+                  </a>
+                  {a.annualCost !== null && ` (${formatCurrency(a.annualCost, currency)} a year)`}
+                </span>
+              ))}
+              . Before renewing with the vendor, ask an authorized AWS Marketplace reseller to quote the same product through a channel
+              partner private offer. A reseller can sometimes get a vendor discount and pass part of it on. Discounts aren&apos;t guaranteed:
+              the vendor must agree to the offer, and you need an AWS account to accept it and pay on your AWS bill. No AWS spend
+              commitment is needed. We don&apos;t estimate the saving because it&apos;s negotiated each time. Not added to your savings total.
             </p>
           </div>
         )}

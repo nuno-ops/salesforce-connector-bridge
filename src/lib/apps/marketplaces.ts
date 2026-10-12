@@ -108,3 +108,21 @@ export function bestAwsMatch<T extends { listingName?: string; deployedOnAws: bo
   });
   return matches.find((m) => m.deployedOnAws) ?? matches[0] ?? null;
 }
+
+export interface ListedApp {
+  name: string;
+  aliases?: (string | null)[];
+  /** Yearly cost at the price used in the report, `null` when unpriced. */
+  annualCost: number | null;
+}
+
+/**
+ * Apps with an AWS Marketplace listing, whether or not it counts toward a commitment: authorized
+ * resellers can quote any listed product through a channel partner private offer.
+ */
+export function awsListedApps<T extends ListedApp>(apps: T[], lookups?: LookupResults): (T & { status: MarketplaceStatus })[] {
+  return apps.flatMap((a) => {
+    const status = marketplaceStatus("aws", [a.name, ...(a.aliases ?? [])], lookups);
+    return status?.listingName ? [{ ...a, status }] : [];
+  });
+}
