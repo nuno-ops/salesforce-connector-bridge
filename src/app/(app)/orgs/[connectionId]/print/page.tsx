@@ -68,6 +68,13 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
               {contract.annualSpend && ` The same rise at renewal would add about ${formatCurrency(contract.annualSpend.amount * rise.rate, contract.annualSpend.currency)} a year.`}
             </p>
           )}
+          {contract.annualSpend && (
+            <p>
+              Option to save: if your company has an AWS spend commitment, buying the renewal through AWS Marketplace can count up to{" "}
+              {formatCurrency(contract.annualSpend.amount, contract.annualSpend.currency)} a year toward it (AWS usually caps this at 25% of the
+              yearly commitment, &quot;Deployed on AWS&quot; listings only). A possible approach, not added to the total.
+            </p>
+          )}
         </section>
       )}
 

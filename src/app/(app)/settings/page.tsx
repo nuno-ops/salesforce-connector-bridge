@@ -72,7 +72,7 @@ export default async function SettingsPage() {
         </Card>
       )}
 
-      <Card>
+      <Card id="expert-review" className="scroll-mt-24">
         <CardHeader>
           <CardTitle>Expert review</CardTitle>
           <CardDescription>Walk through your report with a Salesforce licensing specialist before your renewal.</CardDescription>

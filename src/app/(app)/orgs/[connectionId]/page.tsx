@@ -617,6 +617,26 @@ function ContractCard({ contract, result }: { contract: ContractSummary; result:
             </p>
           </div>
         )}
+        {spend && (
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow">Option to save: pay through AWS</p>
+            <p className="font-mono text-3xl font-semibold">
+              Up to {formatCurrency(spend.amount, spend.currency)}
+              <span className="text-base font-normal text-muted-foreground"> a year</span>
+            </p>
+            <p className="text-muted-foreground">
+              We can&apos;t see whether your company uses AWS, so this is only a possible approach. Salesforce sells through AWS Marketplace in
+              the US, UK, much of the EU, Canada, Australia, India, Chile, Colombia and Mexico. If your company has an AWS spend commitment,
+              buying your renewal there can count your Salesforce bill toward it, which saves money if you&apos;d otherwise fall short or are
+              near a better AWS discount tier. AWS usually counts Marketplace spend up to 25% of the yearly commitment, and only for listings
+              marked &quot;Deployed on AWS&quot;. Ask your account executive for an AWS Marketplace private offer before {day(contract.noticeBy)}.
+              Not added to your savings total.{" "}
+              <Link href="/settings#expert-review" className="text-foreground underline underline-offset-2 hover:text-cobalt">
+                Questions? Book an expert review.
+              </Link>
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
