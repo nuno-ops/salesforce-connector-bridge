@@ -7,7 +7,7 @@ import { getAccess } from "@/lib/billing/server";
 import { loadLookups } from "@/lib/apps/aws-marketplace";
 import { CLOUD_LABEL, type LookupResults } from "@/lib/apps/marketplaces";
 import { nonprofitSaving, POWER_OF_US_LICENSES, premierSaving } from "@/lib/savings/answers";
-import { cloudOptions, renewalSeats, type CloudOption } from "@/lib/savings/cloud-options";
+import { cloudOptions, renewalSeats, resellerQuoteApps, type CloudOption } from "@/lib/savings/cloud-options";
 import { summarizeContract } from "@/lib/savings/contract";
 import { reportRecommendations, type FlaggedUser } from "@/lib/savings/engine";
 import { latestScan, lookupNames } from "@/lib/scan";
@@ -32,6 +32,7 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
   const clouds = cloudOptions(r, answers, spend?.amount ?? null, lookups);
   const awsSaving = clouds.aws?.saving ?? null;
   const seats = renewalSeats(r);
+  const resellerApps = resellerQuoteApps(r, lookups);
   const appList = (o: CloudOption) => o.apps.map((a) => `${a.name} (${money(a.annualCost)} a year)`).join(", ");
   const premier = premierSaving(answers, connection.edition, spend?.amount ?? null);
   const nonprofit = scan.snapshot
@@ -115,6 +116,14 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
                 : " Enter the AWS commitment and expected unused amount on the Prices page to see the saving."}{" "}
               {clouds.aws.apps.length > 0 && `Apps that count too, included above: ${appList(clouds.aws)}. `}
               A possible approach, not added to the total.
+            </p>
+          )}
+          {resellerApps.length > 0 && (
+            <p>
+              Option to save: {resellerApps.map((a) => a.name).join(", ")} {resellerApps.length === 1 ? "is" : "are"} sold on AWS
+              Marketplace. Ask an authorized reseller for a quote (a channel partner private offer) before renewing with the vendor.
+              Discounts aren&apos;t guaranteed and need the vendor&apos;s agreement; accepting needs an AWS account but no AWS commitment.
+              Not added to the total.
             </p>
           )}
           {(["google", "azure"] as const).map((c) => {

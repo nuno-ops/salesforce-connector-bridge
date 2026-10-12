@@ -1,4 +1,4 @@
-import { eligibleApps, type Cloud, type EligibleApp, type LookupResults, type PricedApp } from "@/lib/apps/marketplaces";
+import { awsListedApps, eligibleApps, type Cloud, type EligibleApp, type LookupResults, type PricedApp } from "@/lib/apps/marketplaces";
 import { awsAddOns, cloudAppSaving, cloudCommitment, type CompanyAnswers } from "./answers";
 import { awsCommitSaving } from "./contract";
 import type { Category, SavingsResult } from "./engine";
@@ -61,4 +61,20 @@ export function renewalSeats(result: Pick<SavingsResult, "recommendations" | "us
       .flat()
       .filter((u) => u && u.annualSavings > 0).length;
   return { seats, annualSavings: SEAT_CATEGORIES.reduce((a, c) => a + (result.byCategory[c] ?? 0), 0) };
+}
+
+/**
+ * Apps the org uses that are listed on AWS Marketplace, for asking resellers to quote them. No saving
+ * is worked out: any discount is negotiated between the vendor and the reseller.
+ */
+export function resellerQuoteApps(result: Pick<SavingsResult, "apps" | "connectedApps">, lookups?: LookupResults) {
+  const installed = (result.apps ?? []).map((a) => ({ name: a.name, aliases: [a.namespace], annualCost: a.annualCost && a.annualCost > 0 ? a.annualCost : null }));
+  const connected = (result.connectedApps ?? [])
+    .filter((t) => !t.salesforce)
+    .map((t) => ({ name: t.appName, annualCost: t.monthlyPrice && t.monthlyPrice > 0 ? t.monthlyPrice * 12 : null }));
+  const seen = new Set<string>();
+  // Several packages from one vendor share a listing; keep the costliest.
+  return awsListedApps([...installed, ...connected], lookups)
+    .sort((a, b) => (b.annualCost ?? 0) - (a.annualCost ?? 0))
+    .filter((a) => !seen.has(a.status.source) && seen.add(a.status.source));
 }
