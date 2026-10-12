@@ -15,6 +15,13 @@
       "when": 1791539712233,
       "tag": "0001_app_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791816585938,
+      "tag": "0002_company_answers",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
 import type { SavingsResult } from "@/lib/savings/engine";
+import type { CompanyAnswers } from "@/lib/savings/answers";
 import type { AppPrices } from "@/lib/savings/prices";
 
 // The app talks to Postgres with a server-side connection, so authorisation lives
@@ -38,6 +39,8 @@ export const profiles = pgTable("profiles", {
 export const workspaces = pgTable("workspaces", {
   id: id(),
   name: text("name").notNull(),
+  /** The sign-up questions about the company. `null` until answered or skipped. */
+  answers: jsonb("answers").$type<CompanyAnswers>(),
   createdAt: createdAt(),
 }).enableRLS();
 
