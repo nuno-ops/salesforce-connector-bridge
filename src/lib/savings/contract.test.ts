@@ -138,4 +138,10 @@ describe("awsCommitSaving", () => {
   it("saves nothing when the commitment will be used up", () => {
     expect(awsCommitSaving(100_000, { awsCommitmentYearly: 1_000_000, awsUnusedYearly: 0 })).toBe(0);
   });
+
+  it("counts apps bought through AWS Marketplace on top of the Salesforce bill", () => {
+    expect(awsCommitSaving(30_000, { awsCommitmentYearly: 1_000_000, awsUnusedYearly: 500_000 }, 12_000)).toBe(42_000);
+    // Still capped at 25% of the commitment.
+    expect(awsCommitSaving(30_000, { awsCommitmentYearly: 160_000, awsUnusedYearly: 500_000 }, 12_000)).toBe(40_000);
+  });
 });

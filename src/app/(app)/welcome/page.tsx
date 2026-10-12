@@ -13,7 +13,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-4 border-b border-foreground pb-8">
         <p className="eyebrow">{answers ? "Your company" : "Welcome"}</p>
-        <h1 className="display-title">Three questions a scan can&apos;t answer</h1>
+        <h1 className="display-title">A few questions a scan can&apos;t answer</h1>
         <p className="text-muted-foreground">
           These change what you could save, and Salesforce doesn&apos;t record them. Every question is optional, and you can change your
           answers any time from Settings.

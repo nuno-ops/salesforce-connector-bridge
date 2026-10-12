@@ -5,7 +5,8 @@ import { SalesforceAuthError } from "@/lib/salesforce/client";
 import { collectSnapshot } from "@/lib/salesforce/collect";
 import { clientFor, markExpired } from "@/lib/salesforce/connection";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
-import { computeSavings, toOtherOrg, type OtherOrg } from "@/lib/savings/engine";
+import { refreshAwsListings } from "@/lib/apps/aws-marketplace";
+import { computeSavings, toOtherOrg, type OtherOrg, type SavingsResult } from "@/lib/savings/engine";
 import { defaultPriceBook, type PriceBook } from "@/lib/savings/prices";
 
 type Connection = typeof schema.sfConnections.$inferSelect;
@@ -88,6 +89,13 @@ export async function otherOrgs(connection: Pick<Connection, "id" | "workspaceId
 }
 
 /** Reads the org, stores the snapshot and computes savings. Never throws; failures are recorded on the scan. */
+/** App names worth a marketplace lookup: priced ones first, Salesforce's own apps left out. */
+export function lookupNames(result: SavingsResult): string[] {
+  const installed = [...(result.apps ?? [])].sort((a, b) => Number((b.annualCost ?? 0) > 0) - Number((a.annualCost ?? 0) > 0)).map((a) => a.name);
+  const connected = (result.connectedApps ?? []).filter((t) => !t.salesforce).sort((a, b) => Number(b.monthlyPrice !== null) - Number(a.monthlyPrice !== null)).map((t) => t.appName);
+  return [...installed, ...connected];
+}
+
 export async function runScan(connection: Connection, trigger: "manual" | "scheduled" = "manual"): Promise<Scan> {
   const database = db();
   const [scan] = await database.insert(schema.scans).values({ connectionId: connection.id, trigger }).returning();
@@ -95,6 +103,8 @@ export async function runScan(connection: Connection, trigger: "manual" | "sched
     const snapshot = await collectSnapshot(clientFor(connection));
     const [prices, others] = await Promise.all([getPriceBook(connection), otherOrgs(connection)]);
     const result = computeSavings(snapshot, prices, { otherOrgs: connection.isSandbox ? [] : others });
+    // Check new apps against AWS Marketplace, priced ones first; best effort and time-boxed.
+    await refreshAwsListings(lookupNames(result)).catch(() => undefined);
     const [done] = await database
       .update(schema.scans)
       .set({ status: "succeeded", snapshot, result, annualSavings: result.annualSavings, finishedAt: new Date() })

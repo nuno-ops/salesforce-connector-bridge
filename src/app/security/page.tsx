@@ -72,6 +72,10 @@ export default function SecurityPage() {
         <li>A snapshot of the data above for each scan, so results and history load without calling Salesforce again.</li>
         <li>The database is hosted by Supabase in London, UK. The app runs on Netlify servers in the United States.</li>
         <li>Payments go through Stripe. We never see or store card numbers.</li>
+        <li>
+          To check which of your apps are sold on AWS Marketplace, we search AWS Marketplace&apos;s public catalog by app name. Only the
+          app&apos;s name is sent, never your org, users or records.
+        </li>
       </ul>
 
       <h2>Cutting off access</h2>

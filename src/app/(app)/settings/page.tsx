@@ -77,13 +77,13 @@ export default async function SettingsPage() {
           <CardTitle>Your company</CardTitle>
           <CardDescription>
             {workspace.answers && !workspace.answers.skipped
-              ? `Answered ${formatDate(workspace.answers.answeredAt)}. Nonprofit status, Premier Success and AWS commitment change what you could save.`
-              : "Not answered yet. Whether you're a nonprofit, pay for Premier Success or have an AWS commitment changes what you could save."}
+              ? `Answered ${formatDate(workspace.answers.answeredAt)}. Nonprofit status, Premier Success, cloud commitments and Agentforce plans change what you could save.`
+              : "Not answered yet. Whether you're a nonprofit, pay for Premier Success, have a cloud commitment or plan to buy Agentforce changes what you could save."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href="/welcome?next=/settings">{workspace.answers && !workspace.answers.skipped ? "Change answers" : "Answer three questions"}</Link>
+            <Link href="/welcome?next=/settings">{workspace.answers && !workspace.answers.skipped ? "Change answers" : "Answer a few questions"}</Link>
           </Button>
         </CardContent>
       </Card>
