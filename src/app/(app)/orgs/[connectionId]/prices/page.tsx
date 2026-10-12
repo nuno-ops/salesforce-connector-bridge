@@ -8,7 +8,7 @@ import { appExchangeSearchUrl } from "@/lib/apps/appexchange";
 import { reviewApps } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { env } from "@/lib/env";
-import { summarizeContract } from "@/lib/savings/contract";
+import { AWS_MARKETPLACE_CAP, summarizeContract } from "@/lib/savings/contract";
 import { defaultPriceBook } from "@/lib/savings/prices";
 import { getPriceBook, latestScan } from "@/lib/scan";
 import { currencySymbol, formatNumber } from "@/lib/utils";
@@ -95,6 +95,28 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
     });
   }
 
+  // Optional AWS numbers for the "pay through AWS" option on the contract card, which needs the Salesforce bill.
+  const contract = summarizeContract(scan?.snapshot?.salesforceAccount, scan?.startedAt);
+  const awsRows: AppPriceRow[] = [];
+  if (contract?.annualSpend || addOns?.awsCommitmentYearly !== undefined || addOns?.awsUnusedYearly !== undefined) {
+    awsRows.push(
+      {
+        field: "addon:awsCommitmentYearly",
+        name: "AWS spend commitment",
+        detail: `Only if your company has an AWS EDP or PPA. AWS usually counts Marketplace purchases up to ${AWS_MARKETPLACE_CAP * 100}% of it.`,
+        unit: "per year",
+        value: addOns?.awsCommitmentYearly ?? null,
+      },
+      {
+        field: "addon:awsUnusedYearly",
+        name: "AWS commitment you expect to leave unused",
+        detail: "Your AWS account team or finance can tell you. Enter 0 if you'll use it all.",
+        unit: "this year",
+        value: addOns?.awsUnusedYearly ?? null,
+      },
+    );
+  }
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div>
@@ -130,13 +152,13 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
       {prices.source !== "edition_default" && (
         <form action={resetPricesAction.bind(null, connection.id)}>
           <Button type="submit" variant="link" className="px-0">
-            {summarizeContract(scan?.snapshot?.salesforceAccount, scan?.startedAt)?.annualSpend
+            {contract?.annualSpend
               ? "Clear my prices and go back to prices from your invoices"
               : `Reset to list prices ($${defaults.fullMonthly} full, $${defaults.platformMonthly} Platform)`}
           </Button>
         </form>
       )}
-      {(packageRows.length > 0 || connectedRows.length > 0 || addOnRows.length > 0) && (
+      {(packageRows.length > 0 || connectedRows.length > 0 || addOnRows.length > 0 || awsRows.length > 0) && (
         <Card id="apps">
           <CardHeader>
             <CardTitle>App and add-on prices</CardTitle>
@@ -154,6 +176,7 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
                 { title: "Salesforce add-ons", rows: addOnRows },
                 { title: "Installed apps", rows: packageRows },
                 { title: "Connected apps", rows: connectedRows },
+                { title: "AWS commitment (optional)", rows: awsRows },
               ]}
             />
           </CardContent>
