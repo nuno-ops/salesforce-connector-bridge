@@ -40,7 +40,11 @@ export const QUERIES = {
   packageLicenses: "SELECT Id, NamespacePrefix, Status, AllowedLicenses, UsedLicenses FROM PackageLicense",
   permissionSetLicenses: "SELECT Id, MasterLabel, TotalLicenses, UsedLicenses FROM PermissionSetLicense",
   sandboxes: "SELECT SandboxName, LicenseType, Description FROM SandboxInfo",
+  // Latest completed copy per sandbox, i.e. when it was last created or refreshed.
+  sandboxRefreshes: "SELECT SandboxName, EndDate FROM SandboxProcess WHERE Status = 'Completed' ORDER BY EndDate DESC",
   frozenUsers: "SELECT UserId FROM UserLogin WHERE IsFrozen = true",
+  // A separate query: the field only exists in orgs with Service Cloud, and the users query must not fail without it.
+  serviceCloudUsers: "SELECT Id FROM User WHERE IsActive = true AND UserPermissionsSupportUser = true",
   installedPackages:
     "SELECT SubscriberPackage.NamespacePrefix, SubscriberPackage.Name FROM InstalledSubscriberPackage",
   // Your Account objects. SalesforceContract also holds payment card fields: never select them.
@@ -84,7 +88,7 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     }
   };
 
-  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe, salesforceAccount] =
+  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe, salesforceAccount, refreshes, serviceCloud] =
     await Promise.all([
       client.query<{ Id: string; Name: string; OrganizationType: string; IsSandbox: boolean }>(QUERIES.organization),
       client.query<UserRecord>(QUERIES.users),
@@ -141,6 +145,17 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
         warnings.push(
           "Your Salesforce contract and invoices weren't readable. Connect as a user with the Manage Billing permission to see your renewal date and yearly Salesforce bill.",
         );
+        return null;
+      }),
+      // Optional extras: without them the related checks are skipped, so no warning.
+      client
+        .query<{ SandboxName: string; EndDate: string | null }>(QUERIES.sandboxRefreshes, { tooling: true })
+        .catch((e) => {
+          if (e instanceof SalesforceAuthError) throw e;
+          return null;
+        }),
+      client.query<{ Id: string }>(QUERIES.serviceCloudUsers).catch((e) => {
+        if (e instanceof SalesforceAuthError) throw e;
         return null;
       }),
     ]);
@@ -206,10 +221,18 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
             fileRemainingMB: limits.FileStorageMB.Remaining,
           }
         : null,
-    sandboxes: sandboxes?.map((s) => ({ name: s.SandboxName, licenseType: s.LicenseType, description: s.Description })) ?? null,
+    sandboxes:
+      sandboxes?.map((s) => ({
+        name: s.SandboxName,
+        licenseType: s.LicenseType,
+        description: s.Description,
+        // Newest first, so the first match is the latest refresh.
+        lastRefreshed: refreshes ? (refreshes.find((r) => r.SandboxName === s.SandboxName)?.EndDate ?? null) : null,
+      })) ?? null,
     writeActivity,
     installedPackages,
     frozenUserIds: frozen?.map((f) => f.UserId) ?? null,
+    serviceCloudUserIds: serviceCloud?.map((u) => u.Id) ?? null,
     apiRequests: limits?.DailyApiRequests ? { max: limits.DailyApiRequests.Max, remaining: limits.DailyApiRequests.Remaining } : null,
     ownCustomObjects: Array.isArray(globalDescribe?.sobjects) ? globalDescribe.sobjects.filter((o) => isOwnCustomObject(o.name)).length : null,
     salesforceAccount,
@@ -257,6 +280,7 @@ async function collectSalesforceAccount(client: SalesforceClient): Promise<Snaps
 /** Counts records each user created or last edited recently. Objects that fail are skipped with a warning. */
 async function collectWriteActivity(client: SalesforceClient, warnings: string[]): Promise<SnapshotWriteActivity | null> {
   const byUser: Record<string, number> = {};
+  const byObject: Record<string, Record<string, number>> = {};
   const objects: string[] = [];
   const failed: string[] = [];
   await Promise.all(
@@ -266,7 +290,13 @@ async function collectWriteActivity(client: SalesforceClient, warnings: string[]
           client.query<{ u: string; c: number }>(activityQuery(object, "CreatedById")),
           client.query<{ u: string; c: number }>(activityQuery(object, "LastModifiedById")),
         ]);
-        for (const r of [...created, ...modified]) if (r.u) byUser[r.u] = (byUser[r.u] ?? 0) + r.c;
+        const counts: Record<string, number> = {};
+        for (const r of [...created, ...modified]) {
+          if (!r.u) continue;
+          byUser[r.u] = (byUser[r.u] ?? 0) + r.c;
+          counts[r.u] = (counts[r.u] ?? 0) + r.c;
+        }
+        byObject[object] = counts;
         objects.push(object);
       } catch (e) {
         if (e instanceof SalesforceAuthError) throw e;
@@ -276,7 +306,7 @@ async function collectWriteActivity(client: SalesforceClient, warnings: string[]
   );
   if (failed.length) warnings.push(`User activity: couldn't read ${failed.join(", ")}`);
   if (objects.length === 0) return null;
-  return { objects: ACTIVITY_OBJECTS.filter((o) => objects.includes(o)), byUser, windowDays: ACTIVITY_WINDOW_DAYS };
+  return { objects: ACTIVITY_OBJECTS.filter((o) => objects.includes(o)), byUser, byObject, windowDays: ACTIVITY_WINDOW_DAYS };
 }
 
 /**

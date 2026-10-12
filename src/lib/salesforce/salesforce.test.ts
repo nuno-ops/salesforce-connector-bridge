@@ -81,6 +81,7 @@ describe("collectSnapshot", () => {
       [activityQuery("Opportunity", "LastModifiedById")]: [{ u: "0051", c: 2 }],
       [activityQuery("Account", "LastModifiedById")]: [{ u: "0051", c: 1 }],
       [QUERIES.frozenUsers]: [{ UserId: "0051" }],
+      [QUERIES.serviceCloudUsers]: [{ Id: "0051" }],
       [QUERIES.installedPackages]: [{ SubscriberPackage: { NamespacePrefix: "acme", Name: "Acme Docs" } }],
       [packageObjectsQuery("acme")]: [
         { QualifiedApiName: "acme__Doc__c", Label: "Doc" },
@@ -138,8 +139,10 @@ describe("collectSnapshot", () => {
     expect(snap.writeActivity).toEqual({
       objects: ["Account", "Contact", "Lead", "Opportunity", "Case", "Event"],
       byUser: { "0051": 6 },
+      byObject: { Account: { "0051": 1 }, Contact: {}, Lead: {}, Opportunity: { "0051": 5 }, Case: {}, Event: {} },
       windowDays: 90,
     });
+    expect(snap.serviceCloudUserIds).toEqual(["0051"]);
     expect(snap.frozenUserIds).toEqual(["0051"]);
     expect(snap.apiRequests).toEqual({ max: 115000, remaining: 114000 });
     expect(snap.ownCustomObjects).toBe(1);

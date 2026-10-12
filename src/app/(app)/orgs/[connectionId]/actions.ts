@@ -8,7 +8,7 @@ import { extractContractPrices } from "@/lib/ai/claude";
 import { requireConnection } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { disconnect } from "@/lib/salesforce/connection";
-import type { AppPrices } from "@/lib/savings/prices";
+import { ADD_ON_KEYS, type AddOnPrices, type AppPrices } from "@/lib/savings/prices";
 import { getPriceBook, latestScan, recompute, runScan } from "@/lib/scan";
 
 export interface ActionState {
@@ -32,10 +32,10 @@ const priceForm = z.object({
   source: z.enum(["manual", "contract"]).default("manual"),
 });
 
-async function repriceLatest(connection: { id: string; edition: string }) {
+async function repriceLatest(connection: { id: string; edition: string; workspaceId: string; isSandbox: boolean }) {
   const scan = await latestScan(connection.id, { succeededOnly: true });
   if (!scan?.snapshot) return;
-  await recompute({ ...scan, snapshot: scan.snapshot }, await getPriceBook(connection));
+  await recompute({ ...scan, snapshot: scan.snapshot }, await getPriceBook(connection), connection);
 }
 
 export async function savePricesAction(connectionId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -60,18 +60,24 @@ export async function resetPricesAction(connectionId: string) {
 
 const appPrice = z.union([z.literal("").transform(() => null), price]);
 
-/** Fields are named `package:<namespace>` and `connected:<app name>`; blank removes a price. */
+/** Fields are named `package:<namespace>`, `connected:<app name>` and `addon:<key>`; blank removes a price. */
 export async function saveAppPricesAction(connectionId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const { connection } = await requireConnection(connectionId);
   const prices: AppPrices = { packages: {}, connectedApps: {} };
+  const addOns: AddOnPrices = {};
   for (const [key, value] of formData) {
     const [kind, ...rest] = key.split(":");
     const name = rest.join(":");
-    if ((kind !== "package" && kind !== "connected") || !name || typeof value !== "string") continue;
+    if ((kind !== "package" && kind !== "connected" && kind !== "addon") || !name || typeof value !== "string") continue;
     const parsed = appPrice.safeParse(value.trim());
     if (!parsed.success) return { status: "error", message: `The price for ${name} must be a number between 0 and 100,000.` };
-    if (parsed.data !== null) (kind === "package" ? prices.packages : prices.connectedApps)[name] = parsed.data;
+    if (parsed.data === null) continue;
+    if (kind === "addon") {
+      const addOn = ADD_ON_KEYS.find((k) => k === name);
+      if (addOn) addOns[addOn] = parsed.data;
+    } else (kind === "package" ? prices.packages : prices.connectedApps)[name] = parsed.data;
   }
+  if (Object.keys(addOns).length > 0) prices.addOns = addOns;
   await db()
     .insert(schema.appPrices)
     .values({ connectionId, prices })

@@ -21,6 +21,16 @@ export function formatCurrency(amount: number, currency = "USD") {
   }
 }
 
+/** "$", "£", "€"; the ISO code itself when there's no symbol. */
+export function currencySymbol(currency = "USD") {
+  try {
+    const part = new Intl.NumberFormat("en-US", { style: "currency", currency }).formatToParts(0).find((p) => p.type === "currency");
+    return part?.value ?? currency;
+  } catch {
+    return currency;
+  }
+}
+
 export function formatNumber(n: number) {
   return new Intl.NumberFormat("en-US").format(n);
 }

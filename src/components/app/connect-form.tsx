@@ -39,7 +39,10 @@ export function ConnectForm() {
         Connect Salesforce
       </Button>
       <p className="text-xs text-muted-foreground">
-        Read-only access. We never change your data, and you can disconnect at any time.
+        We only read, never change your data, and you can disconnect at any time.{" "}
+        <a href="/security" target="_blank" className="underline underline-offset-4 hover:text-cobalt">
+          What we read
+        </a>
       </p>
     </form>
   );

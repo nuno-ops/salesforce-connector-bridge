@@ -8,9 +8,10 @@ import { appExchangeSearchUrl } from "@/lib/apps/appexchange";
 import { reviewApps } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { env } from "@/lib/env";
+import { summarizeContract } from "@/lib/savings/contract";
 import { defaultPriceBook } from "@/lib/savings/prices";
 import { getPriceBook, latestScan } from "@/lib/scan";
-import { formatNumber } from "@/lib/utils";
+import { currencySymbol, formatNumber } from "@/lib/utils";
 import { resetPricesAction } from "../actions";
 
 export const metadata: Metadata = { title: "Prices" };
@@ -20,6 +21,11 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
   const { connection } = await requireConnection(connectionId);
   const [prices, scan] = await Promise.all([getPriceBook(connection), latestScan(connection.id, { succeededOnly: true })]);
   const defaults = defaultPriceBook(connection.edition);
+  // What the latest scan priced with: invoice-based prices and the contract's currency when there are invoices.
+  const effective = scan?.result?.prices;
+  const currency = effective?.currency ?? "USD";
+  const symbol = currencySymbol(currency);
+  const fromInvoices = prices.source === "edition_default" && effective?.source === "invoices";
 
   // Apps found in the latest scan. Packages are priced by namespace, so ones without a namespace can't be priced.
   const packageRows: AppPriceRow[] = [];
@@ -36,8 +42,8 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
         detail: a.seats ? (a.seats.allowed < 0 ? "Site license" : `${formatNumber(a.seats.used)} of ${formatNumber(a.seats.allowed)} seats used`) : "No seat count",
         unit: perSeat ? "per seat / mo" : "per month",
         value: prices.apps?.packages[a.namespace] ?? null,
-        lookupUrl: a.listPrice ? undefined : appExchangeSearchUrl(a.name),
-        hint: a.listPrice
+        lookupUrl: a.listPrice && currency === "USD" ? undefined : appExchangeSearchUrl(a.name),
+        hint: a.listPrice && currency === "USD"
           ? `List price $${a.listPrice.price} ${a.listPrice.unit === "user" ? "per user" : "for the org"} a month (${a.listPrice.tier}, checked ${a.listPrice.checked}), used until you enter yours`
           : undefined,
       });
@@ -65,6 +71,30 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
     }
   }
 
+  // Salesforce add-ons the scan found, which Salesforce doesn't publish one clear price for.
+  const addOnRows: AppPriceRow[] = [];
+  const addOns = prices.apps?.addOns;
+  const partialSandboxes = scan?.result?.sandboxes?.partial ?? 0;
+  if (partialSandboxes > 0 || addOns?.partialSandboxMonthly !== undefined) {
+    addOnRows.push({
+      field: "addon:partialSandboxMonthly",
+      name: "Partial Copy sandbox",
+      detail: `${formatNumber(partialSandboxes)} in this org`,
+      unit: "per sandbox / mo",
+      value: addOns?.partialSandboxMonthly ?? null,
+    });
+  }
+  const serviceCloudUsers = scan?.snapshot?.serviceCloudUserIds?.length ?? 0;
+  if (serviceCloudUsers > 0 || addOns?.serviceCloudUserMonthly !== undefined) {
+    addOnRows.push({
+      field: "addon:serviceCloudUserMonthly",
+      name: "Service Cloud User feature license",
+      detail: `${formatNumber(serviceCloudUsers)} ${serviceCloudUsers === 1 ? "user has" : "users have"} it. Leave blank if it comes with your main license.`,
+      unit: "per user / mo",
+      value: addOns?.serviceCloudUserMonthly ?? null,
+    });
+  }
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div>
@@ -73,34 +103,43 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
         </Link>
         <h1 className="display-title mt-4 mb-3">Your Salesforce prices</h1>
         <p className="text-muted-foreground">
-          Savings use list prices until you enter what you actually pay. Discounts are common, so your real numbers make the report
-          credible with finance.
+          Savings use what your Salesforce invoices say you pay, or list prices when we can&apos;t read your invoices, until you enter
+          your own prices. Your exact numbers make the report credible with finance.
         </p>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Prices</CardTitle>
           <CardDescription>
-            {prices.source === "edition_default"
-              ? `Currently using ${connection.edition} list prices.`
-              : `Using ${prices.source === "contract" ? "prices from your contract" : "your prices"}.`}
+            {fromInvoices
+              ? `Currently using prices worked out from your Salesforce invoices: ${symbol}${effective!.fullMonthly} per full license and ${symbol}${effective!.platformMonthly} per Platform license a month, in ${currency}. That's your yearly bill spread across your user licenses, so it includes any add-ons. Enter your contract prices for exact figures.`
+              : prices.source === "edition_default"
+                ? `Currently using ${connection.edition} list prices in USD. Connect as a user with the Manage Billing permission and rescan to use your invoices instead.`
+                : `Using ${prices.source === "contract" ? "prices from your contract" : "your prices"}, in ${currency}.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <PriceForm connectionId={connection.id} prices={prices} aiEnabled={Boolean(env().ANTHROPIC_API_KEY)} />
+          <PriceForm
+            connectionId={connection.id}
+            prices={fromInvoices ? effective! : prices}
+            aiEnabled={Boolean(env().ANTHROPIC_API_KEY)}
+            symbol={symbol}
+          />
         </CardContent>
       </Card>
       {prices.source !== "edition_default" && (
         <form action={resetPricesAction.bind(null, connection.id)}>
           <Button type="submit" variant="link" className="px-0">
-            Reset to list prices (${defaults.fullMonthly} full, ${defaults.platformMonthly} Platform)
+            {summarizeContract(scan?.snapshot?.salesforceAccount, scan?.startedAt)?.annualSpend
+              ? "Clear my prices and go back to prices from your invoices"
+              : `Reset to list prices ($${defaults.fullMonthly} full, $${defaults.platformMonthly} Platform)`}
           </Button>
         </form>
       )}
-      {(packageRows.length > 0 || connectedRows.length > 0) && (
+      {(packageRows.length > 0 || connectedRows.length > 0 || addOnRows.length > 0) && (
         <Card id="apps">
           <CardHeader>
-            <CardTitle>App prices</CardTitle>
+            <CardTitle>App and add-on prices</CardTitle>
             <CardDescription>
               Salesforce doesn&apos;t know what you pay other vendors. Add a price for any app you pay for and unused or overlapping apps
               show a dollar saving in the report. Leave free apps blank. For installed apps, the AppExchange link shows the vendor&apos;s
@@ -110,7 +149,9 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
           <CardContent>
             <AppPriceForm
               connectionId={connection.id}
+              symbol={symbol}
               groups={[
+                { title: "Salesforce add-ons", rows: addOnRows },
                 { title: "Installed apps", rows: packageRows },
                 { title: "Connected apps", rows: connectedRows },
               ]}

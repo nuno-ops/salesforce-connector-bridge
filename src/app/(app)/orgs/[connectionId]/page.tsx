@@ -14,7 +14,8 @@ import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
 import { NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
-import { reportRecommendations, type Category, type Recommendation } from "@/lib/savings/engine";
+import { reportRecommendations, type Category, type Recommendation, type SavingsResult } from "@/lib/savings/engine";
+import type { PriceBook } from "@/lib/savings/prices";
 import { lastScanAttempt, latestScan, scanHistory } from "@/lib/scan";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { disconnectAction } from "./actions";
@@ -34,7 +35,16 @@ const CATEGORY_LABEL: Record<Category, string> = {
   connected_apps: "Connected apps",
   frozen_users: "Frozen users",
   duplicate_users: "Duplicate accounts",
+  cross_org_users: "Paid in two orgs",
+  service_cloud_users: "Service Cloud licenses",
   edition: "Edition",
+};
+
+const PRICE_BASIS: Record<PriceBook["source"], string> = {
+  edition_default: "list prices for {edition}",
+  invoices: "what your Salesforce invoices say you pay",
+  manual: "your prices",
+  contract: "your contract prices",
 };
 
 const confidenceVariant = { high: "default", medium: "warning", low: "muted" } as const;
@@ -113,6 +123,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
 
   const result = scan.result;
   const snapshot = scan.snapshot!;
+  const currency = result.prices.currency ?? "USD";
+  const money = (n: number) => formatCurrency(n, currency);
   const appReview = reviewApps(snapshot);
   const contract = summarizeContract(snapshot.salesforceAccount, scan.startedAt);
   // Results from before engine v3 have no app prices; fall back to the unpriced review.
@@ -136,6 +148,9 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
     { key: "integration", label: "Integration", users: result.users.integration },
     { key: "platform", label: "Platform candidates", users: result.users.platform },
     { key: "viewOnly", label: "View-only", users: result.users.viewOnly ?? [] },
+    { key: "crossOrg", label: "Paid in two orgs", users: result.users.crossOrg ?? [] },
+    // Unpriced Service Cloud users would show a zero saving; they're listed once a price is entered.
+    { key: "serviceCloud", label: "Service Cloud", users: (result.users.serviceCloud ?? []).filter((u) => u.annualSavings > 0) },
   ].filter((t) => t.users.length > 0);
 
   return (
@@ -155,19 +170,19 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         <Card className="border-foreground bg-foreground text-background md:col-span-1 print:border-border print:bg-card print:text-foreground">
           <CardHeader>
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#89887f]">Potential yearly savings</p>
-            <p className="mt-4 text-5xl font-bold tracking-[-0.06em] text-lime print:text-positive">{formatCurrency(result.annualSavings)}</p>
-            <p className="text-sm text-[#96958d]">{formatCurrency(result.monthlySavings)} per month</p>
+            <p className="mt-4 text-5xl font-bold tracking-[-0.06em] text-lime print:text-positive">{money(result.annualSavings)}</p>
+            <p className="text-sm text-[#96958d]">{money(result.monthlySavings)} per month</p>
           </CardHeader>
           <CardContent className="flex flex-col text-sm">
             {categories.map(([key, value]) => (
               <div key={key} className="flex justify-between border-b border-[#2d2d29] py-3 first:border-t">
                 <span className="text-[#b5b3aa]">{CATEGORY_LABEL[key]}</span>
-                <span className="font-mono font-semibold">{formatCurrency(value)}</span>
+                <span className="font-mono font-semibold">{money(value)}</span>
               </div>
             ))}
             <p className="mt-4 text-xs text-[#96958d]">
-              Based on {result.prices.source === "edition_default" ? `list prices for ${connection.edition}` : "your prices"}: $
-              {result.prices.fullMonthly}/user/month full, ${result.prices.platformMonthly} Platform.{" "}
+              Based on {PRICE_BASIS[result.prices.source].replace("{edition}", connection.edition ?? "your edition")}: {money(result.prices.fullMonthly)}
+              /user/month full, {money(result.prices.platformMonthly)} Platform.{" "}
               <Link href={`/orgs/${connection.id}/prices`} className="text-lime hover:underline print:text-cobalt">
                 Edit prices
               </Link>
@@ -182,7 +197,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           <CardContent className="flex flex-col divide-y divide-border">
             {priced.length === 0 && <p className="text-sm text-muted-foreground">No license waste found. Your org is in good shape.</p>}
             {priced.map((r) => (
-              <RecommendationRow key={r.id} rec={r} />
+              <RecommendationRow key={r.id} rec={r} currency={currency} />
             ))}
             {needsPrice.length > 0 && (
               <div className="py-3 last:pb-0">
@@ -203,7 +218,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         </Card>
       </div>
 
-      {contract && <ContractCard contract={contract} annualSavings={result.annualSavings} />}
+      {contract && <ContractCard contract={contract} result={result} />}
 
       {!access.fullReport && <UpgradeCard returnPath={returnPath} auditHours={env().AUDIT_ACCESS_HOURS} />}
 
@@ -234,7 +249,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                 <CardDescription>Names open the user record in Salesforce.</CardDescription>
               </CardHeader>
               <CardContent>
-                <UserTabs instanceUrl={connection.instanceUrl} tabs={userTabs} />
+                <UserTabs instanceUrl={connection.instanceUrl} tabs={userTabs} currency={currency} />
               </CardContent>
             </Card>
           )}
@@ -251,7 +266,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             <CardContent className="flex flex-col gap-4">
               {connectedSavings > 0 && (
                 <p className="text-sm">
-                  <span className="font-mono text-lg font-semibold text-cobalt">{formatCurrency(connectedSavings)}</span> a year from
+                  <span className="font-mono text-lg font-semibold text-cobalt">{money(connectedSavings)}</span> a year from
                   cancelling unused apps and consolidating overlapping ones.
                 </p>
               )}
@@ -276,7 +291,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                       <TR key={t.appName}>
                         <TD className="font-medium">{t.appName}</TD>
                         <TD className="text-right whitespace-nowrap">
-                          <AppSaving saving={t.annualSavings} priced={t.monthlyPrice !== null} flagged={!salesforceApps.has(t.appName) && (t.verdict === "remove" || t.verdict === "consolidate")} href={appPricesHref} />
+                          <AppSaving saving={t.annualSavings} priced={t.monthlyPrice !== null} flagged={!salesforceApps.has(t.appName) && (t.verdict === "remove" || t.verdict === "consolidate")} href={appPricesHref} currency={currency} />
                         </TD>
                         <TD>{t.category}</TD>
                         <TD className="text-right">{formatNumber(t.users)}</TD>
@@ -308,7 +323,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
               <CardContent className="flex flex-col gap-4">
                 {installedSavings > 0 && (
                   <p className="text-sm">
-                    <span className="font-mono text-lg font-semibold text-cobalt">{formatCurrency(installedSavings)}</span> a year from
+                    <span className="font-mono text-lg font-semibold text-cobalt">{money(installedSavings)}</span> a year from
                     cancelling apps nobody uses.
                   </p>
                 )}
@@ -334,8 +349,9 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                             priced={a.monthlyPrice != null}
                             flagged
                             href={a.namespace ? appPricesHref : null}
+                            currency={currency}
                           />
-                          {a.priceSource === "list" && (a.annualSavings ?? 0) > 0 && a.listPrice && (
+                          {a.priceSource === "list" && (a.annualSavings ?? 0) > 0 && a.listPrice && currency === "USD" && (
                             <a
                               href={a.listPrice.source}
                               target="_blank"
@@ -346,7 +362,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                               List price ↗
                             </a>
                           )}
-                          {a.namespace && a.monthlyPrice == null && !a.listPrice && (
+                          {a.namespace && a.monthlyPrice == null && (!a.listPrice || currency !== "USD") && (
                             <a
                               href={appExchangeSearchUrl(a.name)}
                               target="_blank"
@@ -378,7 +394,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                   {result.edition.blocked
                     ? "This org needs Unlimited's higher limits."
                     : result.edition.annualSavings > 0
-                      ? `Moving ${formatNumber(result.edition.seats)} full licenses to Enterprise at renewal could save ${formatCurrency(result.edition.annualSavings)} a year.`
+                      ? `Moving ${formatNumber(result.edition.seats)} full licenses to Enterprise at renewal could save ${money(result.edition.annualSavings)} a year.`
                       : "We couldn't read enough to price a move to Enterprise."}{" "}
                   Premier support also comes with Unlimited; we can&apos;t see whether you use it.
                 </CardDescription>
@@ -438,7 +454,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                   <TR key={h.id}>
                     <TD>{formatDate(h.startedAt)}</TD>
                     <TD className="capitalize">{h.trigger}</TD>
-                    <TD className="text-right">{formatCurrency(h.annualSavings ?? 0)}</TD>
+                    <TD className="text-right">{money(h.annualSavings ?? 0)}</TD>
                   </TR>
                 ))}
               </TBody>
@@ -477,7 +493,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   );
 }
 
-function RecommendationRow({ rec }: { rec: Recommendation }) {
+function RecommendationRow({ rec, currency }: { rec: Recommendation; currency: string }) {
+  const money = (n: number) => formatCurrency(n, currency);
   return (
     <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
       <div>
@@ -486,15 +503,28 @@ function RecommendationRow({ rec }: { rec: Recommendation }) {
         </p>
         <p className="text-sm text-muted-foreground">{rec.detail}</p>
       </div>
-      <p className="shrink-0 text-right font-mono font-semibold">{rec.advisory ? <span className="text-xs font-normal text-muted-foreground">Advice</span> : formatCurrency(rec.annualSavings)}</p>
+      <p className="shrink-0 text-right font-mono font-semibold">{rec.advisory ? <span className="text-xs font-normal text-muted-foreground">Advice</span> : money(rec.annualSavings)}</p>
     </div>
   );
 }
 
 
 /** Dollar saving for an app row; flagged apps without a price link to where the price is entered. */
-function AppSaving({ saving, priced, flagged, href }: { saving: number; priced: boolean; flagged: boolean; href: string | null }) {
-  if (saving > 0) return <span className="font-mono font-semibold text-cobalt">{formatCurrency(saving)}</span>;
+function AppSaving({
+  saving,
+  priced,
+  flagged,
+  href,
+  currency,
+}: {
+  saving: number;
+  priced: boolean;
+  flagged: boolean;
+  href: string | null;
+  currency: string;
+}) {
+  const money = (n: number) => formatCurrency(n, currency);
+  if (saving > 0) return <span className="font-mono font-semibold text-cobalt">{money(saving)}</span>;
   if (flagged && !priced && href)
     return (
       <Link href={href} className="text-xs font-semibold text-cobalt underline-offset-4 hover:underline">
@@ -504,9 +534,23 @@ function AppSaving({ saving, priced, flagged, href }: { saving: number; priced: 
   return <span className="text-muted-foreground">—</span>;
 }
 
-function ContractCard({ contract, annualSavings }: { contract: ContractSummary; annualSavings: number }) {
+/** Seats a renewal can drop: unassigned ones, plus the ones flagged users free up when deactivated. */
+const SEAT_CATEGORIES: Category[] = ["unused_seats", "frozen_users", "inactive_users", "duplicate_users", "cross_org_users", "integration_users"];
+
+function ContractCard({ contract, result }: { contract: ContractSummary; result: SavingsResult }) {
+  const currency = result.prices.currency ?? "USD";
   const spend = contract.annualSpend;
-  const share = spend && spend.currency === "USD" && spend.amount > 0 ? annualSavings / spend.amount : null;
+  const annualSavings = result.annualSavings;
+  const share = spend && spend.currency === currency && spend.amount > 0 ? annualSavings / spend.amount : null;
+  const seatsToDrop =
+    result.recommendations.filter((r) => r.category === "unused_seats").reduce((a, r) => a + r.count, 0) +
+    [result.users.frozen, result.users.inactive, result.users.duplicate, result.users.crossOrg, result.users.integration]
+      .flat()
+      .filter((u) => u && u.annualSavings > 0).length;
+  const seatSavings = SEAT_CATEGORIES.reduce((a, c) => a + result.byCategory[c], 0);
+  const rise = contract.priceChange && contract.priceChange.rate >= 0.01 ? contract.priceChange : null;
+  const nextRise = rise && spend ? spend.amount * rise.rate : null;
+  const day = (d: string) => formatDate(`${d}T00:00:00`);
   return (
     <Card>
       <CardHeader>
@@ -534,15 +578,45 @@ function ContractCard({ contract, annualSavings }: { contract: ContractSummary; 
         <div className="flex flex-col gap-1">
           <p className="eyebrow">Renewal</p>
           <p className="font-mono text-3xl font-semibold">
-            {formatDate(`${contract.endDate}T00:00:00`)}
+            {day(contract.endDate)}
             <span className="text-base font-normal text-muted-foreground"> · {formatNumber(contract.daysLeft)} days</span>
           </p>
           <p className="text-muted-foreground">
             {contract.autoRenew === true ? "Auto-renews. " : contract.autoRenew === false ? "Doesn't auto-renew. " : ""}
-            Tell your account executive about seat cuts by <strong className="text-foreground">{formatDate(`${contract.noticeBy}T00:00:00`)}</strong>.
+            Tell your account executive about seat cuts by <strong className="text-foreground">{day(contract.noticeBy)}</strong>.
             Salesforce&apos;s standard terms ask for {NOTICE_DAYS} days&apos; notice; check your order form for yours.
           </p>
         </div>
+        {seatsToDrop > 0 && seatSavings > 0 && (
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow">Seats to drop at renewal</p>
+            <p className="font-mono text-3xl font-semibold">
+              {formatNumber(seatsToDrop)}
+              <span className="text-base font-normal text-muted-foreground"> · {formatCurrency(seatSavings, currency)} a year</span>
+            </p>
+            <p className="text-muted-foreground">
+              Unassigned seats, plus the seats frozen, inactive, duplicate, two-org and integration users free up once you deactivate or move
+              them. Do that before {day(contract.noticeBy)} and ask for the lower count at renewal.
+            </p>
+          </div>
+        )}
+        {rise && (
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow">Price increase to negotiate</p>
+            <p className="font-mono text-3xl font-semibold">
+              +{Math.round(rise.rate * 100)}%
+              {nextRise !== null && spend && (
+                <span className="text-base font-normal text-muted-foreground"> · {formatCurrency(nextRise, spend.currency)} a year</span>
+              )}
+            </p>
+            <p className="text-muted-foreground">
+              Your invoice of {day(rise.latest)} is {Math.round(rise.rate * 100)}% higher than the one from {day(rise.yearEarlier)}. That can be a
+              price rise or seats you added. If the same rise comes at renewal, your bill grows by about that much a year: ask your account
+              executive to cap the renewal increase before {day(contract.noticeBy)}
+              {contract.autoRenew === true ? ", because an auto-renewing contract renews on Salesforce's terms if you don't." : "."}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

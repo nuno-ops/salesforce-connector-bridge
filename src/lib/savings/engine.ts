@@ -1,9 +1,11 @@
 import type { OrgSnapshot, SnapshotUser } from "@/lib/salesforce/types";
 import { LIST_PRICES, type ListPrice } from "@/lib/apps/list-prices";
 import { reviewApps, type AppReviewItem } from "@/lib/apps/review";
-import { editionKey, ENTERPRISE_SHARE_OF_UNLIMITED, priceForLicense, type PriceBook } from "./prices";
+import { formatDate } from "@/lib/utils";
+import { summarizeContract } from "./contract";
+import { editionKey, effectivePriceBook, ENTERPRISE_SHARE_OF_UNLIMITED, priceForLicense, type PriceBook } from "./prices";
 
-export const ENGINE_VERSION = 4;
+export const ENGINE_VERSION = 5;
 
 export type Category =
   | "inactive_users"
@@ -18,6 +20,8 @@ export type Category =
   | "connected_apps"
   | "frozen_users"
   | "duplicate_users"
+  | "cross_org_users"
+  | "service_cloud_users"
   | "edition";
 
 export type Confidence = "high" | "medium" | "low";
@@ -86,6 +90,9 @@ export interface SavingsResult {
     /** Missing on results computed before engine v4. */
     frozen?: FlaggedUser[];
     duplicate?: FlaggedUser[];
+    /** Missing on results computed before engine v5. */
+    crossOrg?: FlaggedUser[];
+    serviceCloud?: FlaggedUser[];
   };
   /** Unlimited Edition fit; `null` for other editions. Missing on results computed before engine v4. */
   edition?: EditionFit | null;
@@ -96,6 +103,8 @@ export interface SavingsResult {
   licenses: LicenseRow[];
   storage: { dataUsedPct: number; fileUsedPct: number } | null;
   sandboxes: { full: number; partial: number; developer: number; total: number } | null;
+  /** Full and Partial Copy sandboxes not refreshed for a year. Missing on results computed before engine v5. */
+  staleSandboxes?: { name: string; type: "full" | "partial"; lastRefreshed: string; annualSavings: number }[];
   notes: string[];
 }
 
@@ -152,10 +161,33 @@ export interface EngineOptions {
   idleAppDays?: number;
   /** Public list prices by package namespace; defaults to the built-in catalog. */
   listPrices?: Record<string, ListPrice>;
+  /** The workspace's other connected orgs, to find people paying for a seat in more than one. */
+  otherOrgs?: OtherOrg[];
   now?: Date;
 }
 
+/** What the cross-org check needs from another org's latest scan. */
+export interface OtherOrg {
+  name: string;
+  /** Paid users only. `active`: created or edited records recently; `null` when that org's activity wasn't readable. */
+  users: { email: string; name: string; active: boolean | null }[];
+}
+
+/** Reduces another org's snapshot to what {@link OtherOrg} needs. */
+export function toOtherOrg(snapshot: OrgSnapshot): OtherOrg {
+  const activity = snapshot.writeActivity;
+  return {
+    name: snapshot.organization.name,
+    users: snapshot.users
+      .filter((u) => u.email && PAID_LICENSES.has(u.licenseName ?? ""))
+      .map((u) => ({ email: u.email!, name: u.name, active: activity ? (activity.byUser[u.id] ?? 0) > 0 : null })),
+  };
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
+const PAID_LICENSES = new Set(["Salesforce", "Salesforce Platform"]);
+/** A Full or Partial Copy sandbox not refreshed for this long is probably not in use. */
+const STALE_SANDBOX_DAYS = 365;
 const CRM_OBJECTS = ["Opportunity", "Lead", "Case"];
 const INTEGRATION_NAME = /\b(integration|api|sync|etl|middleware|connector)\b/i;
 const ADMIN_PROFILE = /system administrator/i;
@@ -170,14 +202,18 @@ const API_HEADROOM = 0.8;
  * Turns an org snapshot into priced savings opportunities.
  *
  * Each user lands in at most one bucket, checked in priority order
- * frozen → inactive → integration → duplicate → platform → view-only, so savings are never double counted.
+ * frozen → inactive → integration → duplicate → other org → platform → view-only, so savings are never
+ * double counted. The Service Cloud feature license check only looks at users left in none of them.
  */
 export function computeSavings(
   snapshot: OrgSnapshot,
-  prices: PriceBook,
+  customerPrices: PriceBook,
   options: EngineOptions = {},
 ): SavingsResult {
   const now = options.now ?? new Date();
+  const prices = effectivePriceBook(customerPrices, snapshot, now);
+  const contract = summarizeContract(snapshot.salesforceAccount, now);
+  const noticeHint = contract ? ` Tell Salesforce by ${day(contract.noticeBy)}, ahead of your ${day(contract.endDate)} renewal.` : "";
   const inactiveDays = options.inactiveDays ?? 30;
   const integrationUseCount = options.integrationUseCount ?? 1000;
   const idleAppDays = options.idleAppDays ?? 90;
@@ -345,6 +381,46 @@ export function computeSavings(
     });
   }
 
+  // 2c. People who also hold a paid seat in another connected org, but only work in that one.
+  const crossOrg: FlaggedUser[] = [];
+  const otherOrgs = options.otherOrgs ?? [];
+  const activityHere = snapshot.writeActivity;
+  if (otherOrgs.length > 0 && activityHere) {
+    const elsewhere = new Map<string, { org: string; name: string }>();
+    for (const org of otherOrgs) {
+      for (const o of org.users) if (o.active) elsewhere.set(o.email.trim().toLowerCase(), { org: org.name, name: o.name });
+    }
+    for (const u of snapshot.users) {
+      const price = priceForLicense(prices, u.licenseName);
+      if (!price || !u.email || claimed.has(u.id) || !PAID_LICENSES.has(u.licenseName ?? "")) continue;
+      if ((activityHere.byUser[u.id] ?? 0) > 0) continue;
+      const sinceCreated = daysSince(u.createdDate);
+      if (sinceCreated !== null && sinceCreated < activityHere.windowDays) continue;
+      const match = elsewhere.get(u.email.trim().toLowerCase());
+      if (!match) continue;
+      crossOrg.push(
+        flag(u, {
+          reason: `Works in ${match.org}; created or edited nothing here in ${activityHere.windowDays} days`,
+          annualSavings: price * 12,
+          confidence: "low",
+        }),
+      );
+      claimed.add(u.id);
+    }
+  }
+  if (crossOrg.length) {
+    recommendations.push({
+      id: "cross_org_users",
+      category: "cross_org_users",
+      title: `Stop paying twice for ${crossOrg.length} ${plural(crossOrg.length, "person", "people")} in two orgs`,
+      detail: `These users also have a paid seat in another org you've connected, where they do their work. Here they haven't created or edited a record in ${activityHere!.windowDays} days. If they only look things up, share reports from the other org or give them a cheaper license, and drop the seat at renewal.${noticeHint}`,
+      count: crossOrg.length,
+      annualSavings: sum(crossOrg),
+      confidence: "low",
+      advisory: false,
+    });
+  }
+
   // 3. Full licenses that never touch core CRM objects.
   const platform: FlaggedUser[] = [];
   if (snapshot.objectPermissions.length === 0) {
@@ -431,6 +507,41 @@ export function computeSavings(
     });
   }
 
+  // 4b. Service Cloud User feature licenses on people who don't work cases.
+  const serviceCloud: FlaggedUser[] = [];
+  const caseActivity = snapshot.writeActivity?.byObject?.Case;
+  const serviceCloudIds = new Set(snapshot.serviceCloudUserIds ?? []);
+  const serviceCloudPrice = prices.apps?.addOns?.serviceCloudUserMonthly;
+  if (serviceCloudIds.size > 0 && caseActivity && snapshot.writeActivity) {
+    for (const u of snapshot.users) {
+      if (!serviceCloudIds.has(u.id) || claimed.has(u.id)) continue;
+      const sinceCreated = daysSince(u.createdDate);
+      if (sinceCreated !== null && sinceCreated < snapshot.writeActivity.windowDays) continue;
+      if ((caseActivity[u.id] ?? 0) > 0) continue;
+      serviceCloud.push(
+        flag(u, {
+          reason: `Service Cloud User, but created or edited no Cases in ${snapshot.writeActivity.windowDays} days`,
+          annualSavings: (serviceCloudPrice ?? 0) * 12,
+          confidence: "low",
+        }),
+      );
+    }
+  }
+  if (serviceCloud.length) {
+    const priced = serviceCloudPrice !== undefined && serviceCloudPrice > 0;
+    recommendations.push({
+      id: "service_cloud_users",
+      category: "service_cloud_users",
+      title: `Remove ${serviceCloud.length} unused Service Cloud ${plural(serviceCloud.length, "license")}`,
+      detail: `These users have the Service Cloud User feature license but haven't created or edited a Case in ${snapshot.writeActivity!.windowDays} days. Untick "Service Cloud User" on their user record and buy fewer at renewal. If Service Cloud comes with your main license, there's nothing to save.${priced ? noticeHint : " Add what you pay per Service Cloud User to see the saving."}`,
+      count: serviceCloud.length,
+      annualSavings: sum(serviceCloud),
+      confidence: "low",
+      advisory: !priced,
+      needsPrice: !priced,
+    });
+  }
+
   // 5. Seats paid for but never assigned.
   for (const name of ["Salesforce", "Salesforce Platform"]) {
     const lic = snapshot.userLicenses.find((l) => l.name === name);
@@ -441,7 +552,7 @@ export function computeSavings(
       id: `unused_seats:${name}`,
       category: "unused_seats",
       title: `Drop ${unused} unassigned ${name} ${plural(unused, "license")}`,
-      detail: `You pay for ${lic.total} ${name} licenses but only ${lic.used} are assigned. Reduce the count at renewal.`,
+      detail: `You pay for ${lic.total} ${name} licenses but only ${lic.used} are assigned. Reduce the count at renewal.${noticeHint}`,
       count: unused,
       annualSavings: unused * price * 12,
       confidence: "medium",
@@ -451,7 +562,9 @@ export function computeSavings(
 
   // 6. Installed apps nobody uses, and package seats nobody holds.
   const packagePrices = prices.apps?.packages ?? {};
-  const listPrices = options.listPrices ?? LIST_PRICES;
+  // Vendor list prices are in USD, so they can't be mixed into savings in another currency.
+  const currency = prices.currency ?? "USD";
+  const listPrices = currency === "USD" ? (options.listPrices ?? LIST_PRICES) : {};
   /** The customer's price wins; the list price fills in until they enter one. */
   const packagePrice = (namespace: string | null, seats: AppUsage["seats"]) => {
     const own = namespace ? packagePrices[namespace] : undefined;
@@ -582,6 +695,7 @@ export function computeSavings(
 
   // 8. Sandboxes.
   let sandboxes: SavingsResult["sandboxes"] = null;
+  const staleSandboxes: NonNullable<SavingsResult["staleSandboxes"]> = [];
   if (snapshot.sandboxes === null) {
     notes.push("Sandbox details need the Tooling API and weren't readable for the connected user.");
   } else {
@@ -589,7 +703,36 @@ export function computeSavings(
     const full = snapshot.sandboxes.filter((s) => type(s).includes("FULL")).length;
     const partial = snapshot.sandboxes.filter((s) => type(s).includes("PARTIAL")).length;
     sandboxes = { full, partial, developer: snapshot.sandboxes.length - full - partial, total: snapshot.sandboxes.length };
-    const excess = Math.max(0, full - 1);
+
+    // Paid sandboxes nobody has refreshed in a year are usually forgotten.
+    const partialPrice = prices.apps?.addOns?.partialSandboxMonthly;
+    for (const sb of snapshot.sandboxes) {
+      const kind = type(sb).includes("FULL") ? "full" : type(sb).includes("PARTIAL") ? "partial" : null;
+      const since = daysSince(sb.lastRefreshed ?? null);
+      if (!kind || since === null || since < STALE_SANDBOX_DAYS) continue;
+      const monthly = kind === "full" ? prices.fullSandboxMonthly : (partialPrice ?? null);
+      staleSandboxes.push({ name: sb.name, type: kind, lastRefreshed: sb.lastRefreshed!, annualSavings: monthly ? monthly * 12 : 0 });
+    }
+    if (staleSandboxes.length) {
+      const saving = staleSandboxes.reduce((a, sb) => a + sb.annualSavings, 0);
+      const unpriced = staleSandboxes.filter((sb) => sb.annualSavings === 0);
+      const names = staleSandboxes.map((sb) => `${sb.name} (${sb.type === "full" ? "Full" : "Partial"} Copy, last refreshed ${day(sb.lastRefreshed)})`);
+      recommendations.push({
+        id: "stale_sandboxes",
+        category: "sandboxes",
+        title: `Drop ${staleSandboxes.length} ${plural(staleSandboxes.length, "sandbox", "sandboxes")} nobody has refreshed in a year`,
+        detail: `${names.join("; ")}. A paid sandbox that's a year out of date is rarely used for testing. Confirm with your team, delete it and stop paying for it at renewal.${saving > 0 ? noticeHint : ""}${unpriced.length ? ` Add your ${unpriced.some((sb) => sb.type === "full") ? "Full Copy" : "Partial Copy"} sandbox price to see ${saving > 0 ? "the rest of " : ""}the saving.` : ""}`,
+        count: staleSandboxes.length,
+        annualSavings: saving,
+        confidence: "medium",
+        advisory: saving === 0,
+        needsPrice: unpriced.length > 0 && saving === 0,
+      });
+    }
+
+    // Stale Full Copy sandboxes are already counted above.
+    const staleFull = staleSandboxes.filter((sb) => sb.type === "full").length;
+    const excess = Math.max(0, full - 1 - staleFull);
     if (excess > 0) {
       const priced = prices.fullSandboxMonthly !== null;
       recommendations.push({
@@ -727,6 +870,8 @@ export function computeSavings(
     connected_apps: 0,
     frozen_users: 0,
     duplicate_users: 0,
+    cross_org_users: 0,
+    service_cloud_users: 0,
     edition: 0,
   } satisfies Record<Category, number>;
   for (const r of recommendations) if (!r.advisory) byCategory[r.category] += r.annualSavings;
@@ -742,13 +887,14 @@ export function computeSavings(
     monthlySavings: annualSavings / 12,
     byCategory,
     recommendations,
-    users: { inactive, integration, platform, viewOnly, frozen, duplicate },
+    users: { inactive, integration, platform, viewOnly, frozen, duplicate, crossOrg, serviceCloud },
     edition,
     apps,
     connectedApps,
     licenses,
     storage,
     sandboxes,
+    staleSandboxes,
     notes: [...snapshot.warnings, ...notes],
   };
 }
@@ -781,6 +927,7 @@ function licenseRow(name: string, kind: LicenseRow["kind"], total: number, used:
   };
 }
 
+const day = (date: string) => formatDate(date.length === 10 ? `${date}T00:00:00` : date);
 const normName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, " ");
 const sum = (users: FlaggedUser[]) => users.reduce((a, u) => a + u.annualSavings, 0);
 const rankStatus = (s: AppUsage["status"]) => ({ idle: 0, unknown: 1, active: 2 })[s];

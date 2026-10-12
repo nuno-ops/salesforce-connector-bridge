@@ -19,6 +19,9 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
   const r = scan.result;
   const { priced, needsPrice } = reportRecommendations(r.recommendations);
   const contract = summarizeContract(scan.snapshot?.salesforceAccount, scan.startedAt);
+  const currency = r.prices.currency ?? "USD";
+  const money = (n: number) => formatCurrency(n, currency);
+  const rise = contract?.priceChange && contract.priceChange.rate >= 0.01 ? contract.priceChange : null;
 
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8 bg-card p-8 print:p-0">
@@ -35,10 +38,10 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
 
       <section>
         <p className="text-sm text-muted-foreground">Potential yearly savings</p>
-        <p className="text-4xl font-bold text-positive">{formatCurrency(r.annualSavings)}</p>
+        <p className="text-4xl font-bold text-positive">{money(r.annualSavings)}</p>
         <p className="text-sm text-muted-foreground">
-          Priced at ${r.prices.fullMonthly}/user/month for full licenses and ${r.prices.platformMonthly} for Platform (
-          {r.prices.source === "edition_default" ? "list prices" : "customer prices"}).
+          Priced at {money(r.prices.fullMonthly)}/user/month for full licenses and {money(r.prices.platformMonthly)} for Platform (
+          {r.prices.source === "edition_default" ? "list prices" : r.prices.source === "invoices" ? "worked out from Salesforce invoices" : "customer prices"}).
         </p>
       </section>
 
@@ -58,6 +61,13 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
             {contract.autoRenew === true ? ", auto-renews" : contract.autoRenew === false ? ", doesn't auto-renew" : ""}). Notify Salesforce
             of seat cuts by <strong>{formatDate(`${contract.noticeBy}T00:00:00`)}</strong>.
           </p>
+          {rise && (
+            <p>
+              Invoices are {Math.round(rise.rate * 100)}% higher than a year earlier ({formatDate(`${rise.latest}T00:00:00`)} against{" "}
+              {formatDate(`${rise.yearEarlier}T00:00:00`)}), a price rise or added seats.
+              {contract.annualSpend && ` The same rise at renewal would add about ${formatCurrency(contract.annualSpend.amount * rise.rate, contract.annualSpend.currency)} a year.`}
+            </p>
+          )}
         </section>
       )}
 
@@ -79,7 +89,7 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
                   <p className="text-xs text-muted-foreground">{rec.detail}</p>
                 </TD>
                 <TD className="capitalize">{rec.confidence}</TD>
-                <TD className="text-right">{formatCurrency(rec.annualSavings)}</TD>
+                <TD className="text-right">{money(rec.annualSavings)}</TD>
               </TR>
             ))}
           </TBody>
@@ -96,17 +106,19 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
         )}
       </section>
 
-      <UserSection title="Frozen users" users={r.users.frozen ?? []} />
-      <UserSection title="Duplicate accounts" users={r.users.duplicate ?? []} />
-      <UserSection title="Inactive users" users={r.users.inactive} />
-      <UserSection title="Integration users" users={r.users.integration} />
-      <UserSection title="Platform license candidates" users={r.users.platform} />
-      <UserSection title="View-only users" users={r.users.viewOnly ?? []} />
+      <UserSection title="Frozen users" users={r.users.frozen ?? []} currency={currency} />
+      <UserSection title="Duplicate accounts" users={r.users.duplicate ?? []} currency={currency} />
+      <UserSection title="Inactive users" users={r.users.inactive} currency={currency} />
+      <UserSection title="Integration users" users={r.users.integration} currency={currency} />
+      <UserSection title="Platform license candidates" users={r.users.platform} currency={currency} />
+      <UserSection title="View-only users" users={r.users.viewOnly ?? []} currency={currency} />
+      <UserSection title="Paid in two orgs" users={r.users.crossOrg ?? []} currency={currency} />
+      <UserSection title="Unused Service Cloud licenses" users={(r.users.serviceCloud ?? []).filter((u) => u.annualSavings > 0)} currency={currency} />
     </article>
   );
 }
 
-function UserSection({ title, users }: { title: string; users: FlaggedUser[] }) {
+function UserSection({ title, users, currency }: { title: string; users: FlaggedUser[]; currency: string }) {
   if (users.length === 0) return null;
   return (
     <section className="flex flex-col gap-2 break-inside-avoid-page">
@@ -131,7 +143,7 @@ function UserSection({ title, users }: { title: string; users: FlaggedUser[] }) 
               </TD>
               <TD>{formatDate(u.lastLoginDate)}</TD>
               <TD>{u.reason}</TD>
-              <TD className="text-right">{formatCurrency(u.annualSavings)}</TD>
+              <TD className="text-right">{formatCurrency(u.annualSavings, currency)}</TD>
             </TR>
           ))}
         </TBody>
