@@ -13,9 +13,11 @@ import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
+import { awsAddOns, nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
 import { AWS_MARKETPLACE_CAP, awsCommitSaving, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
 import { reportRecommendations, type Category, type Recommendation, type SavingsResult } from "@/lib/savings/engine";
-import type { PriceBook } from "@/lib/savings/prices";
+import type { OrgSnapshot } from "@/lib/salesforce/types";
+import { ENTERPRISE_SHARE_OF_UNLIMITED, type PriceBook } from "@/lib/savings/prices";
 import { lastScanAttempt, latestScan, scanHistory } from "@/lib/scan";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { disconnectAction } from "./actions";
@@ -218,7 +220,17 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         </Card>
       </div>
 
-      {contract && <ContractCard contract={contract} result={result} pricesHref={`/orgs/${connection.id}/prices#apps`} />}
+      {contract && (
+        <ContractCard
+          contract={contract}
+          result={result}
+          snapshot={snapshot}
+          edition={connection.edition}
+          answers={workspace.answers}
+          pricesHref={`/orgs/${connection.id}/prices#apps`}
+          answersHref={`/welcome?next=${encodeURIComponent(returnPath)}`}
+        />
+      )}
 
       {!access.fullReport && <UpgradeCard returnPath={returnPath} auditHours={env().AUDIT_ACCESS_HOURS} />}
 
@@ -396,7 +408,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                     : result.edition.annualSavings > 0
                       ? `Moving ${formatNumber(result.edition.seats)} full licenses to Enterprise at renewal could save ${money(result.edition.annualSavings)} a year.`
                       : "We couldn't read enough to price a move to Enterprise."}{" "}
-                  Premier support also comes with Unlimited; we can&apos;t see whether you use it.
+                  {result.edition.annualSavings > 0 &&
+                    `That assumes Standard support: Unlimited includes Premier Success, which costs ${PREMIER_SHARE_OF_LICENSES * 100}% of license fees on Enterprise. If you'd keep Premier, the saving is about ${money(premierKeptSaving(result.edition.annualSavings))} a year.`}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -537,7 +550,32 @@ function AppSaving({
 /** Seats a renewal can drop: unassigned ones, plus the ones flagged users free up when deactivated. */
 const SEAT_CATEGORIES: Category[] = ["unused_seats", "frozen_users", "inactive_users", "duplicate_users", "cross_org_users", "integration_users"];
 
-function ContractCard({ contract, result, pricesHref }: { contract: ContractSummary; result: SavingsResult; pricesHref: string }) {
+/**
+ * The Unlimited-to-Enterprise saving if the customer buys Premier on Enterprise: the saving is
+ * seats × (Unlimited − Enterprise), and Premier adds 30% of the Enterprise price back.
+ */
+function premierKeptSaving(annualSavings: number) {
+  const share = ENTERPRISE_SHARE_OF_UNLIMITED;
+  return Math.max(0, annualSavings - (annualSavings * share * PREMIER_SHARE_OF_LICENSES) / (1 - share));
+}
+
+function ContractCard({
+  contract,
+  result,
+  snapshot,
+  edition,
+  answers,
+  pricesHref,
+  answersHref,
+}: {
+  contract: ContractSummary;
+  result: SavingsResult;
+  snapshot: OrgSnapshot;
+  edition: string;
+  answers: CompanyAnswers | null;
+  pricesHref: string;
+  answersHref: string;
+}) {
   const currency = result.prices.currency ?? "USD";
   const spend = contract.annualSpend;
   const annualSavings = result.annualSavings;
@@ -551,7 +589,17 @@ function ContractCard({ contract, result, pricesHref }: { contract: ContractSumm
   const rise = contract.priceChange && contract.priceChange.rate >= 0.01 ? contract.priceChange : null;
   const nextRise = rise && spend ? spend.amount * rise.rate : null;
   // AWS numbers are entered in the report currency, so they only compare with a bill in the same currency.
-  const awsSaving = spend && spend.currency === currency ? awsCommitSaving(spend.amount, result.prices.apps?.addOns) : null;
+  // AWS numbers entered for this org win over the ones given at sign-up.
+  const aws = awsAddOns(result.prices.apps?.addOns, answers);
+  const awsSaving = spend && spend.currency === currency ? awsCommitSaving(spend.amount, aws) : null;
+  const showAws = awsSaving !== null || answers?.aws !== "no";
+  const premier = premierSaving(answers, edition, spend && spend.currency === currency ? spend.amount : null);
+  const nonprofit = nonprofitSaving(
+    answers,
+    snapshot,
+    result.prices.fullMonthly,
+    (result.apps ?? []).flatMap((a) => (a.namespace ? [a.namespace] : [])),
+  );
   const day = (d: string) => formatDate(`${d}T00:00:00`);
   return (
     <Card>
@@ -619,7 +667,50 @@ function ContractCard({ contract, result, pricesHref }: { contract: ContractSumm
             </p>
           </div>
         )}
-        {spend && spend.currency === currency && (
+        {premier && (
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow">Option to save: Premier Success</p>
+            {premier.amount !== null ? (
+              <p className="font-mono text-3xl font-semibold">
+                {formatCurrency(premier.amount, currency)}
+                <span className="text-base font-normal text-muted-foreground"> a year</span>
+              </p>
+            ) : (
+              <p className="font-semibold">
+                <Link href={answersHref} className="text-cobalt hover:underline">
+                  {answers?.premier === "yes" ? "Add what Premier costs to see the saving" : "Paying for Premier Success? Tell us to see the saving"}
+                </Link>
+              </p>
+            )}
+            <p className="text-muted-foreground">
+              Premier Success is Salesforce&apos;s paid support plan, priced at {PREMIER_SHARE_OF_LICENSES * 100}% of your license fees, and
+              often renewed without anyone checking it&apos;s still used. Standard Success comes free with every license.{" "}
+              {premier.estimated
+                ? `This estimate assumes Premier covers all your licenses (${PREMIER_SHARE_OF_LICENSES * 100}% on top of license fees is about ${Math.round((PREMIER_SHARE_OF_LICENSES / (1 + PREMIER_SHARE_OF_LICENSES)) * 100)}% of your bill); your order form has the exact line. `
+                : answers?.premier === "unsure" || !answers?.premier
+                  ? "Your order form shows it as its own line if you have it. "
+                  : ""}
+              If you rarely use 24/7 support or the Admin services, drop it or negotiate it down before {day(contract.noticeBy)}. Not added
+              to your savings total.
+            </p>
+          </div>
+        )}
+        {nonprofit && (
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow">Option to save: nonprofit licenses</p>
+            <p className="font-mono text-3xl font-semibold">
+              {formatCurrency(nonprofit.annualSavings, currency)}
+              <span className="text-base font-normal text-muted-foreground"> a year</span>
+            </p>
+            <p className="text-muted-foreground">
+              You told us you&apos;re a nonprofit or school. Salesforce&apos;s Power of Us program donates {POWER_OF_US_LICENSES} Enterprise
+              licenses to eligible organizations, and sells more at a nonprofit discount. That&apos;s {formatNumber(nonprofit.licenses)}{" "}
+              {nonprofit.licenses === 1 ? "license" : "licenses"} you&apos;d stop paying for, at your seat price. Apply on Salesforce&apos;s
+              Power of Us page before {day(contract.noticeBy)}. Not added to your savings total until you&apos;re accepted.
+            </p>
+          </div>
+        )}
+        {showAws && spend && spend.currency === currency && (
           <div className="flex flex-col gap-1">
             <p className="eyebrow">Option to save: pay through AWS</p>
             {awsSaving !== null ? (

@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { AlertTriangle, Building2, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ConnectForm } from "@/components/app/connect-form";
 import { PendingHint } from "@/components/app/pending-hint";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,8 @@ export const metadata: Metadata = { title: "Your orgs" };
 
 export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
   const { workspace } = await requireWorkspace();
+  // New accounts answer the sign-up questions (or skip them) once, before connecting an org.
+  if (!workspace.answers) redirect("/welcome");
   const { error } = await searchParams;
 
   const latest = db()

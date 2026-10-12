@@ -4,6 +4,7 @@ import { PrintButton } from "@/components/report/print-button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
+import { awsAddOns, nonprofitSaving, POWER_OF_US_LICENSES, premierSaving } from "@/lib/savings/answers";
 import { awsCommitSaving, summarizeContract } from "@/lib/savings/contract";
 import { reportRecommendations, type FlaggedUser } from "@/lib/savings/engine";
 import { latestScan } from "@/lib/scan";
@@ -23,7 +24,12 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
   const money = (n: number) => formatCurrency(n, currency);
   const rise = contract?.priceChange && contract.priceChange.rate >= 0.01 ? contract.priceChange : null;
   const spend = contract?.annualSpend && contract.annualSpend.currency === currency ? contract.annualSpend : null;
-  const awsSaving = spend ? awsCommitSaving(spend.amount, r.prices.apps?.addOns) : null;
+  const answers = workspace.answers;
+  const awsSaving = spend ? awsCommitSaving(spend.amount, awsAddOns(r.prices.apps?.addOns, answers)) : null;
+  const premier = premierSaving(answers, connection.edition, spend?.amount ?? null);
+  const nonprofit = scan.snapshot
+    ? nonprofitSaving(answers, scan.snapshot, r.prices.fullMonthly, (r.apps ?? []).flatMap((a) => (a.namespace ? [a.namespace] : [])))
+    : null;
 
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8 bg-card p-8 print:p-0">
@@ -70,7 +76,23 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
               {contract.annualSpend && ` The same rise at renewal would add about ${formatCurrency(contract.annualSpend.amount * rise.rate, contract.annualSpend.currency)} a year.`}
             </p>
           )}
-          {spend && (
+          {premier && (
+            <p>
+              Option to save: Premier Success, Salesforce&apos;s paid support plan, costs 30% of license fees and can be dropped to the free
+              Standard plan or negotiated down at renewal.
+              {premier.amount !== null
+                ? ` That's about ${money(premier.amount)} a year${premier.estimated ? " (estimated from invoices, assuming it covers all licenses)" : ""}.`
+                : " Check the order form for a Premier line."}{" "}
+              Not added to the total.
+            </p>
+          )}
+          {nonprofit && (
+            <p>
+              Option to save: as a nonprofit or school, Salesforce&apos;s Power of Us program donates {POWER_OF_US_LICENSES} Enterprise
+              licenses to eligible organizations, about {money(nonprofit.annualSavings)} a year here. Not added to the total.
+            </p>
+          )}
+          {spend && (awsSaving !== null || answers?.aws !== "no") && (
             <p>
               Option to save: if your company has an AWS spend commitment it expects to leave partly unused, buying the renewal through AWS
               Marketplace counts the Salesforce bill toward it (&quot;Deployed on AWS&quot; listings only, usually up to 25% of the commitment).
