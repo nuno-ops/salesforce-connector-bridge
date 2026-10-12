@@ -21,7 +21,18 @@ const toValues = (p: PriceBook): Values => ({
   fullSandboxMonthly: p.fullSandboxMonthly === null ? "" : String(p.fullSandboxMonthly),
 });
 
-export function PriceForm({ connectionId, prices, aiEnabled }: { connectionId: string; prices: PriceBook; aiEnabled: boolean }) {
+export function PriceForm({
+  connectionId,
+  prices,
+  aiEnabled,
+  symbol = "$",
+}: {
+  connectionId: string;
+  prices: PriceBook;
+  aiEnabled: boolean;
+  /** Currency symbol shown in the inputs. */
+  symbol?: string;
+}) {
   const [values, setValues] = useState<Values>(toValues(prices));
   const [source, setSource] = useState<"manual" | "contract">(prices.source === "contract" ? "contract" : "manual");
   const [saveState, save, saving] = useActionState<ActionState, FormData>(savePricesAction.bind(null, connectionId), { status: "idle" });
@@ -47,7 +58,7 @@ export function PriceForm({ connectionId, prices, aiEnabled }: { connectionId: s
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={name}>{label}</Label>
       <div className="relative">
-        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">{symbol}</span>
         <Input
           id={name}
           name={name}
@@ -55,7 +66,7 @@ export function PriceForm({ connectionId, prices, aiEnabled }: { connectionId: s
           min={0}
           step="0.01"
           required={!optional}
-          className="pl-7"
+          className={symbol.length > 1 ? "pl-12" : "pl-7"}
           value={values[name]}
           onChange={(e) => setValues((v) => ({ ...v, [name]: e.target.value }))}
         />
@@ -91,7 +102,7 @@ export function PriceForm({ connectionId, prices, aiEnabled }: { connectionId: s
         <div className="grid gap-5 sm:grid-cols-2">
           {field("fullMonthly", "Full Salesforce license", "Per user per month, e.g. Sales Cloud Enterprise.")}
           {field("platformMonthly", "Salesforce Platform license", "Per user per month.")}
-          {field("integrationMonthly", "Salesforce Integration license", "Usually $0: most editions include 5.")}
+          {field("integrationMonthly", "Salesforce Integration license", `Usually ${symbol}0: most editions include 5.`)}
           {field("fullSandboxMonthly", "Full Copy sandbox", "Per sandbox per month. Leave blank if unknown.", true)}
         </div>
         <div className="flex items-center gap-3">

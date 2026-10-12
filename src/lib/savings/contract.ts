@@ -22,10 +22,22 @@ export interface ContractSummary {
   daysLeft: number;
   autoRenew: boolean | null;
   billingFrequency: string | null;
+  /** The contract's ISO currency, when Salesforce reports one. */
+  currency: string | null;
   /** Last day to tell Salesforce about seat cuts or non-renewal under the standard terms. */
   noticeBy: string;
   /** What the org pays Salesforce a year; `null` when there are no invoices to go on. */
   annualSpend: { amount: number; currency: string; basis: "invoices_on_contract" | "last_12_months" } | null;
+  /** How much invoices rose against the same invoices a year earlier; `null` without a year of history. */
+  priceChange: PriceChange | null;
+}
+
+export interface PriceChange {
+  /** 0.07 = invoices are 7% higher than a year earlier. Negative when they fell. */
+  rate: number;
+  /** The latest invoice compared, and its counterpart a year before. */
+  latest: string;
+  yearEarlier: string;
 }
 
 /**
@@ -48,9 +60,37 @@ export function summarizeContract(account: SnapshotSalesforceAccount | null | un
     daysLeft: Math.ceil((end.getTime() - now.getTime()) / DAY_MS),
     autoRenew: current.autoRenew,
     billingFrequency: current.billingFrequency,
+    currency: current.currency,
     noticeBy: new Date(end.getTime() - NOTICE_DAYS * DAY_MS).toISOString().slice(0, 10),
     annualSpend: annualSpend(account.invoices, current.id, current.billingFrequency, current.currency, now),
+    priceChange: priceChange(account.invoices),
   };
+}
+
+/** How far either side of "one year earlier" an invoice may fall and still count as its counterpart. */
+const YEAR_MATCH_DAYS = 45;
+
+/**
+ * Compares the latest few invoices with the invoices from a year before, whatever contract they
+ * were on: renewals usually start a new contract. The median ratio keeps a one-off from skewing it.
+ * It can't tell a price rise from seats added in between, so callers should say so.
+ */
+export function priceChange(invoices: SnapshotSalesforceInvoice[]): PriceChange | null {
+  const dated = invoices
+    .filter((i) => i.date && i.total > 0)
+    .map((i) => ({ ...i, time: new Date(`${i.date}T00:00:00Z`).getTime() }))
+    .sort((a, b) => b.time - a.time);
+  const pairs: { ratio: number; latest: string; yearEarlier: string }[] = [];
+  for (const recent of dated.slice(0, 3)) {
+    const target = recent.time - 365 * DAY_MS;
+    const match = dated
+      .filter((i) => i.currency === recent.currency && Math.abs(i.time - target) <= YEAR_MATCH_DAYS * DAY_MS)
+      .sort((a, b) => Math.abs(a.time - target) - Math.abs(b.time - target))[0];
+    if (match) pairs.push({ ratio: recent.total / match.total, latest: recent.date!, yearEarlier: match.date! });
+  }
+  if (pairs.length === 0) return null;
+  const rate = median(pairs.map((p) => p.ratio)) - 1;
+  return { rate, latest: pairs[0].latest, yearEarlier: pairs[0].yearEarlier };
 }
 
 function annualSpend(

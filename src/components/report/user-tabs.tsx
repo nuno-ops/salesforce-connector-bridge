@@ -12,9 +12,11 @@ const confidenceVariant = { high: "default", medium: "warning", low: "muted" } a
 export function UserTabs({
   tabs,
   instanceUrl,
+  currency = "USD",
 }: {
   tabs: { key: string; label: string; users: FlaggedUser[] }[];
   instanceUrl: string;
+  currency?: string;
 }) {
   const [active, setActive] = useState(tabs.find((t) => t.users.length)?.key ?? tabs[0]?.key);
   const current = tabs.find((t) => t.key === active) ?? tabs[0];
@@ -72,7 +74,7 @@ export function UserTabs({
                 <TD>
                   {u.reason} <Badge variant={confidenceVariant[u.confidence]}>{u.confidence}</Badge>
                 </TD>
-                <TD className="text-right font-medium">{formatCurrency(u.annualSavings)}</TD>
+                <TD className="text-right font-medium">{formatCurrency(u.annualSavings, currency)}</TD>
               </TR>
             ))}
           </TBody>

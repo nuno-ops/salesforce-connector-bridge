@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { saveAppPricesAction, type ActionState } from "@/app/(app)/orgs/[connectionId]/actions";
 
 export interface AppPriceRow {
-  /** Form field name: `package:<namespace>` or `connected:<app name>`. */
+  /** Form field name: `package:<namespace>`, `connected:<app name>` or `addon:<key>`. */
   field: string;
   name: string;
   detail: string;
@@ -18,7 +18,16 @@ export interface AppPriceRow {
   hint?: string;
 }
 
-export function AppPriceForm({ connectionId, groups }: { connectionId: string; groups: { title: string; rows: AppPriceRow[] }[] }) {
+export function AppPriceForm({
+  connectionId,
+  groups,
+  symbol = "$",
+}: {
+  connectionId: string;
+  groups: { title: string; rows: AppPriceRow[] }[];
+  /** Currency symbol shown in the inputs. */
+  symbol?: string;
+}) {
   const [state, save, saving] = useActionState<ActionState, FormData>(saveAppPricesAction.bind(null, connectionId), { status: "idle" });
 
   return (
@@ -47,7 +56,7 @@ export function AppPriceForm({ connectionId, groups }: { connectionId: string; g
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <div className="relative w-28">
-                    <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                    <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">{symbol}</span>
                     <Input
                       name={r.field}
                       type="number"
@@ -56,7 +65,7 @@ export function AppPriceForm({ connectionId, groups }: { connectionId: string; g
                       aria-label={`${r.name} price ${r.unit}`}
                       placeholder="—"
                       defaultValue={r.value ?? ""}
-                      className="pl-7"
+                      className={symbol.length > 1 ? "pl-12" : "pl-7"}
                     />
                   </div>
                   <span className="w-20 text-xs text-muted-foreground">{r.unit}</span>

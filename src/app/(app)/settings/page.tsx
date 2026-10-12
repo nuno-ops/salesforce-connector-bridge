@@ -95,7 +95,7 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Connected orgs</CardTitle>
-          <CardDescription>We hold encrypted, read-only tokens. Disconnecting revokes them in Salesforce.</CardDescription>
+          <CardDescription>We hold encrypted tokens and only use them to read. Disconnecting revokes them in Salesforce.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col divide-y divide-border">
           {connections.length === 0 && <p className="text-sm text-muted-foreground">No orgs connected.</p>}

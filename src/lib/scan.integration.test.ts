@@ -113,7 +113,7 @@ describe.skipIf(!DATABASE_URL)("scan pipeline (database)", () => {
       source: "manual",
     });
     const latest = await mod.scan.latestScan(connection.id, { succeededOnly: true });
-    const result = await mod.scan.recompute({ ...latest!, snapshot: latest!.snapshot! }, await mod.scan.getPriceBook(connection));
+    const result = await mod.scan.recompute({ ...latest!, snapshot: latest!.snapshot! }, await mod.scan.getPriceBook(connection), connection);
     expect(result.annualSavings).toBe(1200);
   });
 

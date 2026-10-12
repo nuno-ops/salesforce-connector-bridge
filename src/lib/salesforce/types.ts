@@ -34,6 +34,11 @@ export interface OrgSnapshot {
   installedPackages?: SnapshotInstalledPackage[] | null;
   /** Ids of active users who are frozen (they still hold a license). Missing on older snapshots; `null` when unreadable. */
   frozenUserIds?: string[] | null;
+  /**
+   * Ids of active users with the Service Cloud User feature license. Missing on older snapshots;
+   * `null` when unreadable (usually because the org has no Service Cloud).
+   */
+  serviceCloudUserIds?: string[] | null;
   /** Daily API requests from the org limits. Missing on older snapshots; `null` when unreadable. */
   apiRequests?: { max: number; remaining: number } | null;
   /** Custom objects the org built itself (no namespace). Missing on older snapshots; `null` when unreadable. */
@@ -111,6 +116,8 @@ export interface SnapshotSandbox {
   name: string;
   licenseType: string;
   description: string | null;
+  /** When the sandbox was last created or refreshed. Missing on older snapshots; `null` when unknown. */
+  lastRefreshed?: string | null;
 }
 
 export interface SnapshotWriteActivity {
@@ -118,6 +125,8 @@ export interface SnapshotWriteActivity {
   objects: string[];
   /** User Id → records created plus records last edited by that user in the window. */
   byUser: Record<string, number>;
+  /** The same counts per object (object → user Id → count). Missing on older snapshots. */
+  byObject?: Record<string, Record<string, number>>;
   windowDays: number;
 }
 

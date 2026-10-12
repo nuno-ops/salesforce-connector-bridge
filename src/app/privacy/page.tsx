@@ -5,21 +5,27 @@ export const metadata: Metadata = { title: "Privacy policy" };
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy policy" updated="October 7, 2026">
+    <LegalPage title="Privacy policy" updated="October 12, 2026">
       <p>Salesforce Saver helps you find unused and misassigned Salesforce licenses. This page explains what we collect and why.</p>
       <h2>What we read from Salesforce</h2>
-      <p>With the read-only access you grant, we read:</p>
+      <p>With the access you grant, we only read, and we read:</p>
       <ul>
         <li>User records: name, username, email, profile, license type, last login and creation dates.</li>
         <li>License counts, permission set and package licenses, profile and permission set access to Opportunities, Leads and Cases.</li>
-        <li>Connected app names and usage counts, org limits (storage) and sandbox names.</li>
+        <li>Connected app names and usage counts, installed AppExchange packages, org limits, and sandbox names and refresh dates.</li>
+        <li>
+          How many records each user created or edited in the last 90 days, and when each installed package&apos;s objects last changed.
+          These are counts and dates only.
+        </li>
         <li>
           Your own Salesforce subscription, when the connected user has the Manage Billing permission: contract number, dates,
           renewal and billing terms, and invoice dates and totals. We never read payment card details.
         </li>
-        <li>Monthly counts of leads and opportunities, and the total amount of closed-won opportunities.</li>
       </ul>
-      <p>We do not read or store the contents of your accounts, contacts, leads, opportunities, cases or files, and we never write to your org.</p>
+      <p>
+        We do not read or store the contents of your accounts, contacts, leads, opportunities, cases or files, and we never write to your
+        org. Every query is listed on our <a href="/security">security page</a>.
+      </p>
       <h2>What we store</h2>
       <ul>
         <li>Your email address, for sign-in.</li>
@@ -29,7 +35,8 @@ export default function PrivacyPage() {
       </ul>
       <h2>Service providers</h2>
       <ul>
-        <li>Supabase hosts our database and handles sign-in.</li>
+        <li>Supabase hosts our database (London, UK) and handles sign-in.</li>
+        <li>Netlify runs the app (United States).</li>
         <li>Stripe processes payments.</li>
         <li>
           Anthropic (Claude) receives any contract PDF you upload to fill in your prices. Uploaded PDFs are not stored by us.

@@ -44,15 +44,15 @@ const PLANS = [
 const FAQ = [
   [
     "What access do you need?",
-    "Read-only API access through Salesforce's standard sign-in. You approve it in Salesforce and can revoke it at any time.",
+    "API access through Salesforce's standard sign-in, which you approve in Salesforce and can revoke at any time. Salesforce has no read-only option for apps, so its screen says the app can access and manage your data. Salesforce Saver only runs read queries, listed on our security page. To have Salesforce enforce that, connect as a user who can't edit records.",
   ],
   [
     "Will it change anything in my org?",
-    "No. Salesforce Saver never writes to your org. It reads metadata such as users, licenses, permissions and limits, and links you to the relevant records so you decide what to change.",
+    "No. Salesforce Saver never writes to your org. It reads users, licenses, permissions and limits, and counts how many records each person created or edited recently without reading what's in them. Then it links you to the relevant records so you decide what to change.",
   ],
   [
     "How are savings calculated?",
-    "With Salesforce list prices for your edition by default. Enter what you actually pay, or upload your order form, for figures that match your contract.",
+    "From your Salesforce invoices, when you connect as a user with the Manage Billing permission, in your contract's currency. Otherwise with Salesforce list prices for your edition. Enter what you actually pay for exact figures.",
   ],
   [
     "Which editions are supported?",
@@ -109,7 +109,7 @@ export default async function Home() {
               Stop paying for Salesforce licenses <em>nobody uses.</em>
             </h1>
             <p className="hero-sub">
-              Connect your org with read-only access. Salesforce Saver checks your users, licenses and permissions and gives
+              Connect your org in a few clicks. Salesforce Saver reads your users, licenses and permissions, changes nothing, and gives
               you a priced, ranked list of savings in minutes.
             </p>
             <div className="hero-actions">
@@ -121,7 +121,7 @@ export default async function Home() {
               </a>
             </div>
             <p className="trust-line">
-              <span>Read-only access</span>
+              <span>Never changes your data</span>
               <span>Encrypted tokens</span>
               <span>Disconnect any time</span>
             </p>
@@ -234,21 +234,21 @@ export default async function Home() {
           </div>
           <div className="how-intro">
             <h2>Three steps. No invasive implementation.</h2>
-            <p>Connect, scan, decide. Your business records stay out of scope.</p>
+            <p>Connect, scan, decide. We count activity, never read what&apos;s in your records.</p>
           </div>
           <div className="steps">
             <article>
               <span className="step-num">1</span>
               <div>
                 <h3>Connect</h3>
-                <p>Sign in to Salesforce and approve read-only access. Production, sandbox and My Domain logins supported.</p>
+                <p>Sign in to Salesforce and approve access. Production, sandbox and My Domain logins supported.</p>
               </div>
             </article>
             <article>
               <span className="step-num">2</span>
               <div>
                 <h3>Scan</h3>
-                <p>We read users, licenses, permissions and limits. Business records are never read or changed.</p>
+                <p>We read users, licenses, permissions and limits, and count who created or edited records. Nothing is changed.</p>
               </div>
             </article>
             <article>
@@ -272,18 +272,20 @@ export default async function Home() {
               </h2>
             </div>
             <div className="security-copy">
-              <p className="security-lead">Enough access to find waste. Not enough access to touch your business data.</p>
+              <p className="security-lead">
+                We look for waste and change nothing. <Link href="/security">See every query a scan runs.</Link>
+              </p>
               <ul>
                 <li>
                   <span>01</span>
                   <p>
-                    <strong>Read-only API access</strong>You approve access directly in Salesforce.
+                    <strong>Read queries only</strong>You approve access in Salesforce. We never create, edit or delete anything.
                   </p>
                 </li>
                 <li>
                   <span>02</span>
                   <p>
-                    <strong>No business-record access</strong>No access to accounts, contacts, deals or files.
+                    <strong>Counts, not contents</strong>We count records per user. We never read what&apos;s in your accounts, deals, cases or files.
                   </p>
                 </li>
                 <li>
@@ -379,7 +381,7 @@ export default async function Home() {
             <Link href={start} className="closing-cta">
               Start a free scan <span>↗</span>
             </Link>
-            <p className="closing-note">Read-only. Fast to disconnect. Free to scan.</p>
+            <p className="closing-note">Changes nothing. Fast to disconnect. Free to scan.</p>
           </div>
         </section>
       </main>
@@ -391,6 +393,7 @@ export default async function Home() {
             Salesforce Saver
           </a>
           <div className="footer-links">
+            <Link href="/security">Security</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
             <Link href="/login">Sign in</Link>

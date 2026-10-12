@@ -1,11 +1,11 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { SalesforceAuthError } from "@/lib/salesforce/client";
 import { collectSnapshot } from "@/lib/salesforce/collect";
 import { clientFor, markExpired } from "@/lib/salesforce/connection";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
-import { computeSavings } from "@/lib/savings/engine";
+import { computeSavings, toOtherOrg, type OtherOrg } from "@/lib/savings/engine";
 import { defaultPriceBook, type PriceBook } from "@/lib/savings/prices";
 
 type Connection = typeof schema.sfConnections.$inferSelect;
@@ -68,13 +68,33 @@ export async function scanHistory(connectionId: string, limit = 12) {
     .limit(limit);
 }
 
+/** The latest scan of every other active org in the workspace, for the cross-org seat check. */
+export async function otherOrgs(connection: Pick<Connection, "id" | "workspaceId">): Promise<OtherOrg[]> {
+  const rows = await db()
+    .selectDistinctOn([schema.scans.connectionId], { snapshot: schema.scans.snapshot })
+    .from(schema.scans)
+    .innerJoin(schema.sfConnections, eq(schema.sfConnections.id, schema.scans.connectionId))
+    .where(
+      and(
+        eq(schema.sfConnections.workspaceId, connection.workspaceId),
+        ne(schema.sfConnections.id, connection.id),
+        eq(schema.sfConnections.status, "active"),
+        eq(schema.sfConnections.isSandbox, false),
+        eq(schema.scans.status, "succeeded"),
+      ),
+    )
+    .orderBy(schema.scans.connectionId, desc(schema.scans.startedAt));
+  return rows.flatMap((r) => (r.snapshot ? [toOtherOrg(r.snapshot)] : []));
+}
+
 /** Reads the org, stores the snapshot and computes savings. Never throws; failures are recorded on the scan. */
 export async function runScan(connection: Connection, trigger: "manual" | "scheduled" = "manual"): Promise<Scan> {
   const database = db();
   const [scan] = await database.insert(schema.scans).values({ connectionId: connection.id, trigger }).returning();
   try {
     const snapshot = await collectSnapshot(clientFor(connection));
-    const result = computeSavings(snapshot, await getPriceBook(connection));
+    const [prices, others] = await Promise.all([getPriceBook(connection), otherOrgs(connection)]);
+    const result = computeSavings(snapshot, prices, { otherOrgs: connection.isSandbox ? [] : others });
     const [done] = await database
       .update(schema.scans)
       .set({ status: "succeeded", snapshot, result, annualSavings: result.annualSavings, finishedAt: new Date() })
@@ -98,8 +118,13 @@ export async function runScan(connection: Connection, trigger: "manual" | "sched
 }
 
 /** Re-prices a stored snapshot, e.g. after the customer edits their prices. No Salesforce calls. */
-export async function recompute(scan: Scan & { snapshot: OrgSnapshot }, prices: PriceBook) {
-  const result = computeSavings(scan.snapshot, prices, { now: new Date(scan.snapshot.capturedAt) });
+export async function recompute(
+  scan: Scan & { snapshot: OrgSnapshot },
+  prices: PriceBook,
+  connection: Pick<Connection, "id" | "workspaceId" | "isSandbox">,
+) {
+  const others = connection.isSandbox ? [] : await otherOrgs(connection);
+  const result = computeSavings(scan.snapshot, prices, { now: new Date(scan.snapshot.capturedAt), otherOrgs: others });
   await db()
     .update(schema.scans)
     .set({ result, annualSavings: result.annualSavings })

@@ -20,6 +20,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     .selectDistinctOn([schema.scans.connectionId], {
       connectionId: schema.scans.connectionId,
       annualSavings: schema.scans.annualSavings,
+      currency: sql<string | null>`${schema.scans.result}->'prices'->>'currency'`.as("currency"),
       startedAt: schema.scans.startedAt,
     })
     .from(schema.scans)
@@ -37,6 +38,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       status: schema.sfConnections.status,
       instanceUrl: schema.sfConnections.instanceUrl,
       annualSavings: latest.annualSavings,
+      currency: latest.currency,
       lastScan: latest.startedAt,
     })
     .from(schema.sfConnections)
@@ -81,7 +83,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                 <CardContent className="flex items-end justify-between">
                   <div>
                     <p className="text-3xl font-bold tracking-[-0.05em] text-positive">
-                      {c.annualSavings !== null ? formatCurrency(c.annualSavings) : "—"}
+                      {c.annualSavings !== null ? formatCurrency(c.annualSavings, c.currency ?? "USD") : "—"}
                     </p>
                     <p className="mt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                       {c.lastScan ? `potential yearly savings · scanned ${formatDate(c.lastScan)}` : "Not scanned yet"}
@@ -98,7 +100,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       <Card className="max-w-xl">
         <CardHeader>
           <CardTitle>{connections.length ? "Connect another org" : "Connect your first org"}</CardTitle>
-          <CardDescription>You&apos;ll sign in to Salesforce and approve read-only access.</CardDescription>
+          <CardDescription>You&apos;ll sign in to Salesforce and approve access. We only read.</CardDescription>
         </CardHeader>
         <CardContent>
           <ConnectForm />

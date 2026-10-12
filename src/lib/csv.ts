@@ -14,7 +14,7 @@ export function toCsv(rows: unknown[][]): string {
 
 /** One row per flagged user, plus one per other priced recommendation or one a price would unlock. */
 export function savingsCsv(result: SavingsResult, instanceUrl: string): string {
-  const header = ["Category", "User", "Username", "Email", "Profile", "License", "Last login", "Reason", "Confidence", "Annual savings (USD)", "Link"];
+  const header = ["Category", "User", "Username", "Email", "Profile", "License", "Last login", "Reason", "Confidence", `Annual savings (${result.prices.currency ?? "USD"})`, "Link"];
   const userRows = (category: string, users: FlaggedUser[]) =>
     users.map((u) => [
       category,
@@ -29,7 +29,16 @@ export function savingsCsv(result: SavingsResult, instanceUrl: string): string {
       Math.round(u.annualSavings),
       `${instanceUrl}/${u.id}`,
     ]);
-  const userCategories = new Set(["inactive_users", "integration_users", "platform_licenses", "view_only_users", "frozen_users", "duplicate_users"]);
+  const userCategories = new Set([
+    "inactive_users",
+    "integration_users",
+    "platform_licenses",
+    "view_only_users",
+    "frozen_users",
+    "duplicate_users",
+    "cross_org_users",
+    "service_cloud_users",
+  ]);
   const { priced, needsPrice } = reportRecommendations(result.recommendations);
   const other = [...priced, ...needsPrice]
     .filter((r) => !userCategories.has(r.category))
@@ -42,6 +51,8 @@ export function savingsCsv(result: SavingsResult, instanceUrl: string): string {
     ...userRows("Integration user", result.users.integration),
     ...userRows("Platform license candidate", result.users.platform),
     ...userRows("View-only user", result.users.viewOnly ?? []),
+    ...userRows("Paid in two orgs", result.users.crossOrg ?? []),
+    ...userRows("Unused Service Cloud license", (result.users.serviceCloud ?? []).filter((u) => u.annualSavings > 0)),
     ...other,
   ]);
 }

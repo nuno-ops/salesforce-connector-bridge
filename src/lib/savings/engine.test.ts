@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { OrgSnapshot, SnapshotUser } from "@/lib/salesforce/types";
-import { computeSavings, reportRecommendations } from "./engine";
-import { defaultPriceBook, type PriceBook } from "./prices";
+import { computeSavings, reportRecommendations, toOtherOrg } from "./engine";
+import { defaultPriceBook, effectivePriceBook, type PriceBook } from "./prices";
 
 const NOW = new Date("2026-10-01T00:00:00Z");
 const daysAgo = (n: number) =>
@@ -952,5 +952,168 @@ describe("reportRecommendations", () => {
     expect(priced.map((r) => r.category)).toEqual(["inactive_users"]);
     expect(needsPrice.map((r) => r.category).sort()).toEqual(["package_licenses", "sandboxes"]);
     expect(result.recommendations.some((r) => r.category === "storage")).toBe(true);
+  });
+});
+
+/** An active contract ending 2027-03-31 with monthly invoices of `monthly` for the last few months. */
+function account(monthly: number, currency = "USD", extra: { date: string; total: number }[] = []) {
+  return {
+    contracts: [
+      {
+        id: "C1",
+        number: "0001",
+        startDate: "2026-04-01",
+        endDate: "2027-03-31",
+        status: "Activated",
+        autoRenew: true,
+        billingFrequency: "Monthly",
+        currency,
+      },
+    ],
+    invoices: [
+      ...["2026-09-01", "2026-08-01", "2026-07-01"].map((date) => ({ contractId: "C1", date, total: monthly, currency })),
+      ...extra.map((e) => ({ contractId: null, ...e, currency })),
+    ],
+  };
+}
+
+describe("prices from invoices", () => {
+  const licenses = [
+    { id: "L1", name: "Salesforce", total: 10, used: 8 },
+    { id: "L2", name: "Salesforce Platform", total: 4, used: 4 },
+  ];
+
+  it("scales list prices to the yearly bill, never above list in USD", () => {
+    // List: 10 x 165 + 4 x 25 = 1,750 a month. The bill is 1,400: a 20% discount.
+    const discounted = effectivePriceBook(prices, snapshot({ userLicenses: licenses, salesforceAccount: account(1400) }), NOW);
+    expect(discounted).toMatchObject({ source: "invoices", currency: "USD", fullMonthly: 132, platformMonthly: 20 });
+    // Add-ons can push the bill above list; we don't inflate seat prices for them.
+    const above = effectivePriceBook(prices, snapshot({ userLicenses: licenses, salesforceAccount: account(3000) }), NOW);
+    expect(above).toMatchObject({ source: "invoices", fullMonthly: 165, platformMonthly: 25 });
+  });
+
+  it("uses the contract currency, keeps customer prices and falls back to USD list prices", () => {
+    const gbp = effectivePriceBook(prices, snapshot({ userLicenses: licenses, salesforceAccount: account(1225, "GBP") }), NOW);
+    expect(gbp).toMatchObject({ source: "invoices", currency: "GBP", fullMonthly: 115.5, platformMonthly: 17.5 });
+    const manual = { ...prices, source: "manual" as const, fullMonthly: 90 };
+    expect(effectivePriceBook(manual, snapshot({ userLicenses: licenses, salesforceAccount: account(1225, "GBP") }), NOW)).toMatchObject({
+      source: "manual",
+      currency: "GBP",
+      fullMonthly: 90,
+    });
+    expect(effectivePriceBook(prices, snapshot({ userLicenses: licenses }), NOW)).toMatchObject({ source: "edition_default", currency: "USD", fullMonthly: 165 });
+  });
+
+  it("prices savings with invoice prices, adds the notice date and drops USD list prices for other currencies", () => {
+    const result = computeSavings(
+      snapshot({
+        users: [user("gone", { lastLoginDate: null })],
+        userLicenses: licenses,
+        salesforceAccount: account(1225, "GBP"),
+        installedPackages: [{ namespace: "dsfs", name: "Docusign", objects: [{ apiName: "dsfs__E__c", label: "E", lastCreated: null, lastModified: null, unreadable: false }], truncated: false }],
+      }),
+      prices,
+      { now: NOW, listPrices: { dsfs: { name: "Docusign", price: 40, unit: "org", tier: "Standard", checked: "2026-10", source: "https://example.com" } } },
+    );
+    expect(result.prices.currency).toBe("GBP");
+    expect(result.users.inactive[0].annualSavings).toBeCloseTo(115.5 * 12);
+    const seats = result.recommendations.find((r) => r.id === "unused_seats:Salesforce");
+    expect(seats?.annualSavings).toBeCloseTo(2 * 115.5 * 12);
+    expect(seats?.detail).toContain("Tell Salesforce by Mar 1, 2027");
+    expect(result.apps?.[0]).toMatchObject({ status: "idle", annualSavings: 0, priceSource: null });
+  });
+});
+
+describe("people paying in two orgs", () => {
+  const activity = (byUser: Record<string, number>) => ({ objects: ["Account"], byUser, windowDays: 90 });
+  const other = toOtherOrg(
+    snapshot({
+      organization: { id: "00D2", name: "Acme EU", edition: "Enterprise Edition", isSandbox: false, instanceUrl: "https://eu.example.com" },
+      users: [user("worker", { email: "pat@acme.com" }), user("idle", { email: "sam@acme.com" }), user("free", { email: "lee@acme.com", licenseName: "Chatter Free" })],
+      writeActivity: activity({ worker: 5 }),
+    }),
+  );
+
+  it("flags a seat here when the person only works in the other org", () => {
+    const result = computeSavings(
+      snapshot({
+        users: [
+          user("pat", { email: "Pat@acme.com" }),
+          user("sam", { email: "sam@acme.com" }),
+          user("lee", { email: "lee@acme.com" }),
+          user("busy", { email: "pat2@acme.com" }),
+        ],
+        writeActivity: activity({ busy: 3 }),
+      }),
+      prices,
+      { now: NOW, otherOrgs: [other] },
+    );
+    expect(result.users.crossOrg?.map((u) => u.id)).toEqual(["pat"]);
+    expect(result.users.crossOrg?.[0].reason).toContain("Acme EU");
+    expect(result.byCategory.cross_org_users).toBe(165 * 12);
+    // Claimed here, so the view-only check doesn't count pat again.
+    expect(result.users.viewOnly.map((u) => u.id)).toEqual(["sam", "lee"]);
+  });
+
+  it("does nothing without other orgs or activity data", () => {
+    const users = [user("pat", { email: "pat@acme.com" })];
+    expect(computeSavings(snapshot({ users, writeActivity: activity({}) }), prices, { now: NOW }).users.crossOrg).toEqual([]);
+    expect(computeSavings(snapshot({ users }), prices, { now: NOW, otherOrgs: [other] }).users.crossOrg).toEqual([]);
+  });
+});
+
+describe("Service Cloud feature licenses", () => {
+  const activity = { objects: ["Case"], byUser: { agent: 4, sales: 2 }, byObject: { Case: { agent: 4 }, Opportunity: { sales: 2 } }, windowDays: 90 };
+  const base = {
+    users: [user("agent"), user("sales"), user("gone", { lastLoginDate: null })],
+    serviceCloudUserIds: ["agent", "sales", "gone"],
+    writeActivity: activity,
+  };
+
+  it("asks for a price, then prices users who never touch a Case", () => {
+    const unpriced = computeSavings(snapshot(base), prices, { now: NOW });
+    expect(unpriced.users.serviceCloud?.map((u) => u.id)).toEqual(["sales"]);
+    expect(unpriced.recommendations.find((r) => r.category === "service_cloud_users")).toMatchObject({ advisory: true, needsPrice: true });
+
+    const priced = computeSavings(snapshot(base), { ...prices, apps: { packages: {}, connectedApps: {}, addOns: { serviceCloudUserMonthly: 50 } } }, { now: NOW });
+    expect(priced.byCategory.service_cloud_users).toBe(50 * 12);
+    // The inactive user's whole seat is already counted, so their feature license isn't.
+    expect(priced.users.inactive.map((u) => u.id)).toEqual(["gone"]);
+  });
+
+  it("skips the check on snapshots without per-object activity", () => {
+    const result = computeSavings(snapshot({ ...base, writeActivity: { ...activity, byObject: undefined } }), prices, { now: NOW });
+    expect(result.users.serviceCloud).toEqual([]);
+  });
+});
+
+describe("stale sandboxes", () => {
+  const sandboxes = [
+    { name: "uat", licenseType: "FULL", description: null, lastRefreshed: daysAgo(500) },
+    { name: "staging", licenseType: "FULL", description: null, lastRefreshed: daysAgo(30) },
+    { name: "train", licenseType: "PARTIAL", description: null, lastRefreshed: daysAgo(400) },
+    { name: "dev", licenseType: "DEVELOPER", description: null, lastRefreshed: daysAgo(900) },
+  ];
+
+  it("prices sandboxes not refreshed in a year, without counting the stale Full Copy twice", () => {
+    const result = computeSavings(
+      snapshot({ sandboxes }),
+      { ...prices, fullSandboxMonthly: 4000, apps: { packages: {}, connectedApps: {}, addOns: { partialSandboxMonthly: 1000 } } },
+      { now: NOW },
+    );
+    expect(result.staleSandboxes?.map((s) => s.name)).toEqual(["uat", "train"]);
+    const stale = result.recommendations.find((r) => r.id === "stale_sandboxes");
+    expect(stale).toMatchObject({ annualSavings: (4000 + 1000) * 12, advisory: false });
+    expect(stale?.detail).toContain("uat (Full Copy");
+    // Two Full Copies, one stale: the "extra Full Copy" check has nothing left to add.
+    expect(result.recommendations.find((r) => r.id === "sandboxes")).toBeUndefined();
+    expect(result.byCategory.sandboxes).toBe(5000 * 12);
+  });
+
+  it("asks for a price when none is known and ignores sandboxes with no refresh date", () => {
+    const result = computeSavings(snapshot({ sandboxes }), prices, { now: NOW });
+    expect(result.recommendations.find((r) => r.id === "stale_sandboxes")).toMatchObject({ advisory: true, needsPrice: true, annualSavings: 0 });
+    const undated = computeSavings(snapshot({ sandboxes: sandboxes.map((s) => ({ ...s, lastRefreshed: null })) }), prices, { now: NOW });
+    expect(undated.staleSandboxes).toEqual([]);
   });
 });
