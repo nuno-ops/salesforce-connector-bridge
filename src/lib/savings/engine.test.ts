@@ -641,6 +641,12 @@ describe("app prices", () => {
       ["Flat App", 1200],
       ["Busy App", 0],
     ]);
+    // What each app costs a year, used or not, for the cloud marketplace options.
+    expect(result.apps?.map((a) => [a.name, a.annualCost])).toEqual([
+      ["Old App", 3600],
+      ["Flat App", 1200],
+      ["Busy App", 2400],
+    ]);
     const ids = result.recommendations.map((r) => [
       r.id,
       r.annualSavings,

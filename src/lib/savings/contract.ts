@@ -133,13 +133,13 @@ function median(values: number[]): number {
 export const AWS_MARKETPLACE_CAP = 0.25;
 
 /**
- * What buying Salesforce through AWS Marketplace saves: the AWS commitment that would otherwise go
- * unused, limited by the Salesforce bill and AWS's Marketplace cap. `null` until the customer enters
- * both AWS numbers, because we can't see whether they use AWS.
+ * What buying Salesforce (and apps listed as Deployed on AWS) through AWS Marketplace saves: the AWS
+ * commitment that would otherwise go unused, limited by that spend and AWS's Marketplace cap.
+ * `null` until the customer enters both AWS numbers, because we can't see whether they use AWS.
  */
-export function awsCommitSaving(annualSpend: number, addOns: AddOnPrices | undefined): number | null {
+export function awsCommitSaving(annualSpend: number, addOns: AddOnPrices | undefined, eligibleAppSpend = 0): number | null {
   const commitment = addOns?.awsCommitmentYearly;
   const unused = addOns?.awsUnusedYearly;
   if (commitment === undefined || unused === undefined) return null;
-  return Math.max(0, Math.min(annualSpend, commitment * AWS_MARKETPLACE_CAP, unused));
+  return Math.max(0, Math.min(annualSpend + eligibleAppSpend, commitment * AWS_MARKETPLACE_CAP, unused));
 }

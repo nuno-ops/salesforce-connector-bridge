@@ -20,6 +20,9 @@ const schema = z.object({
   CALENDLY_URL: z.url().default("https://calendly.com/salesforcesaver-support/30min"),
   ANTHROPIC_API_KEY: z.string().optional(),
   CRON_SECRET: z.string().optional(),
+  /** Read-only AWS keys for the Marketplace Discovery API. Netlify reserves the AWS_* names. */
+  MARKETPLACE_AWS_ACCESS_KEY_ID: z.string().optional(),
+  MARKETPLACE_AWS_SECRET_ACCESS_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

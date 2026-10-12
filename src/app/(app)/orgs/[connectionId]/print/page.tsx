@@ -4,10 +4,13 @@ import { PrintButton } from "@/components/report/print-button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
-import { awsAddOns, nonprofitSaving, POWER_OF_US_LICENSES, premierSaving } from "@/lib/savings/answers";
-import { awsCommitSaving, summarizeContract } from "@/lib/savings/contract";
+import { loadLookups } from "@/lib/apps/aws-marketplace";
+import { CLOUD_LABEL, type LookupResults } from "@/lib/apps/marketplaces";
+import { nonprofitSaving, POWER_OF_US_LICENSES, premierSaving } from "@/lib/savings/answers";
+import { cloudOptions, renewalSeats, type CloudOption } from "@/lib/savings/cloud-options";
+import { summarizeContract } from "@/lib/savings/contract";
 import { reportRecommendations, type FlaggedUser } from "@/lib/savings/engine";
-import { latestScan } from "@/lib/scan";
+import { latestScan, lookupNames } from "@/lib/scan";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Savings report" };
@@ -25,7 +28,11 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
   const rise = contract?.priceChange && contract.priceChange.rate >= 0.01 ? contract.priceChange : null;
   const spend = contract?.annualSpend && contract.annualSpend.currency === currency ? contract.annualSpend : null;
   const answers = workspace.answers;
-  const awsSaving = spend ? awsCommitSaving(spend.amount, awsAddOns(r.prices.apps?.addOns, answers)) : null;
+  const lookups: LookupResults = contract ? await loadLookups(lookupNames(r)).catch(() => new Map()) : new Map();
+  const clouds = cloudOptions(r, answers, spend?.amount ?? null, lookups);
+  const awsSaving = clouds.aws?.saving ?? null;
+  const seats = renewalSeats(r);
+  const appList = (o: CloudOption) => o.apps.map((a) => `${a.name} (${money(a.annualCost)} a year)`).join(", ");
   const premier = premierSaving(answers, connection.edition, spend?.amount ?? null);
   const nonprofit = scan.snapshot
     ? nonprofitSaving(answers, scan.snapshot, r.prices.fullMonthly, (r.apps ?? []).flatMap((a) => (a.namespace ? [a.namespace] : [])))
@@ -92,16 +99,38 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
               licenses to eligible organizations, about {money(nonprofit.annualSavings)} a year here. Not added to the total.
             </p>
           )}
-          {spend && (awsSaving !== null || answers?.aws !== "no") && (
+          {seats.seats > 0 && seats.annualSavings > 0 && answers?.agentforce === "yes" && (
+            <p>
+              Planning to buy Agentforce: Salesforce&apos;s Flex Agreement lets you convert user licenses into Flex Credits. Ask to turn the{" "}
+              {seats.seats} seats you can drop ({money(seats.annualSavings)} a year) into credits instead of paying for new ones. Already
+              counted in the total as seats to drop.
+            </p>
+          )}
+          {clouds.aws && (
             <p>
               Option to save: if your company has an AWS spend commitment it expects to leave partly unused, buying the renewal through AWS
               Marketplace counts the Salesforce bill toward it (&quot;Deployed on AWS&quot; listings only, usually up to 25% of the commitment).
               {awsSaving !== null
                 ? ` With the AWS numbers entered, that saves about ${money(awsSaving)} a year.`
                 : " Enter the AWS commitment and expected unused amount on the Prices page to see the saving."}{" "}
+              {clouds.aws.apps.length > 0 && `Apps that count too, included above: ${appList(clouds.aws)}. `}
               A possible approach, not added to the total.
             </p>
           )}
+          {(["google", "azure"] as const).map((c) => {
+            const o = clouds[c];
+            if (!o) return null;
+            return (
+              <p key={c}>
+                Option to save: Salesforce itself isn&apos;t sold through {CLOUD_LABEL[o.cloud]} yet, but apps bought on its marketplace count
+                toward your {CLOUD_LABEL[o.cloud]} commitment.{" "}
+                {o.apps.length === 0
+                  ? "None of the priced apps is on our checked list yet."
+                  : `Apps that count: ${appList(o)}.${o.saving !== null ? ` That saves about ${money(o.saving)} a year.` : ` Add the ${CLOUD_LABEL[o.cloud]} commitment numbers in Settings to see the saving.`}`}{" "}
+                Not added to the total.
+              </p>
+            );
+          })}
         </section>
       )}
 

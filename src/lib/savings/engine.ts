@@ -126,6 +126,8 @@ export interface AppUsage {
   priceSource?: "customer" | "list" | null;
   /** Yearly saving if the recommendation is acted on; 0 when unpriced or nothing to save. */
   annualSavings?: number;
+  /** What the app costs a year at the price used, whether or not it's used; `null` when unpriced. */
+  annualCost?: number | null;
 }
 
 export interface EditionSignal {
@@ -623,6 +625,7 @@ export function computeSavings(
         listPrice: price.list,
         priceSource: cost !== null ? price.source : null,
         annualSavings: status === "idle" && cost !== null ? cost * 12 : 0,
+        annualCost: cost !== null ? cost * 12 : null,
       };
     });
     apps.sort(

@@ -9,16 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { appExchangeSearchUrl } from "@/lib/apps/appexchange";
+import { loadLookups } from "@/lib/apps/aws-marketplace";
+import { CLOUD_LABEL, type LookupResults } from "@/lib/apps/marketplaces";
 import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
-import { awsAddOns, nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
-import { AWS_MARKETPLACE_CAP, awsCommitSaving, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
+import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
+import { cloudOptions, renewalSeats, type CloudOption } from "@/lib/savings/cloud-options";
+import { AWS_MARKETPLACE_CAP, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
 import { reportRecommendations, type Category, type Recommendation, type SavingsResult } from "@/lib/savings/engine";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
 import { ENTERPRISE_SHARE_OF_UNLIMITED, type PriceBook } from "@/lib/savings/prices";
-import { lastScanAttempt, latestScan, scanHistory } from "@/lib/scan";
+import { lastScanAttempt, latestScan, lookupNames, scanHistory } from "@/lib/scan";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { disconnectAction } from "./actions";
 
@@ -129,6 +132,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const money = (n: number) => formatCurrency(n, currency);
   const appReview = reviewApps(snapshot);
   const contract = summarizeContract(snapshot.salesforceAccount, scan.startedAt);
+  // Saved marketplace lookups for this org's apps; none until the lookup table exists or keys are set.
+  const lookups: LookupResults = contract ? await loadLookups(lookupNames(result)).catch(() => new Map()) : new Map();
   // Results from before engine v3 have no app prices; fall back to the unpriced review.
   const connectedApps = result.connectedApps ?? appReview.tools.map((t) => ({ ...t, monthlyPrice: null, annualSavings: 0 }));
   const connectedSavings = connectedApps.reduce((a, t) => a + t.annualSavings, 0);
@@ -227,6 +232,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           snapshot={snapshot}
           edition={connection.edition}
           answers={workspace.answers}
+          lookups={lookups}
           pricesHref={`/orgs/${connection.id}/prices#apps`}
           answersHref={`/welcome?next=${encodeURIComponent(returnPath)}`}
         />
@@ -547,8 +553,6 @@ function AppSaving({
   return <span className="text-muted-foreground">—</span>;
 }
 
-/** Seats a renewal can drop: unassigned ones, plus the ones flagged users free up when deactivated. */
-const SEAT_CATEGORIES: Category[] = ["unused_seats", "frozen_users", "inactive_users", "duplicate_users", "cross_org_users", "integration_users"];
 
 /**
  * The Unlimited-to-Enterprise saving if the customer buys Premier on Enterprise: the saving is
@@ -565,6 +569,7 @@ function ContractCard({
   snapshot,
   edition,
   answers,
+  lookups,
   pricesHref,
   answersHref,
 }: {
@@ -573,6 +578,7 @@ function ContractCard({
   snapshot: OrgSnapshot;
   edition: string;
   answers: CompanyAnswers | null;
+  lookups: LookupResults;
   pricesHref: string;
   answersHref: string;
 }) {
@@ -580,19 +586,13 @@ function ContractCard({
   const spend = contract.annualSpend;
   const annualSavings = result.annualSavings;
   const share = spend && spend.currency === currency && spend.amount > 0 ? annualSavings / spend.amount : null;
-  const seatsToDrop =
-    result.recommendations.filter((r) => r.category === "unused_seats").reduce((a, r) => a + r.count, 0) +
-    [result.users.frozen, result.users.inactive, result.users.duplicate, result.users.crossOrg, result.users.integration]
-      .flat()
-      .filter((u) => u && u.annualSavings > 0).length;
-  const seatSavings = SEAT_CATEGORIES.reduce((a, c) => a + result.byCategory[c], 0);
+  const { seats: seatsToDrop, annualSavings: seatSavings } = renewalSeats(result);
   const rise = contract.priceChange && contract.priceChange.rate >= 0.01 ? contract.priceChange : null;
   const nextRise = rise && spend ? spend.amount * rise.rate : null;
-  // AWS numbers are entered in the report currency, so they only compare with a bill in the same currency.
+  // Cloud numbers are entered in the report currency, so they only compare with a bill in the same currency.
   // AWS numbers entered for this org win over the ones given at sign-up.
-  const aws = awsAddOns(result.prices.apps?.addOns, answers);
-  const awsSaving = spend && spend.currency === currency ? awsCommitSaving(spend.amount, aws) : null;
-  const showAws = awsSaving !== null || answers?.aws !== "no";
+  const clouds = cloudOptions(result, answers, spend && spend.currency === currency ? spend.amount : null, lookups);
+  const awsSaving = clouds.aws?.saving ?? null;
   const premier = premierSaving(answers, edition, spend && spend.currency === currency ? spend.amount : null);
   const nonprofit = nonprofitSaving(
     answers,
@@ -648,6 +648,14 @@ function ContractCard({
               Unassigned seats, plus the seats frozen, inactive, duplicate, two-org and integration users free up once you deactivate or move
               them. Do that before {day(contract.noticeBy)} and ask for the lower count at renewal.
             </p>
+            {answers?.agentforce === "yes" && (
+              <p className="text-muted-foreground">
+                <strong className="text-foreground">Planning to buy Agentforce?</strong> Salesforce&apos;s Flex Agreement lets you convert
+                user licenses into Flex Credits, the currency Agentforce is billed in. Ask your account executive to turn these{" "}
+                {formatNumber(seatsToDrop)} seats ({formatCurrency(seatSavings, currency)} a year) into credits instead of paying for new
+                ones. It moves money you already spend rather than cutting the bill, so it&apos;s not added again to your savings total.
+              </p>
+            )}
           </div>
         )}
         {rise && (
@@ -710,7 +718,7 @@ function ContractCard({
             </p>
           </div>
         )}
-        {showAws && spend && spend.currency === currency && (
+        {clouds.aws && (
           <div className="flex flex-col gap-1">
             <p className="eyebrow">Option to save: pay through AWS</p>
             {awsSaving !== null ? (
@@ -734,14 +742,102 @@ function ContractCard({
                 ? `That's the smallest of your Salesforce bill, ${AWS_MARKETPLACE_CAP * 100}% of your AWS commitment (AWS's usual Marketplace cap) and the amount you expect to leave unused.`
                 : `The saving is at most the commitment you'd leave unused, and AWS usually counts Marketplace purchases up to ${AWS_MARKETPLACE_CAP * 100}% of the commitment.`}{" "}
               Only listings marked &quot;Deployed on AWS&quot; count. Ask your account executive for an AWS Marketplace private offer before{" "}
-              {day(contract.noticeBy)}. Not added to your savings total.{" "}
+              {day(contract.noticeBy)}.{" "}
+              {clouds.aws.apps.length > 0 && (
+                <>
+                  <EligibleAppsList option={clouds.aws} currency={currency} /> Buying {clouds.aws.apps.length === 1 ? "it" : "them"} through AWS
+                  Marketplace counts too, and is included above.{" "}
+                </>
+              )}
+              Not added to your savings total.{" "}
               <Link href="/settings#expert-review" className="text-foreground underline underline-offset-2 hover:text-cobalt">
                 Questions? Book an expert review.
               </Link>
             </p>
           </div>
         )}
+        {(["google", "azure"] as const).map((c) => {
+          const o = clouds[c];
+          return o && <OtherCloudOption key={c} option={o} currency={currency} pricesHref={pricesHref} answersHref={answersHref} />;
+        })}
       </CardContent>
     </Card>
+  );
+}
+
+function EligibleAppsList({ option, currency }: { option: CloudOption; currency: string }) {
+  return (
+    <>
+      {option.apps.length === 1 ? "One app you pay for is sold there in a way that counts: " : "Apps you pay for that are sold there in a way that counts: "}
+      {option.apps.map((a, i) => (
+        <span key={a.name}>
+          {i > 0 && ", "}
+          <a href={a.status.source} target="_blank" rel="noreferrer" className="text-foreground underline underline-offset-2 hover:text-cobalt">
+            {a.name}
+          </a>{" "}
+          ({formatCurrency(a.annualCost, currency)} a year)
+        </span>
+      ))}
+      .
+    </>
+  );
+}
+
+/** Google Cloud and Azure: Salesforce itself isn't sold there, but some apps count toward the commitment. */
+function OtherCloudOption({
+  option,
+  currency,
+  pricesHref,
+  answersHref,
+}: {
+  option: CloudOption;
+  currency: string;
+  pricesHref: string;
+  answersHref: string;
+}) {
+  const label = CLOUD_LABEL[option.cloud];
+  const marketplace = option.cloud === "azure" ? "Azure Marketplace" : "Google Cloud Marketplace";
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="eyebrow">Option to save: pay apps through {label}</p>
+      {option.apps.length === 0 ? (
+        <p className="font-semibold">No priced app found that counts</p>
+      ) : option.saving !== null ? (
+        <p className="font-mono text-3xl font-semibold">
+          {formatCurrency(option.saving, currency)}
+          <span className="text-base font-normal text-muted-foreground"> a year</span>
+        </p>
+      ) : (
+        <p className="font-semibold">
+          <Link href={answersHref} className="text-cobalt hover:underline">
+            Add your {label} numbers to see the saving
+          </Link>
+        </p>
+      )}
+      <p className="text-muted-foreground">
+        You told us your company has a {label} spend commitment. Salesforce itself isn&apos;t sold on {marketplace} yet
+        {option.cloud === "google" ? " (Salesforce has said it plans to)" : ""}, but some apps that work with it are, and buying them there
+        counts toward that commitment
+        {option.cloud === "azure" ? " when the listing is marked \"Azure benefit eligible\"" : " when the product runs on Google Cloud"}.{" "}
+        {option.apps.length > 0 ? (
+          <>
+            <EligibleAppsList option={option} currency={currency} /> The saving is the smaller of what you pay for{" "}
+            {option.apps.length === 1 ? "it" : "them"} and the commitment you expect to leave unused.{" "}
+          </>
+        ) : (
+          <>
+            None of the apps you&apos;ve priced is on our checked list for {marketplace} yet.{" "}
+            <Link href={pricesHref} className="text-foreground underline underline-offset-2 hover:text-cobalt">
+              Price your apps
+            </Link>{" "}
+            so we can check them, or ask each vendor whether they sell through {marketplace}.{" "}
+          </>
+        )}
+        Not added to your savings total.{" "}
+        <Link href="/settings#expert-review" className="text-foreground underline underline-offset-2 hover:text-cobalt">
+          Questions? Book an expert review.
+        </Link>
+      </p>
+    </div>
   );
 }

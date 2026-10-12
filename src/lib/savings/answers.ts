@@ -1,4 +1,5 @@
 import type { OrgSnapshot } from "@/lib/salesforce/types";
+import type { Cloud } from "@/lib/apps/marketplaces";
 import { editionKey, ENTERPRISE_SHARE_OF_UNLIMITED, type AddOnPrices } from "./prices";
 
 /**
@@ -14,6 +15,14 @@ export interface CompanyAnswers {
   aws?: "yes" | "no" | "unsure";
   awsCommitmentYearly?: number;
   awsUnusedYearly?: number;
+  google?: "yes" | "no";
+  googleCommitmentYearly?: number;
+  googleUnusedYearly?: number;
+  azure?: "yes" | "no";
+  azureCommitmentYearly?: number;
+  azureUnusedYearly?: number;
+  /** Plans to buy Agentforce or Flex Credits, which unused seats can be converted into. */
+  agentforce?: "yes" | "no" | "unsure";
   skipped?: boolean;
   answeredAt: string;
 }
@@ -82,4 +91,21 @@ export function nonprofitSaving(
   if (licenses === 0) return null;
   const seatPrice = editionKey(snapshot.organization.edition) === "unlimited" ? fullMonthly * ENTERPRISE_SHARE_OF_UNLIMITED : fullMonthly;
   return { licenses, annualSavings: licenses * seatPrice * 12 };
+}
+
+/** A commitment the customer gave for Google Cloud or Azure; `null` until both numbers are in. */
+export function cloudCommitment(answers: CompanyAnswers | null | undefined, cloud: Exclude<Cloud, "aws">) {
+  if (answers?.[cloud] !== "yes") return null;
+  const commitment = answers[`${cloud}CommitmentYearly`];
+  const unused = answers[`${cloud}UnusedYearly`];
+  return commitment !== undefined && unused !== undefined ? { commitment, unused } : null;
+}
+
+/**
+ * What buying apps through Google Cloud or Azure marketplaces saves: the eligible app spend, up to the
+ * commitment the customer expects to leave unused. Neither sells Salesforce itself yet.
+ */
+export function cloudAppSaving(eligibleAppSpend: number, commitment: { commitment: number; unused: number } | null): number | null {
+  if (!commitment) return null;
+  return Math.max(0, Math.min(eligibleAppSpend, commitment.unused, commitment.commitment));
 }

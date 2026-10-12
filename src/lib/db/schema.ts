@@ -6,6 +6,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -114,6 +115,25 @@ export const appPrices = pgTable("app_prices", {
   prices: jsonb("prices").$type<AppPrices>().notNull(),
   updatedAt: updatedAt(),
 }).enableRLS();
+
+/**
+ * What a cloud marketplace's catalog said about an app, shared by every workspace and refreshed
+ * monthly. `appKey` is the normalized app name; a row with no listing means nothing matched.
+ */
+export const marketplaceListings = pgTable(
+  "marketplace_listings",
+  {
+    cloud: text("cloud").notNull(),
+    appKey: text("app_key").notNull(),
+    listingId: text("listing_id"),
+    listingName: text("listing_name"),
+    seller: text("seller"),
+    /** Whether buying this listing counts toward a commitment with the cloud (e.g. Deployed on AWS). */
+    counts: boolean("counts").notNull().default(false),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.cloud, t.appKey] })],
+).enableRLS();
 
 export const scanStatus = pgEnum("scan_status", ["running", "succeeded", "failed"]);
 export const scanTrigger = pgEnum("scan_trigger", ["manual", "scheduled"]);

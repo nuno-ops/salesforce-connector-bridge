@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { awsAddOns, nonprofitSaving, premierSaving, type CompanyAnswers } from "./answers";
+import { awsAddOns, cloudAppSaving, cloudCommitment, nonprofitSaving, premierSaving, type CompanyAnswers } from "./answers";
 
 const at = "2026-10-12T00:00:00Z";
 const org = (edition: string, fullSeats: number, namespaces: string[] = []) => ({
@@ -75,5 +75,26 @@ describe("awsAddOns", () => {
 
   it("ignores answers other than yes", () => {
     expect(awsAddOns(undefined, { ...answers, aws: "no" })).toBeUndefined();
+  });
+});
+
+describe("cloudCommitment", () => {
+  it("needs a yes and both numbers", () => {
+    expect(cloudCommitment(null, "azure")).toBeNull();
+    expect(cloudCommitment({ answeredAt: at, azure: "no", azureCommitmentYearly: 100, azureUnusedYearly: 10 }, "azure")).toBeNull();
+    expect(cloudCommitment({ answeredAt: at, azure: "yes", azureCommitmentYearly: 100 }, "azure")).toBeNull();
+    expect(cloudCommitment({ answeredAt: at, google: "yes", googleCommitmentYearly: 100, googleUnusedYearly: 10 }, "google")).toEqual({
+      commitment: 100,
+      unused: 10,
+    });
+  });
+});
+
+describe("cloudAppSaving", () => {
+  it("is the eligible app spend, up to the unused commitment", () => {
+    expect(cloudAppSaving(5_000, null)).toBeNull();
+    expect(cloudAppSaving(5_000, { commitment: 1_000_000, unused: 50_000 })).toBe(5_000);
+    expect(cloudAppSaving(5_000, { commitment: 1_000_000, unused: 2_000 })).toBe(2_000);
+    expect(cloudAppSaving(0, { commitment: 1_000_000, unused: 2_000 })).toBe(0);
   });
 });
