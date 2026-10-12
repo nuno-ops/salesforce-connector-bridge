@@ -1,7 +1,7 @@
 import "./landing.css";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { env } from "@/lib/env";
+import { calendlyUrl } from "@/lib/env";
 
 const CHECKS = [
   ["01", "Inactive users", "Find paid seats held by people who haven't logged in for 30 days or more."],
@@ -347,7 +347,7 @@ export default async function Home() {
                   ))}
                 </ul>
                 {"expert" in p ? (
-                  <a href={env().CALENDLY_URL} target="_blank" rel="noreferrer" className={`plan-cta ${p.tone}`}>
+                  <a href={calendlyUrl()} target="_blank" rel="noreferrer" className={`plan-cta ${p.tone}`}>
                     {p.cta}
                     <span>→</span>
                   </a>
