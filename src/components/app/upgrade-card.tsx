@@ -48,7 +48,7 @@ export function UpgradeCard({
   locked: string[];
 }) {
   return (
-    <Card className="border-cobalt">
+    <Card id="unlock" className="scroll-mt-6 border-cobalt">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Lock className="size-4" /> See exactly where the savings are

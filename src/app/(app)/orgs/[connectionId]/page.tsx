@@ -1,4 +1,4 @@
-import { AlertTriangle, Download, Printer, Settings2 } from "lucide-react";
+import { AlertTriangle, Download, Lock, Printer, Settings2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ExpertCallCard } from "@/components/app/expert-call";
@@ -16,6 +16,7 @@ import { reviewApps, UNUSED_DAYS, type AppVerdict } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
 import { reportUnlocked } from "@/lib/billing/access";
 import { licensedUsers, tierLabel, unlockTier } from "@/lib/billing/pricing";
+import { lockedRecommendations, SAMPLE_CATEGORY } from "@/lib/billing/teaser";
 import { accessDays, getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
 import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
@@ -169,9 +170,13 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   ].filter((t) => t.users.length > 0);
   const tier = unlockTier(licensedUsers(snapshot));
   const unlocked = reportUnlocked(access, { users: licensedUsers(snapshot), annualSavings: result.annualSavings, price: tier.price });
-  const flaggedUserCount = new Set(userTabs.flatMap((t) => t.users.map((u) => u.id))).size;
+  // Inactive users are the free sample; the rest are counted towards what the unlock reveals.
+  const sampleTabs = userTabs.filter((t) => t.key === "inactive");
+  const sampleIds = new Set(sampleTabs.flatMap((t) => t.users.map((u) => u.id)));
+  const flaggedUserCount = new Set(userTabs.flatMap((t) => t.users.map((u) => u.id)).filter((id) => !sampleIds.has(id))).size;
+  const shownRecommendations = unlocked ? priced : lockedRecommendations(priced);
   const lockedItems = [
-    flaggedUserCount > 0 && `${formatNumber(flaggedUserCount)} ${flaggedUserCount === 1 ? "user" : "users"} to act on, by name`,
+    flaggedUserCount > 0 && `${formatNumber(flaggedUserCount)} more ${flaggedUserCount === 1 ? "user" : "users"} to act on, by name`,
     flaggedConnected.length + idleApps.length > 0 &&
       `${formatNumber(flaggedConnected.length + idleApps.length)} ${flaggedConnected.length + idleApps.length === 1 ? "app" : "apps"} to cancel or consolidate`,
     strategies.length > 0 && `${strategies.length} renewal buying ${strategies.length === 1 ? "option" : "options"}`,
@@ -230,10 +235,23 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           </CardHeader>
           <CardContent className="flex flex-col divide-y divide-border">
             {priced.length === 0 && <p className="text-sm text-muted-foreground">No license waste found. Your org is in good shape.</p>}
-            {priced.map((r) => (
-              <RecommendationRow key={r.id} rec={r} currency={currency} showDetail={unlocked} />
+            {shownRecommendations.map((r) => (
+              <RecommendationRow key={r.id} rec={r} currency={currency} showDetail={unlocked || r.category === SAMPLE_CATEGORY} />
             ))}
-            {strategies.length > 0 && (
+            {strategies.length > 0 && !unlocked && (
+              <div className="flex items-start justify-between gap-4 py-3 last:pb-0">
+                <div>
+                  <p className="font-medium">
+                    {strategies.length} {strategies.length === 1 ? "way" : "ways"} to pay less at renewal <Badge variant="muted">Options</Badge>
+                  </p>
+                  <p className="text-sm text-muted-foreground">Buying options for your next Salesforce contract, not in the total.</p>
+                </div>
+                <a href="#unlock" className="flex shrink-0 items-center gap-1 text-xs font-semibold text-cobalt hover:underline">
+                  <Lock className="size-3" /> Unlock
+                </a>
+              </div>
+            )}
+            {strategies.length > 0 && unlocked && (
               <div className="flex flex-col py-3 last:pb-0">
                 <p className="eyebrow">
                   At renewal: buying options, not in the total{" "}
@@ -248,7 +266,16 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                 ))}
               </div>
             )}
-            {needsPrice.length > 0 && (
+            {needsPrice.length > 0 && !unlocked && (
+              <p className="py-3 text-sm text-muted-foreground last:pb-0">
+                {needsPrice.length} more {needsPrice.length === 1 ? "saving shows" : "savings show"} once you{" "}
+                <Link href={`/orgs/${connection.id}/prices`} className="text-cobalt hover:underline">
+                  enter your prices
+                </Link>
+                .
+              </p>
+            )}
+            {needsPrice.length > 0 && unlocked && (
               <div className="py-3 last:pb-0">
                 <p className="text-sm font-medium">
                   Add a price to see the saving{" "}
@@ -276,6 +303,21 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           access={accessDays(env().AUDIT_ACCESS_HOURS)}
           locked={lockedItems}
         />
+      )}
+
+      {!unlocked && sampleTabs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Free sample: inactive users</CardTitle>
+            <CardDescription>
+              Names open the user record in Salesforce.
+              {flaggedUserCount > 0 && ` The other ${formatNumber(flaggedUserCount)} users to act on are in the full report.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UserTabs instanceUrl={connection.instanceUrl} tabs={sampleTabs} currency={currency} />
+          </CardContent>
+        </Card>
       )}
 
       <ExpertCallCard returnPath={returnPath} />
