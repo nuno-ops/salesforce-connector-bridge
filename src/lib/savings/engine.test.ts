@@ -1136,19 +1136,32 @@ describe("stale sandboxes", () => {
     { name: "dev", licenseType: "DEVELOPER", description: null, lastRefreshed: daysAgo(900) },
   ];
 
+  const sandboxPrices = { ...prices, fullSandboxMonthly: 4000, apps: { packages: {}, connectedApps: {}, addOns: { partialSandboxMonthly: 1000 } } };
+
   it("prices sandboxes not refreshed in a year, without counting the stale Full Copy twice", () => {
-    const result = computeSavings(
-      snapshot({ sandboxes }),
-      { ...prices, fullSandboxMonthly: 4000, apps: { packages: {}, connectedApps: {}, addOns: { partialSandboxMonthly: 1000 } } },
-      { now: NOW },
-    );
-    expect(result.staleSandboxes?.map((s) => s.name)).toEqual(["uat", "train"]);
+    // Enterprise includes one Partial Copy, so the only Partial Copy ("train") costs nothing to keep.
+    const result = computeSavings(snapshot({ sandboxes }), sandboxPrices, { now: NOW });
+    expect(result.staleSandboxes?.map((s) => s.name)).toEqual(["uat"]);
     const stale = result.recommendations.find((r) => r.id === "stale_sandboxes");
-    expect(stale).toMatchObject({ annualSavings: (4000 + 1000) * 12, advisory: false });
+    expect(stale).toMatchObject({ annualSavings: 4000 * 12, advisory: false });
     expect(stale?.detail).toContain("uat (Full Copy");
     // Two Full Copies, one stale: the "extra Full Copy" check has nothing left to add.
     expect(result.recommendations.find((r) => r.id === "sandboxes")).toBeUndefined();
-    expect(result.byCategory.sandboxes).toBe(5000 * 12);
+    expect(result.byCategory.sandboxes).toBe(4000 * 12);
+  });
+
+  it("doesn't count the sandboxes that come free with the edition", () => {
+    const org = (edition: string) => ({ ...snapshot().organization, edition });
+    // Unlimited includes one Full and one Partial Copy: two Full Copies means only one is paid for.
+    const unlimited = computeSavings(snapshot({ sandboxes, organization: org("Unlimited Edition") }), sandboxPrices, { now: NOW });
+    expect(unlimited.staleSandboxes?.map((s) => s.name)).toEqual(["uat"]);
+    const onlyFree = [sandboxes[0], sandboxes[2]];
+    const free = computeSavings(snapshot({ sandboxes: onlyFree, organization: org("Unlimited Edition") }), sandboxPrices, { now: NOW });
+    expect(free.staleSandboxes).toEqual([]);
+    expect(free.recommendations.find((r) => r.id === "stale_sandboxes")).toBeUndefined();
+    // Professional includes neither, so both stale sandboxes are paid for.
+    const pro = computeSavings(snapshot({ sandboxes: onlyFree, organization: org("Professional Edition") }), sandboxPrices, { now: NOW });
+    expect(pro.byCategory.sandboxes).toBe((4000 + 1000) * 12);
   });
 
   it("asks for a price when none is known and ignores sandboxes with no refresh date", () => {

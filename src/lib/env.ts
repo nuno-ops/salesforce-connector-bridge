@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 
-const DEFAULT_CALENDLY_URL = "https://calendly.com/salesforcesaver-support/30min";
+const DEFAULT_CALENDLY_URL = "https://calendly.com/salesforcesaver/30min";
 
 /** Booking link for expert calls. Safe in prerendered pages, which build without the server secrets. */
 export function calendlyUrl(): string {

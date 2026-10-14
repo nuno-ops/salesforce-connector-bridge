@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { summarizeContract } from "./contract";
 import { editionKey, effectivePriceBook, ENTERPRISE_SHARE_OF_UNLIMITED, priceForLicense, type PriceBook } from "./prices";
 
-export const ENGINE_VERSION = 5;
+export const ENGINE_VERSION = 6;
 
 export type Category =
   | "inactive_users"
@@ -198,6 +198,13 @@ const PAID_LICENSES = new Set(["Salesforce", "Salesforce Platform"]);
 const INTEGRATION_EXAMPLE = "for example a Zapier, MuleSoft or data-sync connection, or a name like \"API User\"";
 /** A Full or Partial Copy sandbox not refreshed for this long is probably not in use. */
 const STALE_SANDBOX_DAYS = 365;
+/** Full and Partial Copy sandboxes that come with the edition at no extra cost (Salesforce editions and pricing). */
+function includedSandboxes(edition: string): { full: number; partial: number } {
+  const e = edition.toLowerCase();
+  if (e.includes("unlimited") || e.includes("performance")) return { full: 1, partial: 1 };
+  if (e.includes("enterprise")) return { full: 0, partial: 1 };
+  return { full: 0, partial: 0 };
+}
 const CRM_OBJECTS = ["Opportunity", "Lead", "Case"];
 const INTEGRATION_NAME = /\b(integration|api|sync|etl|middleware|connector)\b/i;
 const ADMIN_PROFILE = /system administrator/i;
@@ -725,12 +732,16 @@ export function computeSavings(
     const partial = snapshot.sandboxes.filter((s) => type(s).includes("PARTIAL")).length;
     sandboxes = { full, partial, developer: snapshot.sandboxes.length - full - partial, total: snapshot.sandboxes.length };
 
-    // Paid sandboxes nobody has refreshed in a year are usually forgotten.
+    // Paid sandboxes nobody has refreshed in a year are usually forgotten. The ones the edition includes
+    // cost nothing, so only as many stale sandboxes as the org pays for count.
     const partialPrice = prices.apps?.addOns?.partialSandboxMonthly;
+    const included = includedSandboxes(snapshot.organization.edition);
+    const paidLeft = { full: Math.max(0, full - included.full), partial: Math.max(0, partial - included.partial) };
     for (const sb of snapshot.sandboxes) {
       const kind = type(sb).includes("FULL") ? "full" : type(sb).includes("PARTIAL") ? "partial" : null;
       const since = daysSince(sb.lastRefreshed ?? null);
-      if (!kind || since === null || since < STALE_SANDBOX_DAYS) continue;
+      if (!kind || since === null || since < STALE_SANDBOX_DAYS || paidLeft[kind] === 0) continue;
+      paidLeft[kind]--;
       const monthly = kind === "full" ? prices.fullSandboxMonthly : (partialPrice ?? null);
       staleSandboxes.push({ name: sb.name, type: kind, lastRefreshed: sb.lastRefreshed!, annualSavings: monthly ? monthly * 12 : 0 });
     }

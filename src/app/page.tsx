@@ -4,12 +4,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { calendlyUrl } from "@/lib/env";
 
 const CHECKS = [
-  ["01", "Inactive users", "Find paid seats held by people who haven't logged in for 30 days or more."],
-  ["02", "Integration users", "Flag integrations that may be eligible for the free Integration license."],
-  ["03", "Platform downgrades", "Find users who never touch Opportunities, Leads or Cases and may fit a Platform license."],
-  ["04", "Unassigned seats", "Surface licenses nobody holds, plus unused seats across installed managed packages."],
-  ["05", "Storage + sandboxes", "Spot storage close to its limit and Full Copy sandboxes you may not need."],
-  ["06", "Connected apps", "Flag third-party apps nobody has used in 90 days, apps that do the same job, and apps only one person uses."],
+  ["01", "Unused seats", "Paid seats held by people who haven't logged in for 30 days, frozen users and licenses nobody holds."],
+  ["02", "Cheaper licenses", "Users who only need a Platform license, and integrations that can run on the free Integration license."],
+  ["03", "Your renewal", "Seats to drop before your notice date and how much your bill rose last year, from your own invoices."],
+  ["04", "Unused apps", "Installed and connected apps nobody used in 90 days, or that do the same job, priced at what you pay."],
+  ["05", "The right edition", "Whether you need Unlimited, and Service Cloud licenses on people who never touch a case."],
+  ["06", "Sandboxes + duplicates", "Paid sandboxes nobody has refreshed in a year, and people paid for twice across your orgs."],
 ] as const;
 
 const PLANS = [
@@ -53,7 +53,7 @@ const PLANS = [
 const FAQ = [
   [
     "What access do you need?",
-    "API access through Salesforce's standard sign-in, which you approve in Salesforce and can revoke at any time. Salesforce has no read-only option for apps, so its screen says the app can access and manage your data. Salesforce Saver only runs read queries, listed on our security page. To have Salesforce enforce that, connect as a user who can't edit records.",
+    "API access through Salesforce's standard sign-in, which you approve in Salesforce and can revoke at any time. Salesforce has no read-only option for apps, so its screen says the app can access and manage your data. Salesforce Saver only runs read queries, listed on our security page. To have Salesforce enforce that, connect as a user who can't edit records. Your admin may first need to give that user Salesforce's Approve Uninstalled Connected Apps permission.",
   ],
   [
     "Will it change anything in my org?",
@@ -413,6 +413,10 @@ export default async function Home() {
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
             <Link href="/login">Sign in</Link>
+            <a href="mailto:support@salesforcesaver.com">support@salesforcesaver.com</a>
+            <a href={calendlyUrl()} target="_blank" rel="noreferrer">
+              Book a call
+            </a>
           </div>
           <p>Independent product. Not affiliated with Salesforce, Inc.</p>
         </div>

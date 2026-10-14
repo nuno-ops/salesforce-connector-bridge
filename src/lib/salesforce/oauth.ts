@@ -86,6 +86,18 @@ export async function exchangeCode(params: {
   return (await res.json()) as TokenResponse;
 }
 
+/**
+ * Since September 2025 Salesforce blocks apps that aren't installed in the customer's org for users without the
+ * "Approve Uninstalled Connected Apps" permission. Its own message ("app must be installed into org") doesn't say
+ * how to fix it, so explain that. Other errors pass through unchanged.
+ */
+export function explainOAuthError(description: string): string {
+  if (/must be installed|not admin approved|OAUTH_APP_(BLOCKED|ACCESS_DENIED)/i.test(description)) {
+    return "Salesforce blocked this sign-in because Salesforce Saver isn't installed in your org, and your user can't approve outside apps. Ask your Salesforce admin to connect instead, or to give your user the \"Approve Uninstalled Connected Apps\" permission (Setup > Permission Sets), then connect again.";
+  }
+  return description;
+}
+
 /** Org and user Ids from the identity URL returned with the token. */
 export function parseIdentityUrl(idUrl: string): { orgId: string; userId: string } {
   const parts = new URL(idUrl).pathname.split("/").filter(Boolean);
