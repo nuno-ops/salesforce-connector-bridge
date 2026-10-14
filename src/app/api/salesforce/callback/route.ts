@@ -4,7 +4,7 @@ import { decrypt, encrypt } from "@/lib/crypto";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { SalesforceClient } from "@/lib/salesforce/client";
-import { exchangeCode, OAUTH_COOKIE, parseIdentityUrl } from "@/lib/salesforce/oauth";
+import { exchangeCode, explainOAuthError, OAUTH_COOKIE, parseIdentityUrl } from "@/lib/salesforce/oauth";
 
 interface OAuthCookie {
   state: string;
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   };
 
   const { user, workspace } = await requireWorkspace();
-  if (searchParams.get("error")) return fail(searchParams.get("error_description") ?? "Salesforce sign-in was cancelled.");
+  if (searchParams.get("error")) return fail(explainOAuthError(searchParams.get("error_description") ?? "Salesforce sign-in was cancelled."));
 
   let saved: OAuthCookie;
   try {
@@ -88,6 +88,6 @@ export async function GET(request: NextRequest) {
     res.cookies.delete({ name: OAUTH_COOKIE, path: "/api/salesforce" });
     return res;
   } catch (err) {
-    return fail(err instanceof Error ? err.message : "Couldn't connect to Salesforce.");
+    return fail(err instanceof Error ? explainOAuthError(err.message) : "Couldn't connect to Salesforce.");
   }
 }

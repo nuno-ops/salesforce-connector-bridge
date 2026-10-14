@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { SalesforceAuthError, SalesforceClient } from "./client";
 import { activityQuery, collectSnapshot, isOwnCustomObject, lastActivityQuery, packageObjectsQuery, QUERIES } from "./collect";
-import { parseIdentityUrl, resolveLoginHost } from "./oauth";
+import { explainOAuthError, parseIdentityUrl, resolveLoginHost } from "./oauth";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -221,5 +221,15 @@ describe("parseIdentityUrl", () => {
       orgId: "00D000000000001AAA",
       userId: "005000000000001AAA",
     });
+  });
+});
+
+describe("explainOAuthError", () => {
+  it("explains Salesforce's block on uninstalled apps", () => {
+    expect(explainOAuthError("app must be installed into org")).toContain("Approve Uninstalled Connected Apps");
+  });
+
+  it("passes other errors through", () => {
+    expect(explainOAuthError("end-user denied authorization")).toBe("end-user denied authorization");
   });
 });
