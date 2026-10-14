@@ -8,18 +8,34 @@ import { requireConnection } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { disconnect } from "@/lib/salesforce/connection";
 import { ADD_ON_KEYS, type AddOnPrices, type AppPrices } from "@/lib/savings/prices";
-import { getPriceBook, latestScan, recompute, runScan } from "@/lib/scan";
+import { executeScan, getPriceBook, lastScanAttempt, latestScan, recompute, startScan } from "@/lib/scan";
+import { startInBackground } from "@/lib/scan-background";
 
 export interface ActionState {
   status: "idle" | "ok" | "error";
   message?: string;
 }
 
-export async function runScanAction(connectionId: string): Promise<ActionState> {
+export interface ScanState extends ActionState {
+  /** The scan is still running in the background; poll `scanStatusAction`. */
+  running?: boolean;
+}
+
+export async function runScanAction(connectionId: string): Promise<ScanState> {
   const { connection } = await requireConnection(connectionId);
-  const scan = await runScan(connection);
+  const scan = await startScan(connection);
+  // On Netlify the scan runs in a background function; elsewhere (local dev) it runs here.
+  if (await startInBackground(scan.id)) return { status: "ok", running: true };
+  const done = await executeScan(scan, connection);
   revalidatePath(`/orgs/${connectionId}`);
-  return scan.status === "succeeded" ? { status: "ok" } : { status: "error", message: scan.error ?? "Scan failed." };
+  return done.status === "succeeded" ? { status: "ok" } : { status: "error", message: done.error ?? "Scan failed." };
+}
+
+export async function scanStatusAction(connectionId: string): Promise<ScanState> {
+  await requireConnection(connectionId);
+  const scan = await lastScanAttempt(connectionId);
+  if (scan?.status === "running") return { status: "ok", running: true };
+  return scan?.status === "failed" ? { status: "error", message: scan.error ?? "Scan failed." } : { status: "ok" };
 }
 
 const price = z.coerce.number().min(0).max(100_000);

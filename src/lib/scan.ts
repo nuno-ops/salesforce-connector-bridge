@@ -12,6 +12,9 @@ import { defaultPriceBook, type PriceBook } from "@/lib/savings/prices";
 type Connection = typeof schema.sfConnections.$inferSelect;
 export type Scan = typeof schema.scans.$inferSelect;
 
+/** A scan still "running" after this long was cut off (background functions stop at 15 minutes). */
+const SCAN_TIMEOUT_MS = 16 * 60 * 1000;
+
 export async function getPriceBook(connection: Pick<Connection, "id" | "edition">): Promise<PriceBook> {
   const database = db();
   const [[row], [apps]] = await Promise.all([
@@ -52,6 +55,11 @@ export async function lastScanAttempt(connectionId: string) {
     .where(eq(schema.scans.connectionId, connectionId))
     .orderBy(desc(schema.scans.startedAt))
     .limit(1);
+  if (scan?.status === "running" && Date.now() - scan.startedAt.getTime() > SCAN_TIMEOUT_MS) {
+    const error = "The scan didn't finish. Please try again, and tell us at support@salesforcesaver.com if it keeps happening.";
+    await db().update(schema.scans).set({ status: "failed", error, finishedAt: new Date() }).where(eq(schema.scans.id, scan.id));
+    return { ...scan, status: "failed" as const, error };
+  }
   return scan ?? null;
 }
 
@@ -96,9 +104,19 @@ export function lookupNames(result: SavingsResult): string[] {
   return [...installed, ...connected];
 }
 
+/** Records a new scan as running. `executeScan` does the work, here or in the background function. */
+export async function startScan(connection: Pick<Connection, "id">, trigger: "manual" | "scheduled" = "manual"): Promise<Scan> {
+  const [scan] = await db().insert(schema.scans).values({ connectionId: connection.id, trigger }).returning();
+  return scan;
+}
+
 export async function runScan(connection: Connection, trigger: "manual" | "scheduled" = "manual"): Promise<Scan> {
+  return executeScan(await startScan(connection, trigger), connection);
+}
+
+/** Reads the org, prices it and stores the result on `scan`. Never throws: failures are stored on the scan. */
+export async function executeScan(scan: Scan, connection: Connection): Promise<Scan> {
   const database = db();
-  const [scan] = await database.insert(schema.scans).values({ connectionId: connection.id, trigger }).returning();
   try {
     const snapshot = await collectSnapshot(clientFor(connection));
     const [prices, others] = await Promise.all([getPriceBook(connection), otherOrgs(connection)]);

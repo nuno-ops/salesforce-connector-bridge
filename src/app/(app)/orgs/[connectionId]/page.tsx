@@ -76,6 +76,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   ]);
   const returnPath = `/orgs/${connection.id}`;
   const failed = lastAttempt?.status === "failed" ? lastAttempt : null;
+  const running = lastAttempt?.status === "running";
 
   const header = (
     <div className="flex flex-wrap items-end justify-between gap-4 border-b border-foreground pb-8">
@@ -90,7 +91,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           {scan && ` · scanned ${formatDate(scan.startedAt)}`}
         </p>
       </div>
-      {scan && <ScanButton connectionId={connection.id} />}
+      {scan && <ScanButton connectionId={connection.id} running={running} />}
     </div>
   );
 
@@ -120,11 +121,11 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
         <Card>
           <CardHeader>
             <CardTitle>{connected ? "Connected. Running your first scan…" : "Run your first scan"}</CardTitle>
-            <CardDescription>We read users, licenses, permissions and limits. It usually takes under a minute.</CardDescription>
+            <CardDescription>We read users, licenses, permissions and limits. It usually takes under a minute, a few minutes for big orgs.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {failed && <p className="text-sm text-danger">Last scan failed: {failed.error}</p>}
-            <ScanButton connectionId={connection.id} auto={Boolean(connected) && !failed} label="Scan now" />
+            <ScanButton connectionId={connection.id} auto={Boolean(connected) && !failed} running={running} label="Scan now" />
           </CardContent>
         </Card>
       </div>
