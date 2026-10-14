@@ -38,9 +38,6 @@ export default function PrivacyPage() {
         <li>Supabase hosts our database (London, UK) and handles sign-in.</li>
         <li>Netlify runs the app (United States).</li>
         <li>Stripe processes payments.</li>
-        <li>
-          Anthropic (Claude) receives any contract PDF you upload to fill in your prices. Uploaded PDFs are not stored by us.
-        </li>
       </ul>
       <h2>Deleting your data</h2>
       <p>

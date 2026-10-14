@@ -4,7 +4,6 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { extractContractPrices } from "@/lib/ai/claude";
 import { requireConnection } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { disconnect } from "@/lib/salesforce/connection";
@@ -90,28 +89,6 @@ export async function saveAppPricesAction(connectionId: string, _prev: ActionSta
   await repriceLatest(connection);
   revalidatePath(`/orgs/${connectionId}`);
   return { status: "ok", message: "App prices saved and savings recalculated." };
-}
-
-export interface ContractState extends ActionState {
-  prices?: { fullMonthly: number | null; platformMonthly: number | null; fullSandboxMonthly: number | null; notes: string };
-}
-
-const MAX_PDF_BYTES = 20 * 1024 * 1024;
-
-export async function extractContractAction(connectionId: string, _prev: ContractState, formData: FormData): Promise<ContractState> {
-  await requireConnection(connectionId);
-  const file = formData.get("contract");
-  if (!(file instanceof File) || file.size === 0) return { status: "error", message: "Choose a PDF first." };
-  if (file.type !== "application/pdf" || file.size > MAX_PDF_BYTES) {
-    return { status: "error", message: "Upload a PDF under 20 MB." };
-  }
-  try {
-    // The PDF is sent to Claude and never stored.
-    const prices = await extractContractPrices(Buffer.from(await file.arrayBuffer()));
-    return { status: "ok", prices };
-  } catch (e) {
-    return { status: "error", message: e instanceof Error ? e.message : "Couldn't read the contract." };
-  }
 }
 
 export async function disconnectAction(connectionId: string) {

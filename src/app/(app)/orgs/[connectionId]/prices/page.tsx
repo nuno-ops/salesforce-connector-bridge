@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { AppPriceForm, type AppPriceRow } from "@/components/report/app-price-form";
 import { PriceForm } from "@/components/report/price-form";
@@ -7,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { appExchangeSearchUrl } from "@/lib/apps/appexchange";
 import { reviewApps } from "@/lib/apps/review";
 import { requireConnection } from "@/lib/auth";
-import { env } from "@/lib/env";
 import { AWS_MARKETPLACE_CAP, summarizeContract } from "@/lib/savings/contract";
 import { defaultPriceBook } from "@/lib/savings/prices";
 import { getPriceBook, latestScan } from "@/lib/scan";
@@ -120,8 +120,8 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div>
-        <Link href={`/orgs/${connection.id}`} className="eyebrow hover:text-cobalt">
-          {connection.orgName}
+        <Link href={`/orgs/${connection.id}`} className="inline-flex items-center gap-2 text-sm font-semibold hover:text-cobalt">
+          <ArrowLeft className="size-4" /> Back to {connection.orgName}
         </Link>
         <h1 className="display-title mt-4 mb-3">Your Salesforce prices</h1>
         <p className="text-muted-foreground">
@@ -144,7 +144,6 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
           <PriceForm
             connectionId={connection.id}
             prices={fromInvoices ? effective! : prices}
-            aiEnabled={Boolean(env().ANTHROPIC_API_KEY)}
             symbol={symbol}
           />
         </CardContent>
