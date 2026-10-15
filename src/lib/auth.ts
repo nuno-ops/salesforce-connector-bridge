@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { db, schema } from "@/lib/db";
+import { sendSignupAlert } from "@/lib/signup-alert";
 import { supabaseConfig } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -10,6 +11,8 @@ export interface CurrentUser {
   id: string;
   email: string;
   fullName: string | null;
+  /** How they signed in: "email" or "google". */
+  provider: string | null;
 }
 
 /** The signed-in user, verified from the session JWT. `null` when signed out. */
@@ -20,10 +23,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const claims = data?.claims;
   if (!claims?.sub) return null;
   const meta = (claims.user_metadata ?? {}) as Record<string, unknown>;
+  const appMeta = (claims.app_metadata ?? {}) as Record<string, unknown>;
   return {
     id: claims.sub,
     email: String(claims.email ?? ""),
     fullName: typeof meta.full_name === "string" ? meta.full_name : null,
+    provider: typeof appMeta.provider === "string" ? appMeta.provider : null,
   };
 });
 
@@ -56,7 +61,7 @@ export const requireWorkspace = cache(async (): Promise<WorkspaceContext> => {
     .limit(1);
   if (existing) return { user, ...existing };
 
-  return database.transaction(async (tx) => {
+  const created = await database.transaction(async (tx) => {
     await tx
       .insert(schema.profiles)
       .values({ id: user.id, email: user.email, fullName: user.fullName })
@@ -69,6 +74,9 @@ export const requireWorkspace = cache(async (): Promise<WorkspaceContext> => {
     await tx.insert(schema.entitlements).values({ workspaceId: workspace.id }).onConflictDoNothing();
     return { user, workspace, role: "owner" as const };
   });
+  // First workspace means a brand-new account, so let the owner know.
+  await sendSignupAlert(user);
+  return created;
 });
 
 /** A Salesforce connection the current user may access, or a 404. */
