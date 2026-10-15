@@ -30,6 +30,11 @@ const schema = z.object({
   /** Read-only AWS keys for the Marketplace Discovery API. Netlify reserves the AWS_* names. */
   MARKETPLACE_AWS_ACCESS_KEY_ID: z.string().optional(),
   MARKETPLACE_AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  /** Resend API key for the new sign-up alert; the alert is skipped without it. */
+  RESEND_API_KEY: z.string().optional(),
+  /** Who gets an email when someone creates an account (comma-separated). */
+  SIGNUP_ALERT_EMAIL: z.string().optional(),
+  SIGNUP_ALERT_FROM: z.string().default("Salesforce Saver <support@salesforcesaver.com>"),
 });
 
 export type Env = z.infer<typeof schema>;
