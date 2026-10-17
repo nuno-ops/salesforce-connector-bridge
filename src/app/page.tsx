@@ -2,6 +2,7 @@ import "./landing.css";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { calendlyUrl } from "@/lib/env";
+import { jsonLd } from "@/lib/guides";
 
 const CHECKS = [
   ["01", "Unused seats", "Paid seats held by people who haven't logged in for 30 days, frozen users and licenses nobody holds."],
@@ -52,6 +53,14 @@ const PLANS = [
 
 const FAQ = [
   [
+    "What is Salesforce Saver?",
+    "A tool that scans your Salesforce org and shows, in dollars, how much you can save on your Salesforce contract: unused and misassigned licenses, unused apps and sandboxes, and seats to drop before your renewal notice date. It only reads data and changes nothing.",
+  ],
+  [
+    "How much does it cost?",
+    "The scan is free and shows your total savings and each recommendation. The full report is a one-off payment: $290 up to 50 Salesforce users, $590 up to 250, $990 above, with 90 days of rescans. It's free if we find less than the price.",
+  ],
+  [
     "What access do you need?",
     "API access through Salesforce's standard sign-in, which you approve in Salesforce and can revoke at any time. Salesforce has no read-only option for apps, so its screen says the app can access and manage your data. Salesforce Saver only runs read queries, listed on our security page. To have Salesforce enforce that, connect as a user who can't edit records. Your admin may first need to give that user Salesforce's Approve Uninstalled Connected Apps permission.",
   ],
@@ -69,6 +78,40 @@ const FAQ = [
   ],
 ] as const;
 
+const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://salesforcesaver.com";
+
+/** Structured data so search engines and AI assistants can describe the product accurately. */
+const STRUCTURED = [
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Salesforce Saver",
+    url: SITE,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description:
+      "Scans a Salesforce org and shows how much you can save on your Salesforce contract: inactive and frozen users, cheaper license fits, unused apps and sandboxes, and seats to drop before renewal. Read-only.",
+    offers: [
+      { "@type": "Offer", name: "Free scan", price: "0", priceCurrency: "USD" },
+      { "@type": "Offer", name: "Full report, up to 50 users", price: "290", priceCurrency: "USD" },
+      { "@type": "Offer", name: "Full report, up to 250 users", price: "590", priceCurrency: "USD" },
+      { "@type": "Offer", name: "Full report, above 250 users", price: "990", priceCurrency: "USD" },
+    ],
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Salesforce Saver",
+    url: SITE,
+    email: "support@salesforcesaver.com",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+  },
+];
+
 function Mark() {
   return (
     <span className="brand-mark" aria-hidden="true">
@@ -85,6 +128,7 @@ export default async function Home() {
 
   return (
     <div className="lp">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(STRUCTURED) }} />
       <header className="site-header">
         <div className="shell nav-shell">
           <a className="brand" href="#top">
@@ -96,6 +140,7 @@ export default async function Home() {
             <a href="#checks">What we check</a>
             <a href="#security">Security</a>
             <a href="#pricing">Pricing</a>
+            <Link href="/guides">Guides</Link>
           </nav>
           <div className="nav-actions">
             {!user && (
@@ -370,7 +415,10 @@ export default async function Home() {
           <div className="faq-grid">
             <div>
               <h2>Before you connect.</h2>
-              <p>Four answers your security reviewer, admin and finance lead will probably ask for.</p>
+              <p>
+                The answers your security reviewer, admin and finance lead will probably ask for. More in our{" "}
+                <Link href="/guides">guides</Link>.
+              </p>
             </div>
             <div className="faq-list">
               {FAQ.map(([q, a]) => (
@@ -409,6 +457,7 @@ export default async function Home() {
             Salesforce Saver
           </a>
           <div className="footer-links">
+            <Link href="/guides">Guides</Link>
             <Link href="/security">Security</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
