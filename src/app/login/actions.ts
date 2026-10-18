@@ -28,13 +28,22 @@ async function callbackUrl(next: string) {
 export async function sendMagicLink(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const email = z.email().safeParse(formData.get("email"));
   if (!email.success) return { status: "error", message: "Enter a valid email address." };
+  // Honeypot filled in: a bot. Pretend it worked so it learns nothing, and send no email.
+  if (String(formData.get("website") ?? "")) return { status: "sent", message: `Check ${email.data} for a sign-in link.` };
   if (!supabaseConfig()) return { status: "error", message: SUPABASE_MISSING };
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
-    options: { emailRedirectTo: await callbackUrl(String(formData.get("next") ?? "")) },
+    options: {
+      emailRedirectTo: await callbackUrl(String(formData.get("next") ?? "")),
+      // Checked by Supabase once its CAPTCHA protection is switched on; ignored until then.
+      captchaToken: String(formData.get("cf-turnstile-response") ?? "") || undefined,
+    },
   });
-  if (error) return { status: "error", message: error.message };
+  if (error) {
+    const captcha = /captcha/i.test(error.message);
+    return { status: "error", message: captcha ? "Please complete the check below and try again." : error.message };
+  }
   return { status: "sent", message: `Check ${email.data} for a sign-in link.` };
 }
 
