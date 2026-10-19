@@ -5,7 +5,7 @@ import { requireConnection, requireWorkspace } from "@/lib/auth";
 import { createCheckout, getAccess, previewUnlock } from "@/lib/billing/server";
 import { licensedUsers } from "@/lib/billing/pricing";
 import { latestScan } from "@/lib/scan";
-import { safeNext } from "@/lib/safe-redirect";
+import { requestOrigin, safeNext } from "@/lib/safe-redirect";
 
 const body = z.object({
   product: z.enum(["monitor", "audit", "consult"]),
@@ -17,7 +17,7 @@ const body = z.object({
 export async function POST(request: NextRequest) {
   const { user, workspace } = await requireWorkspace();
   const parsed = body.safeParse(Object.fromEntries(await request.formData()));
-  const origin = request.nextUrl.origin;
+  const origin = requestOrigin(request);
   if (!parsed.success) return NextResponse.redirect(new URL("/settings", origin), 303);
   const access = await getAccess(workspace.id);
   if (!access.billingEnabled) return NextResponse.redirect(new URL("/settings", origin), 303);

@@ -4,6 +4,7 @@ import { requireWorkspace } from "@/lib/auth";
 import { encrypt } from "@/lib/crypto";
 import { env } from "@/lib/env";
 import { authorizeUrl, createPkcePair, OAUTH_COOKIE, resolveLoginHost } from "@/lib/salesforce/oauth";
+import { requestOrigin } from "@/lib/safe-redirect";
 
 /** Starts the Salesforce OAuth web-server flow (PKCE + state cookie). */
 export async function GET(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const loginHost = resolveLoginHost(params.get("environment"), params.get("domain"));
   if (!loginHost) {
-    return NextResponse.redirect(new URL("/dashboard?error=Enter+a+valid+Salesforce+My+Domain", request.nextUrl.origin));
+    return NextResponse.redirect(new URL("/dashboard?error=Enter+a+valid+Salesforce+My+Domain", requestOrigin(request)));
   }
 
   let response: NextResponse;
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     // Configuration problems (missing env, bad encryption key) are shown on the dashboard.
     console.error("salesforce connect", err);
     const message = err instanceof Error ? err.message : "Couldn't start the Salesforce connection.";
-    return NextResponse.redirect(new URL(`/dashboard?error=${encodeURIComponent(message)}`, request.nextUrl.origin));
+    return NextResponse.redirect(new URL(`/dashboard?error=${encodeURIComponent(message)}`, requestOrigin(request)));
   }
   return response;
 }
