@@ -6,10 +6,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireConnection } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
+import { setMark } from "@/lib/marks";
 import { disconnect } from "@/lib/salesforce/connection";
 import { ADD_ON_KEYS, type AddOnPrices, type AppPrices } from "@/lib/savings/prices";
 import { executeScan, getPriceBook, lastScanAttempt, latestScan, recompute, startScan } from "@/lib/scan";
 import { startInBackground } from "@/lib/scan-background";
+import { shareReport } from "@/lib/shares";
 
 export interface ActionState {
   status: "idle" | "ok" | "error";
@@ -114,3 +116,36 @@ export async function disconnectAction(connectionId: string) {
   redirect("/dashboard");
 }
 
+
+export async function markRecommendationAction(connectionId: string, recommendationId: string, status: "done" | "keep" | null): Promise<ActionState> {
+  const { connection, user } = await requireConnection(connectionId);
+  const scan = await latestScan(connection.id, { succeededOnly: true });
+  const rec = scan?.result?.recommendations.find((r) => r.id === recommendationId);
+  if (!rec || !scan?.result) return { status: "error", message: "Rescan, then try again." };
+  await setMark({ connection, user, rec, currency: scan.result.prices.currency ?? "USD", status });
+  revalidatePath(`/orgs/${connectionId}`);
+  return { status: "ok" };
+}
+
+export interface ShareState extends ActionState {
+  url?: string;
+}
+
+const shareForm = z.object({
+  email: z.union([z.literal(""), z.email()]),
+  note: z.string().max(500),
+});
+
+export async function shareReportAction(connectionId: string, _prev: ShareState, formData: FormData): Promise<ShareState> {
+  const { connection, user } = await requireConnection(connectionId);
+  const parsed = shareForm.safeParse({ email: String(formData.get("email") ?? "").trim(), note: String(formData.get("note") ?? "") });
+  if (!parsed.success) return { status: "error", message: "Enter a valid email address, or leave it empty to just get a link." };
+  const result = await shareReport({ connection, user, email: parsed.data.email || null, note: parsed.data.note.trim() || null });
+  if (!result.ok) return { status: "error", message: result.message };
+  const message = parsed.data.email
+    ? result.emailed
+      ? `Sent to ${parsed.data.email}. You can also copy the link.`
+      : "We couldn't send the email just now, but the link works. Copy it below."
+    : "Here's your read-only link.";
+  return { status: "ok", message, url: result.url };
+}

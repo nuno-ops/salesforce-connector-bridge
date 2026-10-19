@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ExpertCallCard } from "@/components/app/expert-call";
 import { UpgradeCard } from "@/components/app/upgrade-card";
+import { MarkButtons } from "@/components/report/mark-buttons";
 import { ScanButton } from "@/components/report/scan-button";
+import { ShareForm } from "@/components/report/share-form";
 import { UserTabs } from "@/components/report/user-tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,12 +21,14 @@ import { licensedUsers, tierLabel, unlockTier } from "@/lib/billing/pricing";
 import { lockedRecommendations, SAMPLE_CATEGORY } from "@/lib/billing/teaser";
 import { accessDays, getAccess } from "@/lib/billing/server";
 import { env } from "@/lib/env";
+import { getMarks } from "@/lib/marks";
 import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
 import { cloudOptions, renewalSeats, resellerQuoteApps, type CloudOption } from "@/lib/savings/cloud-options";
 import { AWS_MARKETPLACE_CAP, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
 import { contractStrategies, type Strategy } from "@/lib/savings/strategies";
 import { reportRecommendations, type Category, type Recommendation, type SavingsResult } from "@/lib/savings/engine";
 import type { OrgSnapshot } from "@/lib/salesforce/types";
+import { savedSoFar, type Mark } from "@/lib/savings/marks";
 import { ENTERPRISE_SHARE_OF_UNLIMITED, type PriceBook } from "@/lib/savings/prices";
 import { lastScanAttempt, latestScan, lookupNames, scanHistory } from "@/lib/scan";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
@@ -147,7 +151,9 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   // Read from the live review so results saved before this flag existed get it too.
   const salesforceApps = new Set(appReview.tools.filter((t) => t.salesforce).map((t) => t.appName));
   const appPricesHref = `/orgs/${connection.id}/prices#apps`;
-  const history = access.monitoring ? await scanHistory(connection.id) : [];
+  const [history, marks] = await Promise.all([access.monitoring ? scanHistory(connection.id) : [], getMarks(connection.id)]);
+  const markById = new Map(marks.map((m) => [m.recommendationId, m.status]));
+  const saved = savedSoFar(marks, currency);
   const categories = (Object.entries(result.byCategory) as [Category, number][]).filter(([, v]) => v > 0);
   const { priced, needsPrice } = reportRecommendations(result.recommendations);
   const answersHref = `/welcome?next=${encodeURIComponent(`/orgs/${connection.id}`)}`;
@@ -212,6 +218,12 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#89887f]">Potential yearly savings</p>
             <p className="mt-4 text-5xl font-bold tracking-[-0.06em] text-lime print:text-positive">{money(result.annualSavings)}</p>
             <p className="text-sm text-[#96958d]">{money(result.monthlySavings)} per month</p>
+            {saved.count > 0 && (
+              <p className="mt-3 text-sm text-lime print:text-positive">
+                Saved so far: <span className="font-mono font-semibold">{money(saved.amount)}</span> a year from {saved.count}{" "}
+                {saved.count === 1 ? "change" : "changes"} marked done
+              </p>
+            )}
           </CardHeader>
           <CardContent className="flex flex-col text-sm">
             {categories.map(([key, value]) => (
@@ -237,7 +249,13 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           <CardContent className="flex flex-col divide-y divide-border">
             {priced.length === 0 && <p className="text-sm text-muted-foreground">No license waste found. Your org is in good shape.</p>}
             {shownRecommendations.map((r) => (
-              <RecommendationRow key={r.id} rec={r} currency={currency} showDetail={unlocked || r.category === SAMPLE_CATEGORY} />
+              <RecommendationRow
+                key={r.id}
+                rec={r}
+                currency={currency}
+                showDetail={unlocked || r.category === SAMPLE_CATEGORY}
+                mark={unlocked ? { connectionId: connection.id, status: markById.get(r.id) ?? null } : null}
+              />
             ))}
             {strategies.length > 0 && !unlocked && (
               <div className="flex items-start justify-between gap-4 py-3 last:pb-0">
@@ -322,6 +340,16 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
       )}
 
       <ExpertCallCard returnPath={returnPath} />
+
+      <Card className="no-print">
+        <CardHeader>
+          <CardTitle>Share with finance or your team</CardTitle>
+          <CardDescription>A read-only link to these results, open for 90 days. It shows what you see here, nothing more.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ShareForm connectionId={connection.id} />
+        </CardContent>
+      </Card>
 
       {contract && !unlocked && (
         <Card>
@@ -657,17 +685,43 @@ function StrategyRow({
   );
 }
 
-function RecommendationRow({ rec, currency, showDetail }: { rec: Recommendation; currency: string; showDetail: boolean }) {
+function RecommendationRow({
+  rec,
+  currency,
+  showDetail,
+  mark,
+}: {
+  rec: Recommendation;
+  currency: string;
+  showDetail: boolean;
+  /** Done / Keep buttons, on the unlocked report only. */
+  mark: { connectionId: string; status: Mark["status"] | null } | null;
+}) {
   const money = (n: number) => formatCurrency(n, currency);
+  const status = mark?.status ?? null;
   return (
     <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
       <div>
-        <p className="font-medium">
-          {rec.title} <Badge variant={confidenceVariant[rec.confidence]}>{rec.confidence} confidence</Badge>
+        <p className={status ? "font-medium text-muted-foreground" : "font-medium"}>
+          {rec.title}{" "}
+          {status === "done" ? (
+            <Badge>Done</Badge>
+          ) : status === "keep" ? (
+            <Badge variant="muted">Keeping</Badge>
+          ) : (
+            <Badge variant={confidenceVariant[rec.confidence]}>{rec.confidence} confidence</Badge>
+          )}
         </p>
-        {showDetail && <p className="text-sm text-muted-foreground">{rec.detail}</p>}
+        {showDetail && !status && <p className="text-sm text-muted-foreground">{rec.detail}</p>}
+        {mark && (
+          <div className="no-print mt-1">
+            <MarkButtons connectionId={mark.connectionId} recommendationId={rec.id} status={status} />
+          </div>
+        )}
       </div>
-      <p className="shrink-0 text-right font-mono font-semibold">{rec.advisory ? <span className="text-xs font-normal text-muted-foreground">Advice</span> : money(rec.annualSavings)}</p>
+      <p className={`shrink-0 text-right font-mono font-semibold ${status ? "text-muted-foreground line-through" : ""}`}>
+        {rec.advisory ? <span className="text-xs font-normal text-muted-foreground">Advice</span> : money(rec.annualSavings)}
+      </p>
     </div>
   );
 }

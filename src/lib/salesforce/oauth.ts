@@ -93,7 +93,7 @@ export async function exchangeCode(params: {
  */
 export function explainOAuthError(description: string): string {
   if (/must be installed|not admin approved|OAUTH_APP_(BLOCKED|ACCESS_DENIED)/i.test(description)) {
-    return "Salesforce blocked this sign-in because Salesforce Saver isn't installed in your org, and your user can't approve outside apps. Ask your Salesforce admin to connect instead, or to give your user the \"Approve Uninstalled Connected Apps\" permission (Setup > Permission Sets), then connect again.";
+    return "Salesforce blocked this sign-in because Salesforce Saver isn't installed in your org, and your user can't approve outside apps. Ask your Salesforce admin to connect instead (send them a link from the box below), or to give your user the \"Approve Uninstalled Connected Apps\" permission (Setup > Permission Sets), then connect again.";
   }
   return description;
 }

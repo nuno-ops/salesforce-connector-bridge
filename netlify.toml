@@ -7,3 +7,7 @@
 [build.environment]
   # Next.js 16 needs Node 20.9+.
   NODE_VERSION = "22"
+
+# Reminder emails and monthly rescans (src/background/daily.ts), every day at 08:00 UTC.
+[functions."daily"]
+  schedule = "0 8 * * *"

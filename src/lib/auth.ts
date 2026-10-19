@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { trackStep } from "@/lib/analytics";
@@ -46,8 +46,8 @@ export interface WorkspaceContext {
 }
 
 /**
- * The user's workspace, created on first visit. Every user gets a personal
- * workspace today; memberships leave room for inviting teammates later.
+ * The user's workspace, created on first visit. Someone who joins through a colleague's invite
+ * (lib/invites.ts) gets no personal workspace and works in the colleague's.
  */
 export const requireWorkspace = cache(async (): Promise<WorkspaceContext> => {
   const user = await requireUser();
@@ -58,7 +58,8 @@ export const requireWorkspace = cache(async (): Promise<WorkspaceContext> => {
     .from(schema.memberships)
     .innerJoin(schema.workspaces, eq(schema.workspaces.id, schema.memberships.workspaceId))
     .where(eq(schema.memberships.userId, user.id))
-    .orderBy(schema.memberships.createdAt)
+    // The most recently joined: someone who accepts a colleague's invite lands in that workspace.
+    .orderBy(desc(schema.memberships.createdAt))
     .limit(1);
   if (existing) return { user, ...existing };
 

@@ -35,6 +35,8 @@ const schema = z.object({
   /** Who gets an email when someone creates an account (comma-separated). */
   SIGNUP_ALERT_EMAIL: z.string().optional(),
   SIGNUP_ALERT_FROM: z.string().default("Salesforce Saver <support@salesforcesaver.com>"),
+  /** G2 "write a review" link; the review ask after a customer's first saving is skipped until it's set. */
+  G2_REVIEW_URL: z.url().optional(),
 });
 
 export type Env = z.infer<typeof schema>;
