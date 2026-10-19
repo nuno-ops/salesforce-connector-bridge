@@ -209,3 +209,29 @@ export const consultations = pgTable("consultations", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }).enableRLS();
+
+/**
+ * First-party analytics: page views from the site beacon and funnel steps recorded on the server. No cookies and no
+ * IP addresses: `visitor` is a hash of IP + browser that changes every day, so a visit can be followed through one
+ * day's sign-up but not across days.
+ */
+export const analyticsEvents = pgTable(
+  "analytics_events",
+  {
+    id: id(),
+    /** page_view, book_call_clicked, signed_up, org_connected, scan_succeeded, scan_failed, checkout_started, paid. */
+    name: text("name").notNull(),
+    visitor: text("visitor"),
+    path: text("path"),
+    /** Host of the site the visitor came from, e.g. g2.com; `null` for direct visits and our own pages. */
+    referrer: text("referrer"),
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    userId: uuid("user_id"),
+    workspaceId: uuid("workspace_id"),
+    props: jsonb("props").$type<Record<string, string | number | boolean | null>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("analytics_events_created").on(t.createdAt.desc()), index("analytics_events_name_created").on(t.name, t.createdAt.desc())],
+).enableRLS();

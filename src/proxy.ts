@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_MISSING, supabaseConfig } from "@/lib/supabase/config";
 
-const PROTECTED = ["/dashboard", "/orgs", "/settings", "/welcome"];
+const PROTECTED = ["/dashboard", "/orgs", "/settings", "/welcome", "/admin"];
 
 /** Refreshes the Supabase session cookie and keeps signed-out visitors out of the app. */
 export async function proxy(request: NextRequest) {
