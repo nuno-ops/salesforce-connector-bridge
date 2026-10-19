@@ -32,12 +32,23 @@ export default function PrivacyPage() {
         <li>Salesforce access and refresh tokens, encrypted with AES-256-GCM.</li>
         <li>A snapshot of the data above for each scan, so you can see results and history.</li>
         <li>Billing status from Stripe. We never see or store card numbers.</li>
+        <li>
+          Simple usage statistics: which pages are viewed, the site you came from, and steps such as signing up or finishing a scan.
+          We use no cookies or tracking scripts for this and don&apos;t store your IP address; a visit is counted with a code that
+          changes every day.
+        </li>
       </ul>
+      <h2>Emails we send</h2>
+      <p>
+        Besides sign-in links, we email you when a scan you started is ready or didn&apos;t finish. We don&apos;t send marketing
+        emails.
+      </p>
       <h2>Service providers</h2>
       <ul>
         <li>Supabase hosts our database (London, UK) and handles sign-in.</li>
         <li>Netlify runs the app (United States).</li>
         <li>Stripe processes payments.</li>
+        <li>Resend sends our emails.</li>
       </ul>
       <h2>Deleting your data</h2>
       <p>

@@ -1,6 +1,8 @@
 import "server-only";
 import { and, desc, eq, ne } from "drizzle-orm";
+import { track } from "@/lib/analytics";
 import { db, schema } from "@/lib/db";
+import { notifyScanFinished } from "@/lib/email/scan-notify";
 import { SalesforceAuthError } from "@/lib/salesforce/client";
 import { collectSnapshot } from "@/lib/salesforce/collect";
 import { clientFor, markExpired } from "@/lib/salesforce/connection";
@@ -114,8 +116,24 @@ export async function runScan(connection: Connection, trigger: "manual" | "sched
   return executeScan(await startScan(connection, trigger), connection);
 }
 
-/** Reads the org, prices it and stores the result on `scan`. Never throws: failures are stored on the scan. */
+/** Reads the org, prices it and stores the result on `scan`, then records and emails the outcome. Never throws. */
 export async function executeScan(scan: Scan, connection: Connection): Promise<Scan> {
+  const done = await collectAndPrice(scan, connection);
+  await Promise.all([
+    track(done.status === "succeeded" ? "scan_succeeded" : "scan_failed", {
+      workspaceId: connection.workspaceId,
+      props: {
+        trigger: done.trigger,
+        savings: done.annualSavings ?? null,
+        seconds: Math.round(((done.finishedAt ?? new Date()).getTime() - done.startedAt.getTime()) / 1000),
+      },
+    }),
+    notifyScanFinished(done, connection),
+  ]);
+  return done;
+}
+
+async function collectAndPrice(scan: Scan, connection: Connection): Promise<Scan> {
   const database = db();
   try {
     const snapshot = await collectSnapshot(clientFor(connection));

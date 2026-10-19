@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import Stripe from "stripe";
+import { track } from "@/lib/analytics";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { auditPurchaseUpdate, reportUnlocked, resolveAccess, subscriptionUpdate, type Access, type EntitlementState } from "./access";
@@ -170,7 +171,7 @@ export async function previewRelock(workspaceId: string) {
 }
 
 async function applyCheckout(session: Stripe.Checkout.Session) {
-  const { workspaceId, product, userLimit } = session.metadata ?? {};
+  const { workspaceId, product, userLimit, userId } = session.metadata ?? {};
   if (!workspaceId) return;
   if (product === "audit" && session.payment_status === "paid") {
     // Older checkouts carry no size: they cover any org.
@@ -188,6 +189,14 @@ async function applyCheckout(session: Stripe.Checkout.Session) {
       .update(schema.consultations)
       .set({ status: "paid", amountCents: session.amount_total })
       .where(eq(schema.consultations.stripeSessionId, session.id));
+  }
+  // After the access is granted, so a retried webhook doesn't count the payment twice.
+  if (session.payment_status === "paid") {
+    await track("paid", {
+      workspaceId,
+      userId: userId || null,
+      props: { product: product ?? null, amount: (session.amount_total ?? 0) / 100, currency: session.currency?.toUpperCase() ?? null },
+    });
   }
 }
 

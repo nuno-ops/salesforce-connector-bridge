@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
+import { trackStep } from "@/lib/analytics";
 import { db, schema } from "@/lib/db";
 import { sendSignupAlert } from "@/lib/signup-alert";
 import { supabaseConfig } from "@/lib/supabase/config";
@@ -76,6 +77,7 @@ export const requireWorkspace = cache(async (): Promise<WorkspaceContext> => {
   });
   // First workspace means a brand-new account, so let the owner know.
   await sendSignupAlert(user);
+  await trackStep("signed_up", { userId: user.id, workspaceId: created.workspace.id, props: { method: user.provider } });
   return created;
 });
 

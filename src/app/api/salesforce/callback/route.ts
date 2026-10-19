@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { trackStep } from "@/lib/analytics";
 import { requireWorkspace } from "@/lib/auth";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db, schema } from "@/lib/db";
@@ -83,6 +84,11 @@ export async function GET(request: NextRequest) {
       .values(values)
       .onConflictDoUpdate({ target: [schema.sfConnections.workspaceId, schema.sfConnections.orgId], set: updatable })
       .returning({ id: schema.sfConnections.id });
+    await trackStep("org_connected", {
+      userId: user.id,
+      workspaceId: workspace.id,
+      props: { edition: values.edition, sandbox: values.isSandbox },
+    });
 
     const res = NextResponse.redirect(new URL(`/orgs/${connection.id}?connected=1`, origin));
     res.cookies.delete({ name: OAUTH_COOKIE, path: "/api/salesforce" });

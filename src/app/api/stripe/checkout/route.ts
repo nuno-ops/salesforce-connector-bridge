@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { trackStep } from "@/lib/analytics";
 import { requireConnection, requireWorkspace } from "@/lib/auth";
 import { createCheckout, getAccess, previewUnlock } from "@/lib/billing/server";
 import { licensedUsers } from "@/lib/billing/pricing";
@@ -42,6 +43,11 @@ export async function POST(request: NextRequest) {
       email: user.email,
       returnPath,
       users,
+    });
+    await trackStep("checkout_started", {
+      userId: user.id,
+      workspaceId: workspace.id,
+      props: { product: parsed.data.product, users: users ?? null },
     });
     return NextResponse.redirect(url, 303);
   } catch (e) {

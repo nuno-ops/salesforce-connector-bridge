@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/app/logo";
 import { Button } from "@/components/ui/button";
+import { isSiteOwner } from "@/lib/analytics/report";
 import { requireWorkspace } from "@/lib/auth";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -18,6 +19,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               <Link href="/settings" className="transition-colors hover:text-cobalt">
                 Settings
               </Link>
+              {isSiteOwner(user.email) && (
+                <Link href="/admin" className="transition-colors hover:text-cobalt">
+                  Analytics
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm">
