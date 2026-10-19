@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { requestOrigin } from "@/lib/safe-redirect";
 import { SUPABASE_MISSING, supabaseConfig } from "@/lib/supabase/config";
 
 const PROTECTED = ["/dashboard", "/orgs", "/settings", "/welcome", "/admin"];
@@ -14,8 +15,7 @@ export async function proxy(request: NextRequest) {
   if (!config) {
     // Keep public pages up; send app pages to /login, which explains what's missing.
     if (!isProtected) return response;
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    const url = new URL("/login", requestOrigin(request));
     url.search = `?error=${encodeURIComponent(SUPABASE_MISSING)}`;
     return NextResponse.redirect(url);
   }
@@ -42,8 +42,7 @@ export async function proxy(request: NextRequest) {
   const signedIn = Boolean(data?.claims);
 
   if (!signedIn && isProtected) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    const url = new URL("/login", requestOrigin(request));
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(url);
   }

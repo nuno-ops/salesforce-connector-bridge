@@ -15,7 +15,10 @@ interface OAuthCookie {
 }
 
 export async function GET(request: NextRequest) {
-  const { origin, searchParams } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  // Salesforce only calls back on NEXT_PUBLIC_APP_URL, where the session cookie lives; Netlify's request URL can
+  // name the deploy's own address instead, which would land people on a signed-out copy of the site.
+  const origin = env().NEXT_PUBLIC_APP_URL;
   const fail = (message: string) => {
     const res = NextResponse.redirect(new URL(`/dashboard?error=${encodeURIComponent(message)}`, origin));
     res.cookies.delete({ name: OAUTH_COOKIE, path: "/api/salesforce" });

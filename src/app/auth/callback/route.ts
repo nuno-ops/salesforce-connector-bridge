@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { safeNext } from "@/lib/safe-redirect";
+import { requestOrigin, safeNext } from "@/lib/safe-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /** Completes magic-link and Google sign-in by exchanging the code for a session cookie. */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = requestOrigin(request);
   const code = searchParams.get("code");
   const next = safeNext(searchParams.get("next"));
   if (code) {
