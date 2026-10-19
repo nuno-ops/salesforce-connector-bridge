@@ -5,6 +5,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ConnectForm } from "@/components/app/connect-form";
 import { ExpertCallCard } from "@/components/app/expert-call";
+import { InviteAdminForm } from "@/components/app/invite-admin-form";
 import { PendingHint } from "@/components/app/pending-hint";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,6 +109,18 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         </CardHeader>
         <CardContent>
           <ConnectForm />
+        </CardContent>
+      </Card>
+
+      <Card id="invite-admin" className="max-w-xl">
+        <CardHeader>
+          <CardTitle>Not your Salesforce admin?</CardTitle>
+          <CardDescription>
+            Connecting needs a Salesforce admin. We&apos;ll email yours a link to connect, and the results show up here for you both.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <InviteAdminForm />
         </CardContent>
       </Card>
 

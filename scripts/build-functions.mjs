@@ -3,8 +3,9 @@
 import { build } from "esbuild";
 
 await build({
-  entryPoints: ["src/background/scan-background.ts"],
-  outfile: "netlify/functions/scan-background.mjs",
+  entryPoints: { "scan-background": "src/background/scan-background.ts", daily: "src/background/daily.ts" },
+  outdir: "netlify/functions",
+  outExtension: { ".js": ".mjs" },
   bundle: true,
   platform: "node",
   target: "node22",

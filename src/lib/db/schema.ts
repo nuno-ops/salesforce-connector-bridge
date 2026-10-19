@@ -235,3 +235,77 @@ export const analyticsEvents = pgTable(
   },
   (t) => [index("analytics_events_created").on(t.createdAt.desc()), index("analytics_events_name_created").on(t.name, t.createdAt.desc())],
 ).enableRLS();
+
+/** A link that lets someone join a workspace, e.g. the Salesforce admin a non-admin asked to connect the org. */
+export const invites = pgTable(
+  "invites",
+  {
+    id: id(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    /** SHA-256 of the token in the link; the token itself is never stored. */
+    tokenHash: text("token_hash").notNull().unique(),
+    invitedBy: uuid("invited_by").references(() => profiles.id, { onDelete: "set null" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedBy: uuid("accepted_by").references(() => profiles.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("invites_workspace").on(t.workspaceId)],
+).enableRLS();
+
+/** A read-only link to one org's results, e.g. for finance. */
+export const reportShares = pgTable(
+  "report_shares",
+  {
+    id: id(),
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => sfConnections.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    sharedBy: uuid("shared_by").references(() => profiles.id, { onDelete: "set null" }),
+    /** Who it was emailed to, if anyone. */
+    email: text("email"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("report_shares_connection").on(t.connectionId)],
+).enableRLS();
+
+/** Emails we only send once (reminders, review asks) and a per-workspace count of invite/share emails. */
+export const emailLog = pgTable(
+  "email_log",
+  {
+    /** e.g. `nudge:<userId>`, `renewal90:<connectionId>:<endDate>`, `review:<workspaceId>`, `share:<uuid>`. */
+    key: text("key").primaryKey(),
+    kind: text("kind").notNull(),
+    workspaceId: uuid("workspace_id"),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("email_log_workspace_sent").on(t.workspaceId, t.sentAt.desc())],
+).enableRLS();
+
+export const markStatus = pgEnum("mark_status", ["done", "keep"]);
+
+/** The customer's call on a recommendation: done (the saving is made) or keep (they'll keep paying for it). */
+export const recommendationMarks = pgTable(
+  "recommendation_marks",
+  {
+    connectionId: uuid("connection_id")
+      .notNull()
+      .references(() => sfConnections.id, { onDelete: "cascade" }),
+    /** `Recommendation.id`, stable across scans (e.g. `inactive_users`, `unused_apps:<namespace>`). */
+    recommendationId: text("recommendation_id").notNull(),
+    status: markStatus("status").notNull(),
+    /** The yearly saving when it was marked, so "saved so far" doesn't change as later scans move. */
+    annualSavings: numeric("annual_savings", { precision: 12, scale: 2, mode: "number" }).notNull(),
+    currency: text("currency").notNull().default("USD"),
+    title: text("title").notNull(),
+    markedBy: uuid("marked_by").references(() => profiles.id, { onDelete: "set null" }),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.connectionId, t.recommendationId] })],
+).enableRLS();

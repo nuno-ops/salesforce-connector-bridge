@@ -1,7 +1,7 @@
 import { lockedRecommendations } from "@/lib/billing/teaser";
 import type { SavingsResult } from "@/lib/savings/engine";
 import { formatCurrency } from "@/lib/utils";
-import { escapeHtml } from "./html";
+import { BUTTON, escapeHtml, layout as wrap } from "./html";
 
 /** Scans that finish faster than this are watched on screen; slower ones get an email in case the customer left. */
 export const EMAIL_AFTER_MS = 60 * 1000;
@@ -24,12 +24,8 @@ export interface ScanEmailInput {
   callUrl: string;
 }
 
-const BUTTON =
-  "display:inline-block;background:#3155ff;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600";
-const WRAP = "font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#14161a;max-width:560px";
-
 function layout(body: string) {
-  return `<div style="${WRAP}">${body}<p style="color:#666;font-size:13px;margin-top:32px">You're getting this because you started a scan on Salesforce Saver. Questions? Just reply to this email.</p></div>`;
+  return wrap(body, "You're getting this because you started a scan on Salesforce Saver.");
 }
 
 /** The priced savings as the free view shows them (app names merged away), biggest first. */

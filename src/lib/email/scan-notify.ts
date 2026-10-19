@@ -10,7 +10,7 @@ type Connection = typeof schema.sfConnections.$inferSelect;
 type Scan = typeof schema.scans.$inferSelect;
 
 /** Who to email about an org: whoever connected it, else the workspace owner. */
-async function customerEmail(connection: Connection): Promise<string | null> {
+export async function customerEmail(connection: Connection): Promise<string | null> {
   const database = db();
   if (connection.connectedBy) {
     const [p] = await database.select({ email: schema.profiles.email }).from(schema.profiles).where(eq(schema.profiles.id, connection.connectedBy)).limit(1);
