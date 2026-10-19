@@ -256,6 +256,520 @@ export const GUIDES: Guide[] = [
     ],
     related: ["how-to-reduce-salesforce-license-costs", "do-frozen-salesforce-users-use-a-license", "find-inactive-salesforce-users"],
   },
+  {
+    slug: "salesforce-core-advanced-max-editions",
+    title: "Salesforce Core, Advanced and Max editions: what they mean for your renewal",
+    description:
+      "Salesforce's Core, Advanced and Max editions, what each includes, and what existing Enterprise and Unlimited customers should ask before renewal.",
+    answer:
+      "In September 2026 Salesforce launched three editions for Sales and Service: Core at $195, Advanced at $395 and Max at $550 per user per month, billed annually, and its pricing pages no longer show Enterprise or Unlimited. Salesforce says \"existing customer pricing on legacy editions remains unchanged\", but it hasn't said publicly for how long or what happens at renewal, so get the answer in writing from your account executive before your notice date.",
+    updated: "October 19, 2026",
+    sections: [
+      {
+        heading: "What changed",
+        paragraphs: [
+          "Salesforce announced Core, Advanced and Max editions for Agentforce Sales, Agentforce Service and Agentforce Industries on 3 September 2026. Salesforce compares Core with Enterprise and Advanced with Unlimited, and calls those two \"legacy\" editions. Max costs the same as the Agentforce 1 Edition, and Salesforce says Agentforce 1 customers can upgrade to Max at no extra cost. Pricing for the industry editions takes effect later in the autumn.",
+          "Commentators report that Core and Advanced list prices are about 11% and 13% above the last Enterprise ($175) and Unlimited ($350) list prices. Salesforce argues the bundles are worth more because they include products many customers bought separately. Salesforce also says pricing and packaging are subject to change.",
+        ],
+      },
+      {
+        heading: "What each edition includes, according to Salesforce",
+        list: [
+          "All three: Agentforce, Slack with Slackbot, embedded analytics, data security features and Premier Success Plans, according to Salesforce's announcement.",
+          "Core: Slack Business+, 500,000 Flex Credits per org per year and one Partial Copy sandbox. A Full Copy sandbox is extra.",
+          "Advanced: everything in Core, plus Backup & Recover, Data Detect and Security Center, one Full Copy sandbox and 1 million Flex Credits per org per year. Sales adds Sales Programs; Service adds the Help Agent.",
+          "Max: everything in Advanced, plus the full Agentforce for Sales or Service suite, Slack Enterprise+ and 2.75 million Flex Credits per org per year. Service adds Workforce Engagement and IT Service.",
+        ],
+        paragraphs: [
+          "Flex Credits are allocated per org, not per user, so they don't grow with your seat count. Salesforce's Sales and Service pricing pages don't list exactly the same features under each edition, so check your quote line by line rather than relying on the edition name.",
+        ],
+      },
+      {
+        heading: "If you are on Enterprise or Unlimited today",
+        paragraphs: [
+          "Salesforce's announcement says existing pricing on legacy editions is unchanged. It doesn't say whether you can keep renewing Enterprise or Unlimited, for how long, or whether the usual renewal increase still applies. Advisory firms expect renewal conversations to steer customers towards the new editions, and warn that once a bundle is signed you may not be able to drop one part of it at the next renewal.",
+          "If you already pay separately for Slack, Premier Success, a backup tool or a Full Copy sandbox, add those costs up before comparing them with a bundle. If you don't use them, the bundle mostly means a higher per-seat price.",
+        ],
+      },
+      {
+        heading: "Questions to ask your account executive",
+        list: [
+          "Can we renew on our current edition, at what price, and for how many terms? Please confirm it in the order form.",
+          "What is the per-seat price for the edition you are proposing, after discount, compared with what we pay now?",
+          "Which bundled items replace products we already buy, and can those separate contracts end at the same time?",
+          "What counts against Flex Credits, what happens when we run out, and do unused credits roll over?",
+          "Can we reduce seats at this renewal without the per-seat price being reset?",
+          "Is there a cap on the increase at the following renewal?",
+        ],
+      },
+      {
+        heading: "Before the conversation",
+        paragraphs: [
+          "Decide how many seats you actually need first, because every edition is priced per user. Salesforce Saver's read-only scan lists inactive, frozen and unassigned seats, reads your contract end date when you connect as a user with the Manage Billing permission, and on Unlimited orgs checks whether your API calls and custom objects would fit within Enterprise limits.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Do I have to move to Core, Advanced or Max at renewal?",
+        "Salesforce has said existing customer pricing on legacy editions remains unchanged, but it hasn't published how long that lasts. Ask your account executive and get any commitment written into your order form.",
+      ],
+      [
+        "Are Flex Credits per user?",
+        "No. Salesforce lists them per org per year: 500,000 with Core, 1 million with Advanced and 2.75 million with Max.",
+      ],
+      [
+        "Is Max more expensive than Agentforce 1?",
+        "No. Both are listed at $550 per user per month, and Salesforce says Agentforce 1 customers can upgrade to Max at no extra cost.",
+      ],
+    ],
+    related: ["salesforce-renewal-notice-period", "salesforce-renewal-price-increase", "salesforce-renewal-checklist"],
+  },
+  {
+    slug: "salesforce-renewal-notice-period",
+    title: "When to give Salesforce notice before renewal",
+    description:
+      "Salesforce subscriptions renew automatically. Where the notice period is set, what the standard terms say, what happens if you miss it, and how to find your contract end date.",
+    answer:
+      "Give Salesforce written notice before the deadline in your order form; if the order form doesn't set one, Salesforce's standard Main Services Agreement asks for written notice, which can be by email, at least 30 days before the subscription term ends. Without notice, the subscription renews automatically, by default for one year, at the same quantities.",
+    updated: "October 19, 2026",
+    sections: [
+      {
+        heading: "How automatic renewal works",
+        paragraphs: [
+          "Salesforce's published Main Services Agreement sets the subscription term in each order form. Unless the order form says otherwise, subscriptions renew automatically for one year at a time, unless either side gives written notice at least 30 days before the term ends. Purchased quantities can't be reduced during a term, and fees are non-cancellable.",
+          "Two renewal details in the same clause matter for the price. Subscriptions bought at a promotional or one-off price renew at Salesforce's list price unless the order form says otherwise. And if you reduce quantities or shorten the term at renewal, Salesforce can reset the per-unit price, whatever you paid before.",
+        ],
+      },
+      {
+        heading: "Where your notice period is defined",
+        paragraphs: [
+          "Look in your order form first. The Main Services Agreement says that where the order form and the agreement conflict, the order form wins, so a longer notice period, a different renewal term or a price cap in the order form overrides the standard terms. Advisory firms report notice periods of 30 to 90 days are common in negotiated contracts.",
+          "If you have several order forms, for example one for Sales Cloud and another for an add-on bought later, each can have its own end date. Also check which version of the agreement your order form refers to: Salesforce keeps older versions in its Legal Agreements Archive.",
+        ],
+      },
+      {
+        heading: "What happens if you miss it",
+        list: [
+          "The subscription renews for another term, one year by default, with the same products and quantities.",
+          "Seats you deactivated during the year keep costing money, because quantities can't be reduced until the next renewal.",
+          "Any increase written into your order form applies.",
+          "You can still ask your account executive for changes, but they don't have to agree once the date has passed.",
+        ],
+      },
+      {
+        heading: "How to find your contract end date",
+        paragraphs: [
+          "In Setup, click the gear icon and choose Your Account, or open it from the App Launcher. You need the Manage Billing permission; without it, Your Account doesn't appear. The View your Contracts tile shows each contract's renewal date and how often it renews. If nobody in your company has Manage Billing, the order form or your account executive can give you the date. The same data can be queried from the read-only SalesforceContract object:",
+        ],
+        code: "SELECT ContractNumber, StartDate, EndDate, SalesforceContractStatus, AutoRenewCode\nFROM SalesforceContract\nORDER BY EndDate DESC",
+      },
+      {
+        heading: "Work back from the date",
+        paragraphs: [
+          "Subtract the notice period from the end date and put that deadline in the calendar, then start the review about 90 days before the end date so the list of seats and apps to drop is ready in time. Salesforce Saver reads your contract end date when you connect as a user with Manage Billing, and shows the date to give notice by under the standard 30-day terms next to each saving; check your order form in case yours differs.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Does Salesforce remind me before renewal?",
+        "Don't rely on it. Under the standard terms the subscription renews unless one side gives notice, so put the date in your own calendar.",
+      ],
+      [
+        "Can I give notice by email?",
+        "Under the standard Main Services Agreement, yes: written notice can be sent by email. Check your order form in case it sets a different method, and keep a copy of what you sent.",
+      ],
+      [
+        "Do I have to cancel to reduce seats?",
+        "No. Tell your account executive in writing before the notice date which quantities you want at renewal. Expect the per-seat price to be discussed again, because the standard terms let Salesforce reset it when quantities go down.",
+      ],
+    ],
+    related: ["salesforce-renewal-checklist", "salesforce-renewal-price-increase", "how-to-reduce-salesforce-license-costs"],
+  },
+  {
+    slug: "salesforce-renewal-price-increase",
+    title: "How much can Salesforce raise your price at renewal?",
+    description:
+      "What Salesforce's contract says about renewal pricing, the list price rises it has announced, what advisory firms say is typical, and how to get a written cap.",
+    answer:
+      "Salesforce's standard contract sets no maximum: its Main Services Agreement says promotional or one-time prices renew at the list price in effect at renewal, and a renewal with fewer seats or a shorter term can be re-priced without regard to the old per-unit price. The only cap is one written into your order form, so check for an uplift clause and, if there isn't one, ask for a cap in writing before your notice date.",
+    updated: "October 19, 2026",
+    sections: [
+      {
+        heading: "What the contract says",
+        paragraphs: [
+          "Salesforce's Main Services Agreement (last updated September 15, 2025) is the base contract behind most order forms. Unless your order form says otherwise:",
+        ],
+        list: [
+          "Subscriptions renew automatically for one year unless either side gives written notice at least 30 days before the term ends.",
+          "Promotional or one-time priced subscriptions renew at Salesforce's list price in effect at renewal.",
+          "If you renew fewer seats or a shorter term, the renewal can be re-priced \"without regard to the prior term's per-unit pricing\".",
+          "Quantities can't be decreased during a subscription term.",
+          "The agreement states no maximum renewal increase. Any cap is in your order form or nowhere.",
+        ],
+      },
+      {
+        heading: "List price rises Salesforce has announced",
+        paragraphs: [
+          "A list price rise reaches you most directly when your subscription renews at list price, for example after a promotional first term, or when your order form has no cap. Salesforce's two most recent announcements:",
+        ],
+        list: [
+          "August 2023: list prices rose an average of 9% across Sales Cloud, Service Cloud, Marketing Cloud, Industries and Tableau, for new customers and existing customers buying new clouds.",
+          "August 1, 2025: list prices rose an average of 6% for Enterprise and Unlimited editions of Sales Cloud, Service Cloud, Field Service and select Industries Clouds. Salesforce said Foundations, Starter and Pro editions were not changing.",
+        ],
+      },
+      {
+        heading: "What advisory firms report",
+        paragraphs: [
+          "Salesforce doesn't publish a typical renewal increase. Advisory firms Redress Compliance and LowCode Agency both say order forms typically allow an annual uplift of 8 to 10%, and both suggest negotiating a cap of 3 to 5%. LowCode Agency estimates that uplift plus list price changes can raise a contract's value by 15 to 40% over three years. Redress claims customers who renew in Salesforce's fourth quarter typically get 15 to 25% better pricing, without citing data. Treat all of these as those firms' claims, not Salesforce terms.",
+        ],
+      },
+      {
+        heading: "How to negotiate the increase",
+        list: [
+          "Read your order form for an uplift or price protection clause, and note the notice date. Without notice, subscriptions renew automatically.",
+          "Ask for a cap on the per-unit price for the renewal term, in writing in the order form. A verbal promise from an account executive doesn't bind the renewal.",
+          "Decide which unused seats, apps and sandboxes to drop first, and agree the per-unit price for the smaller quantity at the same time, because the contract lets Salesforce re-price a renewal with fewer seats.",
+          "Mind the timing: Salesforce's fiscal year ends January 31, so November to January is its fourth quarter. Redress advises starting preparation in October.",
+        ],
+      },
+      {
+        heading: "Check what you actually paid",
+        paragraphs: [
+          "Compare this year's invoices with the same period last year; with the Manage Billing permission you can see them in Setup under Your Account. Salesforce Saver reads your Salesforce invoices, shows how much they rose against a year ago, and lists the seats you could drop before renewal.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Is there a standard cap on Salesforce renewal increases?",
+        "No. Salesforce's Main Services Agreement states no maximum, so a cap only exists if your order form includes one.",
+      ],
+      [
+        "Can dropping seats raise my price per seat?",
+        "It can. The agreement lets Salesforce re-price a renewal with fewer seats or a shorter term without regard to the previous per-unit price, so agree the new per-unit price in writing when you reduce quantities.",
+      ],
+      [
+        "Did the August 2025 price rise apply to every edition?",
+        "No. Salesforce said it applied to Enterprise and Unlimited editions of Sales Cloud, Service Cloud, Field Service and select Industries Clouds, with no planned changes for Foundations, Starter or Pro editions.",
+      ],
+    ],
+    related: ["salesforce-renewal-checklist", "salesforce-renewal-notice-period", "how-to-reduce-salesforce-license-costs"],
+  },
+  {
+    slug: "salesforce-sandbox-cost",
+    title: "What a Salesforce sandbox really costs",
+    description:
+      "Which Salesforce sandboxes come with your edition, how paid sandboxes are priced as a share of your spend, how to list them with their last refresh, and when to drop one.",
+    answer:
+      "Developer sandboxes are included with Salesforce CRM licenses, while paid sandboxes are priced as a share of what you spend: Salesforce lists Developer Pro at 5%, Partial Copy at 20% and Full Copy at 30% of net spend. Enterprise Edition includes one Partial Copy and Unlimited and Performance include one Full Copy as well, so any sandbox beyond that is a paid add-on on your order form.",
+    updated: "October 19, 2026",
+    sections: [
+      {
+        heading: "Sandbox types and what each edition includes",
+        paragraphs: [
+          "Salesforce's sandbox guide lists these types and allowances. They can change, so check the Sandboxes page in Setup, which shows how many you have bought and how many are still available.",
+        ],
+        list: [
+          "Developer: metadata only, 200 MB of data, can be refreshed every day. 10 included with Professional, 25 with Enterprise, 100 with Unlimited and Performance.",
+          "Developer Pro: metadata only, 1 GB of data, can be refreshed every day. 5 included with Unlimited and Performance; extra ones can be bought for any edition.",
+          "Partial Copy: metadata plus a sample of production data, 5 GB, can be refreshed every 5 days. 1 included with Enterprise, Unlimited and Performance; not available on Professional.",
+          "Full Copy: metadata plus all production data, can be refreshed every 29 days. 1 included with Unlimited and Performance; can be bought for Enterprise; not available on Professional.",
+        ],
+      },
+      {
+        heading: "How paid sandboxes are priced",
+        paragraphs: [
+          "Salesforce's sandbox pricing page lists Developer Pro at 5%, Partial Copy at 20% and Full Copy at 30% of net spend, meaning a percentage of what you spend on other applicable Salesforce products. Because the price is a share of your spend, it rises when your spend does. As an illustration, at 30% a Full Copy on $100,000 a year of applicable spend would be $30,000 a year. Salesforce says the page is for information only, so the figure that counts is the one on your order form.",
+        ],
+      },
+      {
+        heading: "How to list your sandboxes and their last refresh",
+        paragraphs: [
+          "In Setup, enter Sandboxes in Quick Find. The list shows each sandbox and its status, and the Sandbox History tab logs creations and refreshes from the last year, up to 500 entries. To get the same data with SOQL, query the SandboxInfo and SandboxProcess objects through the Tooling API from your production org:",
+        ],
+        code: "SELECT SandboxName, LicenseType, Description FROM SandboxInfo\n\nSELECT SandboxName, LicenseType, EndDate\nFROM SandboxProcess\nWHERE Status = 'Completed'\nORDER BY EndDate DESC",
+      },
+      {
+        heading: "When to drop one",
+        list: [
+          "A Full Copy or Partial Copy nobody has refreshed in a year is rarely used for testing. Confirm with your team before deleting it.",
+          "Sandboxes your edition includes cost nothing extra, so dropping them saves nothing.",
+          "A deleted sandbox can't be recovered, and deleting it also erases outbound change sets uploaded from it. Delete is only available once the sandbox's refresh interval has passed.",
+          "Deleting a sandbox doesn't end its subscription. To stop paying, reduce the sandbox quantity at renewal, before the notice date in your order form.",
+        ],
+      },
+      {
+        heading: "Checking by hand or with a scan",
+        paragraphs: [
+          "The Setup list and the queries above are enough to check by hand. Salesforce Saver lists your sandboxes through the Tooling API, flags Full Copy and Partial Copy sandboxes not refreshed in a year beyond the ones your edition includes, and prices them once you add your sandbox price.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Is a Developer sandbox free?",
+        "Yes. Salesforce lists Developer sandboxes as included with CRM licenses, from 10 on Professional to 100 on Unlimited and Performance.",
+      ],
+      [
+        "Does deleting a sandbox lower my bill?",
+        "Not by itself. The sandbox license stays on your contract, so you can create a new sandbox in its place. Your bill only drops when you reduce the sandbox quantity at renewal.",
+      ],
+    ],
+    related: ["how-to-reduce-salesforce-license-costs", "salesforce-renewal-checklist", "salesforce-renewal-price-increase"],
+  },
+  {
+    slug: "deactivate-salesforce-user-without-losing-data",
+    title: "How to remove a Salesforce user without losing their data",
+    description:
+      "Salesforce users can't be deleted, only deactivated. Their records stay. What blocks deactivation, how to reassign ownership, and how to reuse the license.",
+    answer:
+      "You can't delete a Salesforce user; you deactivate them instead, and every record they own stays in the org with them as owner until you transfer it. Deactivation stops the login and frees the license for someone else, so the usual order is freeze, reassign, then deactivate.",
+    updated: "October 19, 2026",
+    sections: [
+      {
+        heading: "What deactivation keeps and what it changes",
+        list: [
+          "Records they own stay put and keep them as owner until you transfer them. Their history and activity stay too.",
+          "They stay in the user list as inactive and in public groups, and their own default account and opportunity teams are left as they were.",
+          "They are removed from other users' default account and opportunity teams, and lose access to records shared with them manually or as a team member.",
+          "Files they own and Chatter groups they own stay theirs until an admin reassigns them.",
+          "Permission set assignments stay on the inactive user; Salesforce recommends removing them.",
+        ],
+      },
+      {
+        heading: "What stops you deactivating someone",
+        paragraphs: ["Salesforce won't deactivate a user who is:"],
+        list: [
+          "The default lead owner or default lead creator, or the default or automated case owner.",
+          "The default workflow user, or the only recipient of a workflow email alert.",
+          "Selected in a custom hierarchy field (such as a manager field).",
+          "A Customer Portal Administrator.",
+        ],
+      },
+      {
+        heading: "Freeze first, then clean up",
+        paragraphs: [
+          "Freezing blocks the login straight away but keeps the license assigned. Use it on the day someone leaves, then work through the clean-up before you deactivate:",
+        ],
+        list: [
+          "Fix the blockers above and remove the user from approval processes, or give their approvals to someone else.",
+          "Change the owner and running user of any dashboard they own, or it may not show the expected results.",
+          "Transfer their records. Mass Transfer Records in Setup moves accounts, leads, service contracts and custom object records, up to 250 at a time; transferring an account can also move its contacts, open activities, opportunities and cases. For more records, update the owner with Data Loader.",
+          "Transfer ownership before deactivating if they own more than 10,000 records of one object, to avoid performance problems. Processes built in Process Builder also can't update records owned by inactive users.",
+          "Check for integrations that log in as them. A deactivated user can't log in, through the API either, so move each tool to a dedicated integration user and test it first. Connected Apps OAuth Usage in Setup shows which apps each user has authorised.",
+        ],
+      },
+      {
+        heading: "Count what they own",
+        paragraphs: ["Run a count per object before you transfer, replacing the Id with the user's:"],
+        code: "SELECT COUNT() FROM Account WHERE OwnerId = '005XXXXXXXXXXXXXXX'\nSELECT COUNT() FROM Opportunity WHERE OwnerId = '005XXXXXXXXXXXXXXX' AND IsClosed = false\nSELECT COUNT() FROM Case WHERE OwnerId = '005XXXXXXXXXXXXXXX' AND IsClosed = false",
+      },
+      {
+        heading: "Reusing the license",
+        paragraphs: [
+          "A deactivated user no longer counts against your available licenses, so you can give the seat to a new starter instead of buying another. Your bill doesn't change until you lower the license count, which in practice means at renewal, before the notice date in your order form. Salesforce Saver lists frozen and inactive users still holding a paid seat, so you know who to work through.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Can I delete a Salesforce user?",
+        "No. Salesforce only lets you deactivate users, so their records and history aren't orphaned. You need the Manage Internal Users permission to deactivate.",
+      ],
+      [
+        "Do I have to transfer records before deactivating?",
+        "Not always; records keep the inactive user as owner. Transfer them if someone needs to work them, if processes update them, or if the user owns more than 10,000 records of one object.",
+      ],
+      [
+        "Does freezing a user free the license?",
+        "No. Freezing only blocks the login. Deactivate the user to free the license.",
+      ],
+    ],
+    related: ["do-frozen-salesforce-users-use-a-license", "find-inactive-salesforce-users", "salesforce-integration-user-license"],
+  },
+  {
+    slug: "unused-service-cloud-licenses",
+    title: "Do you need Service Cloud licenses if nobody works cases?",
+    description:
+      "What the Service Cloud User feature license gives, how to find who holds it, and how to check with SOQL whether they work cases before your renewal.",
+    answer:
+      "Probably not. The Service Cloud User feature license is what gives someone the Service Console; a user who doesn't work cases in the console doesn't need it, and Cases themselves are a standard CRM object that full Salesforce users can be given access to through their profile. Check who holds the license and whether they touched a Case recently, then buy fewer at renewal.",
+    updated: "October 19, 2026",
+    sections: [
+      {
+        heading: "What the Service Cloud User license gives",
+        paragraphs: [
+          "Salesforce describes the Service Cloud User feature license as entitling users to \"additional Salesforce features, such as the Service Console\". In its list of feature licenses the entry reads \"Access the Salesforce Console for Service\". Knowledge is a separate feature license (Knowledge User), and the Sales Console needs its own Sales Console User permission set license.",
+          "Without it, a user on a full Salesforce license still has standard CRM objects, and Salesforce Ben describes Sales Cloud as including \"some very basic case management features\". Whether a given user can read, create or edit Cases depends on their profile and permission sets, so check those rather than assuming.",
+        ],
+      },
+      {
+        heading: "Who holds it",
+        paragraphs: ["The license shows as the Service Cloud User checkbox on the user record, and in SOQL as UserPermissionsSupportUser:"],
+        code: "SELECT Id, Name, Profile.Name, LastLoginDate\nFROM User\nWHERE IsActive = true\n  AND UserPermissionsSupportUser = true",
+      },
+      {
+        heading: "Do they work cases?",
+        paragraphs: [
+          "Count the Cases each person created or last edited in the last 90 days. Anyone on the list above who appears in neither result is a candidate to lose the license:",
+        ],
+        code: "SELECT CreatedById, COUNT(Id)\nFROM Case\nWHERE CreatedDate = LAST_N_DAYS:90\nGROUP BY CreatedById\n\nSELECT LastModifiedById, COUNT(Id)\nFROM Case\nWHERE LastModifiedDate = LAST_N_DAYS:90\nGROUP BY LastModifiedById",
+      },
+      {
+        heading: "Before you remove it",
+        list: [
+          "Skip people who joined recently or who cover the service team only at busy times.",
+          "If you use Omni-Channel, check the UserServicePresence object too: it records agents' presence status, so you can see who goes online to take work even if they rarely edit a Case.",
+          "Ask the person and their manager whether they use the console for anything else, such as a custom console app.",
+        ],
+      },
+      {
+        heading: "At renewal",
+        paragraphs: [
+          "Untick Service Cloud User on the users who don't need it, then compare the number still assigned with the quantity on your order form. If Service Cloud User is a separate line, ask your account executive to reduce it before the notice date. If it comes bundled with your main licenses, there is nothing to save on that line. Salesforce Saver flags users with the license who created or edited no Cases in 90 days, and prices them at what you tell it you pay per Service Cloud User.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Can a user without the Service Cloud User license see Cases?",
+        "Yes, if their profile or permission sets give access to Cases. The feature license adds the Service Console, not access to the Case object itself.",
+      ],
+      [
+        "How do I remove the Service Cloud User license from someone?",
+        "In Setup, open Users, click Edit next to the user, untick Service Cloud User and save. You need the Manage Internal Users permission.",
+      ],
+    ],
+    related: ["salesforce-platform-license-vs-full-license", "salesforce-renewal-checklist", "how-to-reduce-salesforce-license-costs"],
+  },
+  {
+    slug: "same-user-in-two-salesforce-orgs",
+    title: "Paying for the same person in two Salesforce orgs",
+    description:
+      "Companies with more than one production org often license the same people in each. How to find the overlap and stop paying twice.",
+    answer:
+      "Each Salesforce org has its own users and its own licenses, so someone with a login in two production orgs takes a paid seat in both. Export the active users from each org, match them by email, and for each person who only works in one org, deactivate them in the other and drop that seat at renewal.",
+    updated: "October 19, 2026",
+    sections: [
+      {
+        heading: "Why it happens",
+        paragraphs: [
+          "Second orgs usually arrive with an acquisition, or because a country, division or department set up its own. Managers, finance, support and admin teams then get a login in each org so they can see everything, and nobody removes the one they stop using.",
+          "A license is assigned to a user in one org; it doesn't follow the person to another org. A Salesforce Developers blog post on multi-org strategy notes that licensing costs go up when users need access to more than one org.",
+        ],
+      },
+      {
+        heading: "Find the overlap",
+        paragraphs: [
+          "Usernames are unique across all Salesforce orgs, so the same person has a different username in each one. Match on email address instead. Run this in each org and export the results:",
+        ],
+        code: "SELECT Name, Username, Email, Profile.UserLicense.Name, LastLoginDate\nFROM User\nWHERE IsActive = true\n  AND UserType = 'Standard'\nORDER BY Email",
+      },
+      {
+        heading: "Decide which seat to keep",
+        list: [
+          "Lower-case the emails and match them in a spreadsheet. Also check names, since some people use a different email domain in each org.",
+          "For each match, compare last login and whether they created or edited records recently in each org. The org where they do the work keeps the seat.",
+          "If they only log in to the other org to look something up, deactivate them there and share reports or dashboards from the org they still use.",
+          "Reassign records the user owns and check flows, approvals and default owner settings before deactivating, as you would for anyone leaving.",
+        ],
+      },
+      {
+        heading: "If people really need data from both orgs",
+        paragraphs: [
+          "Salesforce Connect's cross-org adapter lets one org read data held in another Salesforce org as external objects, through the REST API, without copying it. Salesforce Connect is usually sold as an add-on license, so compare its price with the seats it would replace.",
+          "Merging the orgs removes the duplicate seats for good, but it is a large project: the same Salesforce post describes consolidating different processes and data models into one org as usually very complicated. Treat it as a long-term option, not a quick saving.",
+        ],
+      },
+      {
+        heading: "When the saving lands",
+        paragraphs: [
+          "Deactivating a duplicate user frees the seat straight away, so you don't buy another for the next starter. Advisory firms report that Salesforce seats can only be cut at renewal, so take the list of seats to drop in each org to your account executive before the notice date in each order form. If both orgs are connected, Salesforce Saver matches paid users by email across them and flags people who work in one org but created or edited nothing in the other for 90 days.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Can one Salesforce license cover a user in two orgs?",
+        "No. Licenses are assigned to a user in a specific org, and each org has its own user records, so a person with a login in both orgs uses a seat in each.",
+      ],
+      [
+        "Does deactivating someone in one org affect their access to the other?",
+        "No. The orgs have separate user records, so deactivating the user in one leaves their login and records in the other untouched.",
+      ],
+      [
+        "Are the two orgs on the same contract?",
+        "Don't assume so. Check the order forms for each org to find its renewal date and notice period before planning when to drop seats.",
+      ],
+    ],
+    related: ["find-inactive-salesforce-users", "deactivate-salesforce-user-without-losing-data", "salesforce-renewal-checklist"],
+  },
+  {
+    slug: "find-unused-salesforce-apps",
+    title: "How to find unused AppExchange and connected apps in Salesforce",
+    description:
+      "Check installed packages, their seat assignments and connected app usage to find Salesforce apps nobody uses, then cancel them with the vendor.",
+    answer:
+      "Open Setup > Installed Packages to see each AppExchange app with its allowed and used licenses, then open Connected Apps OAuth Usage to see when each connected app was last used and by how many people. An app with no recent use or with seats held by inactive users is a candidate to cancel, but uninstalling it doesn't end the subscription: cancel with the vendor or through AppExchange before it renews.",
+    updated: "October 19, 2026",
+    sections: [
+      {
+        heading: "Installed packages and their seats",
+        paragraphs: [
+          "In Setup, enter Installed Packages in the Quick Find box. For licensed managed packages the page shows Allowed Licenses, Used Licenses, the expiration date and the status (Trial, Active, Suspended, Expired or Free). Manage Licenses lists who holds each seat; packages with a site license don't have one, because every user gets access.",
+          "The same data is in two objects. PackageLicense holds the seat counts per package, and UserPackageLicense holds one row per assigned user:",
+        ],
+        code: "SELECT NamespacePrefix, Status, AllowedLicenses, UsedLicenses\nFROM PackageLicense\n\nSELECT PackageLicense.NamespacePrefix, User.Name, User.IsActive, User.LastLoginDate\nFROM UserPackageLicense\nORDER BY PackageLicense.NamespacePrefix, User.LastLoginDate",
+      },
+      {
+        heading: "Connected apps and when they were last used",
+        paragraphs: [
+          "In Setup, enter OAuth in the Quick Find box and select Connected Apps OAuth Usage. It lists apps with an active token and how many users use each one; click the user count to see when each person first used the app, when they last used it and how many times. The OauthToken object holds the same detail:",
+        ],
+        code: "SELECT AppName, UserId, UseCount, LastUsedDate\nFROM OauthToken\nORDER BY AppName, LastUsedDate",
+      },
+      {
+        heading: "Signs an app is unused",
+        list: [
+          "No record created or edited in the package's own objects for 90 days or more.",
+          "Package seats assigned to users who are inactive, frozen or haven't logged in for 30 days.",
+          "Allowed Licenses well above Used Licenses, so you pay for seats nobody holds.",
+          "A connected app whose most recent use was months ago, or whose only users have left.",
+          "Two apps that do the same job, such as two e-signature or document tools.",
+        ],
+      },
+      {
+        heading: "Check the contract, then cancel before you uninstall",
+        paragraphs: [
+          "Find how each app is billed: through AppExchange Checkout, on your Salesforce order form, or directly by the vendor. The term and notice period can differ for each. For AppExchange Checkout subscriptions, a user with the Manage Billing permission ends them under My Installs & Subscriptions, and Salesforce says the cancellation takes effect at the end of the contract term. For the others, give notice as the vendor contract requires.",
+          "Uninstalling is a separate step. It removes the package's components and data from the org; Salesforce emails an export of the package data that is deleted two days after the uninstall. Salesforce's uninstall instructions say nothing about subscriptions, and vendors such as Fastcall tell customers to cancel their subscription before uninstalling.",
+        ],
+      },
+      {
+        heading: "Doing it by hand or with a scan",
+        paragraphs: [
+          "Salesforce Saver reads the same data in one read-only scan: it flags installed packages with no record created or edited in their objects for 90 days, unassigned package seats, and connected apps unused for 90 days, and prices each from a public list price where it has one, or from the price you enter.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Does uninstalling an AppExchange app stop the bill?",
+        "Not on its own. Uninstalling removes the app from the org; the subscription has to be cancelled through AppExchange or with the vendor, and cancellation usually takes effect at the end of the term.",
+      ],
+      [
+        "Can I free a package seat without cancelling the app?",
+        "Usually. Manage Licenses, next to the package under Installed Packages, is where seats are assigned to users, so you can move one from someone who doesn't use the app to a new user. Check the vendor contract for when you can lower the number of seats you pay for.",
+      ],
+      [
+        "What happens to the app's data when I uninstall?",
+        "It is deleted from the org with the package. Salesforce creates an export file and emails a link to the person who uninstalled it; save it elsewhere, because the file is deleted two days later.",
+      ],
+    ],
+    related: ["how-to-reduce-salesforce-license-costs", "salesforce-renewal-checklist", "find-inactive-salesforce-users"],
+  },
 ];
 
 export function getGuide(slug: string): Guide | undefined {
