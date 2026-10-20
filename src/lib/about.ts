@@ -22,7 +22,8 @@ export type About = {
 export const ABOUT: About = {
   name: "Nuno",
   role: "Salesforce Consultant",
-  experience: "Nuno has 10 years of Salesforce experience across different industries.",
+  experience:
+    "Nuno is a Salesforce consultant with 10 years of hands-on Salesforce experience across different industries. He built Salesforce Saver to make the licence and contract review he would do by hand on an org quick enough to run before every renewal.",
   certifications: [],
   company: null,
   country: "Portugal",

@@ -10,7 +10,8 @@ const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://salesforcesaver.com";
 
 export const metadata: Metadata = {
   title: "About Salesforce Saver",
-  description: "Who builds Salesforce Saver, and why.",
+  description:
+    "Salesforce Saver is built by Nuno, a Salesforce consultant in Portugal with 10 years of Salesforce experience across different industries.",
   alternates: { canonical: "/about" },
 };
 
@@ -52,10 +53,15 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {about.why && <p className="text-lg">{about.why}</p>}
+      <p className="text-lg">
+        Salesforce Saver scans your Salesforce org read-only and lists what you can stop paying for: unused and
+        mismatched licences, apps nobody uses, idle sandboxes, and the dates that matter before your renewal. Savings
+        are priced from your own invoices where it can read them.
+      </p>
+      {about.why && <p>{about.why}</p>}
       {about.experience && (
         <>
-          <h2>Experience</h2>
+          <h2>About Nuno</h2>
           <p>{about.experience}</p>
         </>
       )}
