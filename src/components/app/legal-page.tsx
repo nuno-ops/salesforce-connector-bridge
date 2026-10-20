@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Logo } from "@/components/app/logo";
 
 export function LegalPage({
@@ -14,8 +15,16 @@ export function LegalPage({
   return (
     <div className="flex flex-1 flex-col">
       <header className="border-b border-foreground/10">
-        <div className="mx-auto flex h-[68px] max-w-3xl items-center px-5">
+        <div className="mx-auto flex h-[68px] max-w-3xl items-center justify-between gap-4 px-5">
           <Logo />
+          <nav aria-label="Site" className="flex items-center gap-4 text-sm">
+            <Link href="/guides" className="hover:underline">
+              Guides
+            </Link>
+            <Link href="/login" className="whitespace-nowrap rounded-md bg-foreground px-3 py-2 font-semibold text-background">
+              Free scan
+            </Link>
+          </nav>
         </div>
       </header>
       <main className="mx-auto w-full max-w-3xl px-5 py-14">

@@ -956,6 +956,43 @@ export const GUIDES: Guide[] = [
   },
 ];
 
+/** How the guides index groups the pages. A guide missing from every topic is listed under "More guides". */
+export const GUIDE_TOPICS: { title: string; slugs: string[] }[] = [
+  {
+    title: "Start here",
+    slugs: ["how-to-reduce-salesforce-license-costs", "salesforce-license-types"],
+  },
+  {
+    title: "Users and licences",
+    slugs: [
+      "find-inactive-salesforce-users",
+      "do-frozen-salesforce-users-use-a-license",
+      "deactivate-salesforce-user-without-losing-data",
+      "salesforce-platform-license-vs-full-license",
+      "salesforce-integration-user-license",
+      "unused-service-cloud-licenses",
+      "same-user-in-two-salesforce-orgs",
+    ],
+  },
+  {
+    title: "Apps and sandboxes",
+    slugs: ["find-unused-salesforce-apps", "salesforce-sandbox-cost"],
+  },
+  {
+    title: "Renewal and contract",
+    slugs: [
+      "salesforce-renewal-checklist",
+      "salesforce-renewal-notice-period",
+      "salesforce-renewal-price-increase",
+      "salesforce-core-advanced-max-editions",
+    ],
+  },
+  {
+    title: "Ways to pay",
+    slugs: ["buy-salesforce-through-aws-marketplace", "buy-salesforce-through-google-cloud-or-azure"],
+  },
+];
+
 export function getGuide(slug: string): Guide | undefined {
   return GUIDES.find((g) => g.slug === slug);
 }
