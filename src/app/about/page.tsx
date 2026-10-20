@@ -76,6 +76,19 @@ export default function AboutPage() {
         </>
       )}
 
+      <h2>How Salesforce Saver treats your org</h2>
+      <ul>
+        <li>Read queries only. You approve access in Salesforce, and the scan never creates, edits or deletes anything.</li>
+        <li>Counts, not contents. It counts records per user and never reads what is in your accounts, deals, cases or files.</li>
+        <li>
+          Every query is public. The <Link href="/security" className="underline">security page</Link> lists each one the scan runs.
+        </li>
+        <li>Salesforce access tokens are encrypted with AES-256-GCM before they are stored.</li>
+        <li>Disconnecting revokes access in Salesforce and deletes your scans straight away.</li>
+        <li>Payments go through Stripe, so card numbers are never seen or stored here.</li>
+        <li>The scan is free, and the full report is free if it finds less than its price.</li>
+      </ul>
+
       <h2>The company</h2>
       <p>
         {about.company
