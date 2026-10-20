@@ -11,7 +11,7 @@ const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://salesforcesaver.com";
 export const metadata: Metadata = {
   title: "About Salesforce Saver",
   description:
-    "Salesforce Saver is built by Nuno, a Salesforce consultant in Portugal with 10 years of Salesforce experience across different industries.",
+    "Salesforce Saver is built by Nuno, a Salesforce consultant in Portugal with 10 years of Salesforce experience in retail, finance and SaaS, from admin to solution architect.",
   alternates: { canonical: "/about" },
 };
 
@@ -58,11 +58,11 @@ export default function AboutPage() {
         mismatched licences, apps nobody uses, idle sandboxes, and the dates that matter before your renewal. Savings
         are priced from your own invoices where it can read them.
       </p>
-      {about.why && <p>{about.why}</p>}
       {about.experience && (
         <>
           <h2>About Nuno</h2>
           <p>{about.experience}</p>
+          {about.why && <p>{about.why}</p>}
         </>
       )}
       {about.certifications.length > 0 && (

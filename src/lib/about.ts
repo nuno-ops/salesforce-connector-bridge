@@ -15,7 +15,7 @@ export type About = {
   linkedin: string | null;
   /** Path under /public, e.g. "/about/nuno.jpg". */
   photo: string | null;
-  /** Why the product exists, in the owner's own words. */
+  /** Why the product exists, from what the owner said. */
   why: string | null;
 };
 
@@ -23,13 +23,13 @@ export const ABOUT: About = {
   name: "Nuno",
   role: "Salesforce Consultant",
   experience:
-    "Nuno is a Salesforce consultant with 10 years of hands-on Salesforce experience across different industries. He built Salesforce Saver to make the licence and contract review he would do by hand on an org quick enough to run before every renewal.",
+    "Nuno is a Salesforce consultant with 10 years of hands-on Salesforce experience in retail, finance and SaaS, in roles from admin to solution architect. He has worked on more than 20 Salesforce orgs, from small companies to orgs with about 1,000 Salesforce users.",
   certifications: [],
   company: null,
   country: "Portugal",
   linkedin: "https://www.linkedin.com/in/nuno-quelhas-311971a8/",
   photo: null,
-  why: null,
+  why: "He built Salesforce Saver to help customers save money on Salesforce.",
 };
 
 export function aboutReady(about: About = ABOUT): about is About & { name: string } {
