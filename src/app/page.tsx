@@ -1,5 +1,6 @@
 import "./landing.css";
 import Link from "next/link";
+import { aboutReady } from "@/lib/about";
 import { getCurrentUser } from "@/lib/auth";
 import { calendlyUrl } from "@/lib/env";
 import { jsonLd } from "@/lib/guides";
@@ -458,6 +459,7 @@ export default async function Home() {
           </a>
           <div className="footer-links">
             <Link href="/guides">Guides</Link>
+            {aboutReady() && <Link href="/about">About</Link>}
             <Link href="/security">Security</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>

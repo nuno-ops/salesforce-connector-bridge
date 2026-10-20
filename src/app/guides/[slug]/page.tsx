@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LegalPage } from "@/components/app/legal-page";
+import { authorJsonLd, byline } from "@/lib/about";
 import { GUIDES, getGuide, jsonLd } from "@/lib/guides";
 
 const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://salesforcesaver.com";
@@ -25,6 +26,8 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
   if (!guide) notFound();
 
   const url = `${SITE}/guides/${guide.slug}`;
+  const author = authorJsonLd(SITE);
+  const writtenBy = byline();
   const structured = [
     {
       "@context": "https://schema.org",
@@ -34,6 +37,7 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
       dateModified: new Date(guide.updated).toISOString().slice(0, 10),
       mainEntityOfPage: url,
       publisher: { "@type": "Organization", name: "Salesforce Saver", url: SITE },
+      ...(author ? { author } : {}),
     },
     {
       "@context": "https://schema.org",
@@ -45,6 +49,14 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
   return (
     <LegalPage title={guide.title} updated={guide.updated} eyebrow="Guide">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structured) }} />
+      {writtenBy && (
+        <p className="text-sm text-muted-foreground">
+          Written by{" "}
+          <Link href="/about" className="underline">
+            {writtenBy}
+          </Link>
+        </p>
+      )}
       <p className="text-lg">{guide.answer}</p>
 
       {guide.sections.map((s) => (
