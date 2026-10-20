@@ -150,10 +150,12 @@
 .lp .hero-copy>:nth-child(5){animation-delay:.24s}
 @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(max-width:900px){.lp .shell{width:min(calc(100% - 40px),var(--max))}
-.lp nav,.lp .sign-in{display:none}
+.lp .sign-in{display:none}
+.lp nav a:not(:last-child){display:none}
 .lp .nav-shell{height:66px}
 .lp .nav-cta{padding:10px 13px}
 .lp .nav-cta span{display:none}
+.lp .nav-cta{white-space:nowrap}
 .lp .hero{grid-template-columns:1fr;gap:52px;padding:58px 0 72px;min-height:auto}
 .lp .hero h1{font-size:60px;max-width:680px}
 .lp .report-wrap{max-width:610px}
@@ -177,6 +179,7 @@
 @media(max-width:520px){.lp .shell{width:calc(100% - 40px)}
 .lp .brand{font-size:16px}
 .lp .nav-cta{font-size:11px;padding:10px 12px}
+.lp nav{display:none}
 .lp .hero{padding-top:48px}
 .lp .hero h1{font-size:48px;line-height:.96}
 .lp .hero-sub{font-size:16px}
