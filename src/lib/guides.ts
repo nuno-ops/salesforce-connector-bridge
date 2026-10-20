@@ -770,6 +770,190 @@ export const GUIDES: Guide[] = [
     ],
     related: ["how-to-reduce-salesforce-license-costs", "salesforce-renewal-checklist", "find-inactive-salesforce-users"],
   },
+  {
+    slug: "salesforce-license-types",
+    title: "Salesforce license types explained, and where the savings are",
+    description:
+      "The main Salesforce user licenses, permission set licenses and feature licenses, what each is for, and which swaps usually cost less.",
+    answer:
+      "Every Salesforce user has exactly one user license, which sets what they can do; permission set licenses and feature licenses add features on top. Most savings come from four swaps: Salesforce Platform instead of a full CRM license for people who don't work Leads, Opportunities or Cases, the Salesforce Integration license for API-only users, login-based instead of member-based Experience Cloud licenses for occasional portal users, and Chatter Free for people who only need Chatter.",
+    updated: "October 20, 2026",
+    sections: [
+      {
+        heading: "The main user licenses",
+        list: [
+          "Salesforce (full CRM): for users who need full access to standard CRM objects and apps. Salesforce's Sales Cloud pricing page lists Core at $195 per user per month, billed annually.",
+          "Salesforce Platform: for users who need custom apps but not standard CRM objects such as Leads and Opportunities. Salesforce lists Platform Starter at $25 (10 custom objects) and Platform Plus at $100 (110 custom objects) per user per month, billed annually. A Salesforce Platform Login license gives the same features billed per login, for occasional users.",
+          "Salesforce Integration: API access only, for system-to-system integrations. Enterprise, Unlimited and Performance editions include five.",
+          "Chatter Free: for people with no Salesforce license who need Chatter people, profiles, groups and files, but no Salesforce records. Chatter External is for people outside your email domain, who only see the groups they are invited to.",
+          "Experience Cloud (portal) licenses for external users: Customer Community for business-to-consumer sites with cases and knowledge, Customer Community Plus when external users also need reports, dashboards and standard sharing, and Partner Community for partner sites that need sales data. Each can be member-based or login-based.",
+        ],
+      },
+      {
+        heading: "Permission set licenses and feature licenses",
+        paragraphs: [
+          "A permission set license adds functionality on top of a user license, and one user can hold several. Many paid add-ons, such as Service Cloud Einstein in Salesforce's own example, are permission set licenses; others come with a user license, like the Salesforce API Integration permission set license used with the Integration user license. Setup shows how many of each you have and how many are assigned.",
+          "Feature licenses are switched on per user with a checkbox on the user record and give access to one feature, such as Marketing User (campaigns), Knowledge User, Flow User or Service Cloud User (the Service Console). Whether a feature license costs extra depends on your contract, so check your order form.",
+        ],
+      },
+      {
+        heading: "Swaps that usually save money",
+        list: [
+          "Full license to Platform: people who only use Accounts, Contacts, activities and custom apps. The Platform vs full license guide covers who fits and how to check.",
+          "Full license to Integration: any integration logging in as a full user can usually move to one of the free Integration licenses.",
+          "Member to login-based portal licenses: Salesforce's add-on price sheet lists Customer Community at $5 a member or $2 a login a month, Customer Community Plus at $15 or $6, and Partner (PRM) at $25 or $10. Several logins by one user on the same day count as one, so at those list prices login-based is cheaper for anyone who logs in on 2 days a month or fewer.",
+          "Full or Platform license to Chatter Free: only for people who never need Salesforce records, just Chatter groups, profiles and files. An existing user can't be converted to Chatter Free, so this means a new Chatter Free user and deactivating the old one.",
+          "Paid permission set licenses nobody holds, or held by people who have left: drop them at renewal like unused seats.",
+        ],
+      },
+      {
+        heading: "See what you have",
+        paragraphs: [
+          "The first query counts active users per user license. The second shows how many of each user license and permission set license you have and how many are assigned; the gap is what you pay for and don't use:",
+        ],
+        code: "SELECT Profile.UserLicense.Name, COUNT(Id)\nFROM User\nWHERE IsActive = true\nGROUP BY Profile.UserLicense.Name\n\nSELECT Name, TotalLicenses, UsedLicenses\nFROM UserLicense\nORDER BY Name\n\nSELECT MasterLabel, TotalLicenses, UsedLicenses\nFROM PermissionSetLicense\nORDER BY MasterLabel",
+      },
+      {
+        heading: "Checking it by hand or with a scan",
+        paragraphs: [
+          "Each swap needs a look at what people actually do: which objects they edit, how often they log in, whether a login belongs to a person or a tool. Salesforce Saver checks full-license users who fit Platform or Integration licenses and unassigned Salesforce and Platform seats in one read-only scan, and lists every user and permission set license with how many are assigned.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Can a Salesforce user have more than one license?",
+        "Each user has exactly one user license, but can hold several permission set licenses and feature licenses on top of it.",
+      ],
+      [
+        "When is a login-based Experience Cloud license cheaper?",
+        "At Salesforce's list prices a member license costs 2.5 times a monthly login, so login-based is cheaper for users who log in on 2 days a month or fewer. Logins are bought per month, unused ones roll over to the next month, and use is measured over the 12-month contract, so check the block size in your order form.",
+      ],
+      [
+        "Is Chatter Free a cheaper Salesforce license?",
+        "It is a different kind of license: Chatter Free users can't see any Salesforce records. It only suits people who just need Chatter groups, profiles and files.",
+      ],
+    ],
+    related: ["salesforce-platform-license-vs-full-license", "salesforce-integration-user-license", "how-to-reduce-salesforce-license-costs"],
+  },
+  {
+    slug: "buy-salesforce-through-aws-marketplace",
+    title: "Buying Salesforce through AWS Marketplace to use your AWS commitment",
+    description:
+      "Salesforce sells through AWS Marketplace by private offer. When the listing is Deployed on AWS, the spend can count toward an AWS commitment (EDP or private pricing agreement), within the cap in your AWS contract.",
+    answer:
+      "Yes: Salesforce sells products such as Sales Cloud, Service Cloud, Data Cloud and Agentforce through AWS Marketplace, and when the listing is marked \"Deployed on AWS\" the spend can count toward an AWS spend commitment (EDP or private pricing agreement). The Salesforce price isn't lower there; the saving is paying Salesforce with AWS money you have already committed and would otherwise leave unused.",
+    updated: "October 20, 2026",
+    sections: [
+      {
+        heading: "What Salesforce lists on AWS Marketplace",
+        paragraphs: [
+          "Salesforce started selling through AWS Marketplace in the US in November 2023, with Sales Cloud, Service Cloud, Data Cloud, Industry Clouds, Platform, Tableau, MuleSoft and Heroku, and has since added countries including the UK, several EU countries, Australia, Canada and India. Its own listings, such as Agentforce and Agentforce Sales, are sold by Salesforce, Inc., show \"Deployed on AWS: Yes\" and have custom pricing: there is no public price, you request a private offer and the charges appear on your AWS bill.",
+        ],
+      },
+      {
+        heading: "When it counts toward your AWS commitment",
+        list: [
+          "Only SaaS listings marked \"Deployed on AWS\" count. The rule applies to invoices dated from May 1, 2025, whenever the deal was signed; earlier invoices keep counting.",
+          "The amount that counts is capped. Cloud cost advisers Duckbill report that under AWS's 2022 terms Marketplace spend counts in full but only up to 25% of the annual commitment, while contracts signed before 2022 counted 50% of Marketplace spend. That is their summary, not an AWS document, so check the cap in your own AWS agreement.",
+          "Professional services bought through Marketplace don't count.",
+          "Check the badge on each listing. Some partner listings that mention Salesforce are not Deployed on AWS, and those purchases won't reduce your commitment.",
+        ],
+      },
+      {
+        heading: "Private offers and reseller quotes",
+        paragraphs: [
+          "A private offer is a price and set of terms the seller makes for your AWS account only: you negotiate with the seller, accept the offer in AWS Marketplace, and pay on your AWS bill. Salesforce can make one directly. Authorised resellers can make a channel partner private offer (CPPO) on terms Salesforce has approved; AWS's documentation shows the reseller starts from Salesforce's terms and can add a markup, so a reseller quote is a negotiation, not a guaranteed discount. Apps that work with Salesforce, such as Conga, are sold the same way and also count when their listing is Deployed on AWS.",
+        ],
+      },
+      {
+        heading: "What to ask before your renewal notice date",
+        list: [
+          "Ask your AWS account team how much of your commitment you expect to leave unused this year, what share of Marketplace spend counts under your agreement, and whether the Salesforce listing qualifies.",
+          "Ask your Salesforce account executive for an AWS Marketplace private offer for the renewal, at the same products, quantities and price you are negotiating anyway.",
+          "Check that the listing the offer comes from shows Deployed on AWS, and that the offer's start date lines up with your renewal date.",
+          "Do this before the notice date in your order form. Salesforce subscriptions can't be reduced mid-term, so the switch is a renewal-time move.",
+        ],
+      },
+      {
+        heading: "What it's worth",
+        paragraphs: [
+          "The saving is at most the smallest of your Salesforce bill, the Marketplace cap in your AWS agreement, and the commitment you'd otherwise leave unused. If you will use your whole AWS commitment anyway, the gain is billing in one place, not money. Salesforce Saver shows this as a buying option on the contract card, worked out from your invoices and the AWS numbers you enter, and lists the apps you use that are sold on AWS Marketplace so you can ask resellers to quote them; it isn't added to the savings total.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Is Salesforce cheaper on AWS Marketplace?",
+        "Not by itself. Prices are set in a private offer you negotiate with Salesforce or a reseller. The saving comes from counting the bill toward an AWS commitment you would otherwise not use in full.",
+      ],
+      [
+        "Does all Marketplace spend count toward an AWS EDP?",
+        "No. Only listings marked Deployed on AWS count for invoices from May 1, 2025, professional services never count, and the share that counts is capped by your AWS agreement.",
+      ],
+      [
+        "Can I move my Salesforce contract to AWS Marketplace mid-term?",
+        "Plan it for renewal. Salesforce quantities and fees are fixed for the term, so ask for the private offer before your renewal notice date.",
+      ],
+    ],
+    related: ["buy-salesforce-through-google-cloud-or-azure", "salesforce-renewal-notice-period", "salesforce-renewal-checklist"],
+  },
+  {
+    slug: "buy-salesforce-through-google-cloud-or-azure",
+    title: "Can you buy Salesforce through Google Cloud or Microsoft Azure?",
+    description:
+      "What Salesforce lists on Google Cloud Marketplace and Azure Marketplace today, how commit drawdown and MACC work, and where the apps around Salesforce can still count toward your commitment.",
+    answer:
+      "Not for core Sales Cloud or Service Cloud licences yet. On Google Cloud Marketplace, Salesforce names one listing, Agentforce Sales Agent for Gemini Enterprise, in beta; on Azure Marketplace, the Salesforce listing we found is a single sign-on app that needs an existing subscription. Some apps you use with Salesforce, such as Docusign on Azure, can count toward those commitments.",
+    updated: "October 20, 2026",
+    sections: [
+      {
+        heading: "Google Cloud Marketplace",
+        paragraphs: [
+          "In February 2025 Salesforce said Agentforce, Data Cloud and Customer 360 apps will run on Google Cloud, and that once they do, customers will be able to buy them through Google Cloud Marketplace. It gave no date. In September 2026 it listed Agentforce Sales Agent for Gemini Enterprise as in beta on Google Cloud Marketplace, and said Hyperforce on Google Cloud is planned to be generally available in North America in November 2026, with more regions in 2027. It didn't say Sales Cloud or Service Cloud licences can be bought there.",
+        ],
+      },
+      {
+        heading: "How Google commit drawdown works",
+        paragraphs: [
+          "Google's documentation says 100% of spend on Google Cloud Marketplace counts toward a Google Cloud commitment, with exclusions. The ones that matter here: products that don't run on Google Cloud, professional services, and purchases through a reseller when the vendor hasn't opted into Google's resale program. Google tells buyers to ask the vendor which of its products run on Google Cloud, so ask Salesforce that before counting on it.",
+        ],
+      },
+      {
+        heading: "Azure Marketplace and MACC",
+        paragraphs: [
+          "Microsoft's marketplace lists Salesforce as an Entra ID app for single sign-on and user provisioning, published by Salesforce, with no price; it requires an existing Salesforce subscription and isn't marked Azure benefit eligible. We found no Salesforce licence for sale there.",
+          "If you have a Microsoft Azure Consumption Commitment (MACC), partner offers marked \"Azure benefit eligible\" count at 100% of the pre-tax amount. Buy through the Azure portal with a subscription tied to your company's agreement: card purchases on the marketplace website and purchases paid with Azure prepayment don't count. Docusign says eSignature, CLM and Intelligent Agreement Management can be bought against MACC.",
+        ],
+      },
+      {
+        heading: "What to ask",
+        list: [
+          "Salesforce: is anything you are renewing, such as Agentforce or Data Cloud, sold on Google Cloud Marketplace in your country, and does it run on Google Cloud?",
+          "Google or Microsoft account team: how much of your commitment you expect to leave unused, and whether your agreement has exclusions or caps on marketplace spend.",
+          "Vendors of the apps you use with Salesforce: is their listing Azure benefit eligible, or running on Google Cloud, and can they move your renewal to a private offer there?",
+          "Ask before the renewal notice date in each order form, since terms are fixed until renewal.",
+        ],
+      },
+      {
+        heading: "Checking it against your apps",
+        paragraphs: [
+          "Salesforce Saver shows a Google Cloud or Azure buying option on the contract card when you tell it you have a commitment there and you use an app on its list of ones that count, such as Docusign for Azure. It counts only those apps, not Salesforce itself, up to the commitment you expect to leave unused, and doesn't add it to the savings total.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Can I pay my Salesforce licences from an Azure commitment?",
+        "We found no Salesforce licence on Azure Marketplace. Apps you buy alongside Salesforce, such as Docusign, can count toward MACC when the offer is Azure benefit eligible and bought through the Azure portal.",
+      ],
+      [
+        "Is there a cap like AWS's on Google Cloud?",
+        "Google's commit drawdown page says 100% of eligible Marketplace spend counts and doesn't mention a cap, but your own Google Cloud agreement decides. The bigger limit is that only products running on Google Cloud count.",
+      ],
+    ],
+    related: ["buy-salesforce-through-aws-marketplace", "find-unused-salesforce-apps", "salesforce-renewal-notice-period"],
+  },
 ];
 
 export function getGuide(slug: string): Guide | undefined {
