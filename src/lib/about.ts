@@ -10,6 +10,8 @@ export type About = {
   experience: string | null;
   certifications: string[];
   company: { legalName: string; country: string; city: string | null } | null;
+  /** Where the owner works from, shown when there is no company to name. */
+  country: string | null;
   linkedin: string | null;
   /** Path under /public, e.g. "/about/nuno.jpg". */
   photo: string | null;
@@ -18,12 +20,13 @@ export type About = {
 };
 
 export const ABOUT: About = {
-  name: null,
-  role: null,
-  experience: null,
+  name: "Nuno",
+  role: "Salesforce Consultant",
+  experience: "Nuno has 10 years of Salesforce experience across different industries.",
   certifications: [],
   company: null,
-  linkedin: null,
+  country: "Portugal",
+  linkedin: "https://www.linkedin.com/in/nuno-quelhas-311971a8/",
   photo: null,
   why: null,
 };

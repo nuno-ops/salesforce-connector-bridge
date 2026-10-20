@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ABOUT, aboutReady, authorJsonLd, byline, type About } from "./about";
 
-const empty: About = { ...ABOUT, name: null, role: null, linkedin: null };
+const empty: About = { ...ABOUT, name: null, role: null, linkedin: null, country: null };
 const filled: About = { ...empty, name: "Jane Doe", role: "Salesforce consultant", linkedin: "https://www.linkedin.com/in/jane" };
 
 describe("about", () => {

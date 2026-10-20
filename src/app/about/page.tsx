@@ -28,6 +28,7 @@ export default function AboutPage() {
       name: about.company?.legalName ?? "Salesforce Saver",
       url: SITE,
       email: "support@salesforcesaver.com",
+      ...(!about.company && about.country ? { address: { "@type": "PostalAddress", addressCountry: about.country } } : {}),
       ...(about.company ? { address: { "@type": "PostalAddress", addressCountry: about.company.country, ...(about.company.city ? { addressLocality: about.company.city } : {}) } } : {}),
     },
   };
@@ -73,7 +74,7 @@ export default function AboutPage() {
       <p>
         {about.company
           ? `Salesforce Saver is run by ${about.company.legalName}, registered in ${about.company.country}${about.company.city ? ` and based in ${about.company.city}` : ""}.`
-          : `Salesforce Saver is built and run by ${about.name}.`}{" "}
+          : `Salesforce Saver is built and run by ${about.name}${about.country ? `, based in ${about.country}` : ""}.`}{" "}
         It is an independent product, not affiliated with Salesforce, Inc.
       </p>
 
