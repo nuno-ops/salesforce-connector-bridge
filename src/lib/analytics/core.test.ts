@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayKey, isBot, normalizePath, referrerHost, shortText, stepRate } from "./core";
+import { countryCode, dayKey, deviceType, isBot, normalizePath, referrerHost, shortText, stepRate } from "./core";
 
 describe("isBot", () => {
   it("treats crawlers and missing user agents as bots", () => {
@@ -55,5 +55,29 @@ describe("stepRate", () => {
   it("is a whole percent of the previous step", () => {
     expect(stepRate(1, 3)).toBe(33);
     expect(stepRate(0, 0)).toBeNull();
+  });
+});
+
+describe("deviceType", () => {
+  it("tells phones, tablets and desktops apart", () => {
+    expect(deviceType("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")).toBe("phone");
+    expect(deviceType("Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/120 Mobile Safari/537.36")).toBe("phone");
+    expect(deviceType("Mozilla/5.0 (Linux; Android 13; SM-X700) Chrome/120 Safari/537.36")).toBe("tablet");
+    expect(deviceType("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)")).toBe("tablet");
+    expect(deviceType("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120")).toBe("desktop");
+    expect(deviceType(null)).toBeNull();
+  });
+});
+
+describe("countryCode", () => {
+  it("reads Netlify's country headers", () => {
+    expect(countryCode(new Headers({ "x-country": "pt" }))).toBe("PT");
+    const geo = Buffer.from(JSON.stringify({ city: "Lisbon", country: { code: "PT", name: "Portugal" } })).toString("base64");
+    expect(countryCode(new Headers({ "x-nf-geo": geo }))).toBe("PT");
+  });
+  it("ignores missing or broken values", () => {
+    expect(countryCode(new Headers())).toBeNull();
+    expect(countryCode(new Headers({ "x-nf-geo": "not-base64-json" }))).toBeNull();
+    expect(countryCode(new Headers({ "x-country": "Portugal" }))).toBeNull();
   });
 });

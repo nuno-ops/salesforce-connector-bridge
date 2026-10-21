@@ -21,6 +21,19 @@ const STEP_LABELS: Record<string, string> = {
   paid: "Paid",
 };
 
+const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
+
+function countryName(code: string) {
+  if (!/^[A-Z]{2}$/.test(code)) return code;
+  try {
+    return countryNames.of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+const DEVICE_LABELS: Record<string, string> = { desktop: "Desktop", phone: "Phone", tablet: "Tablet" };
+
 function describe(name: string, props: Record<string, unknown> | null) {
   if (!props) return "";
   if (name === "scan_succeeded" && typeof props.savings === "number") return `${formatCurrency(props.savings)} a year found, ${props.seconds}s`;
@@ -113,6 +126,73 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin"
         </Card>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Landing pages and what happened next</CardTitle>
+          <CardDescription>
+            The first page each visitor saw that day, and how many of them then signed up or clicked &quot;Book a call&quot;.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SimpleTable
+            head={["First page", "Visitors", "Signed up", "Book a call"]}
+            numeric
+            rows={report.landings.map((l) => [l.path, formatNumber(l.visitors), formatNumber(l.signups), formatNumber(l.calls)])}
+            empty="No visits yet."
+          />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>&quot;Book a call&quot; clicks by source</CardTitle>
+            <CardDescription>Matched to the same browser&apos;s first outside visit that day.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SimpleTable head={["Source", "Clicks"]} rows={report.callSources.map((s) => [s.source, formatNumber(s.calls)])} empty="No clicks yet." />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>&quot;Book a call&quot; clicks by page</CardTitle>
+            <CardDescription>The page the button was clicked on.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SimpleTable head={["Page", "Clicks"]} rows={report.callPages.map((p) => [p.path, formatNumber(p.calls)])} empty="No clicks yet." />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Countries</CardTitle>
+            <CardDescription>From Netlify&apos;s location of the visit. Only the country is kept. Earlier visits show as Unknown.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SimpleTable
+              head={["Country", "Visitors"]}
+              rows={report.countries.map((c) => [countryName(c.country), formatNumber(c.visitors)])}
+              empty="No visits yet."
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Devices</CardTitle>
+            <CardDescription>Worked out from the browser. Earlier visits show as Unknown.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SimpleTable
+              head={["Device", "Visitors"]}
+              rows={report.devices.map((d) => [DEVICE_LABELS[d.device] ?? d.device, formatNumber(d.visitors)])}
+              empty="No visits yet."
+            />
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -165,14 +245,25 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin"
   );
 }
 
-function SimpleTable({ head, rows, empty }: { head: string[]; rows: string[][]; empty: string }) {
+function SimpleTable({
+  head,
+  rows,
+  empty,
+  numeric = head.length < 4,
+}: {
+  head: string[];
+  rows: string[][];
+  empty: string;
+  /** Right-align every column after the first as numbers. */
+  numeric?: boolean;
+}) {
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
   return (
     <Table>
       <THead>
         <TR>
           {head.map((h, i) => (
-            <TH key={h} className={i > 0 && i === head.length - 1 && head.length < 4 ? "text-right" : undefined}>
+            <TH key={h} className={i > 0 && numeric ? "text-right" : undefined}>
               {h}
             </TH>
           ))}
@@ -182,7 +273,7 @@ function SimpleTable({ head, rows, empty }: { head: string[]; rows: string[][]; 
         {rows.map((row, i) => (
           <TR key={i}>
             {row.map((cell, j) => (
-              <TD key={j} className={cn(j > 0 && head.length < 4 && "text-right font-mono", "break-all")}>
+              <TD key={j} className={cn(j > 0 && numeric && "text-right font-mono", "break-all")}>
                 {cell}
               </TD>
             ))}

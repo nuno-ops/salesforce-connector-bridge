@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { clientIp, referrerHost, track, visitorId } from "@/lib/analytics";
-import { isBot, shortText } from "@/lib/analytics/core";
+import { countryCode, deviceType, isBot, shortText } from "@/lib/analytics/core";
 import { isSiteOwner } from "@/lib/analytics/report";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     utmSource: shortText(body?.utmSource),
     utmMedium: shortText(body?.utmMedium),
     utmCampaign: shortText(body?.utmCampaign),
+    props: name === "page_view" ? { country: countryCode(request.headers), device: deviceType(ua) } : undefined,
   });
   return new NextResponse(null, { status: 204 });
 }

@@ -25,6 +25,11 @@ export interface AnalyticsReport {
   sources: { source: string; visitors: number }[];
   pages: { path: string; views: number; visitors: number }[];
   signupSources: { source: string; signups: number }[];
+  landings: { path: string; visitors: number; signups: number; calls: number }[];
+  callSources: { source: string; calls: number }[];
+  callPages: { path: string; calls: number }[];
+  countries: { country: string; visitors: number }[];
+  devices: { device: string; visitors: number }[];
   recent: { name: string; at: Date; email: string | null; props: Record<string, unknown> | null }[];
 }
 
@@ -42,8 +47,16 @@ export async function analyticsReport(days: number): Promise<AnalyticsReport> {
       ))
       and ${extra}`;
 
+  // Where a browser came from that day: the source of its first outside page view in the 24 hours before `at`.
+  const firstTouch = (visitor: SQL, at: SQL) => sql`
+    select coalesce(p.utm_source, p.referrer) as source from analytics_events p
+    where ${visitor} is not null and p.visitor = ${visitor} and p.name = 'page_view'
+      and (p.utm_source is not null or p.referrer is not null)
+      and p.created_at <= ${at} and p.created_at > ${at} - interval '1 day'
+    order by p.created_at limit 1`;
+
   const database = db();
-  const [totals, daily, sources, pages, signupSources, recent] = await Promise.all([
+  const [totals, daily, sources, pages, signupSources, recent, landings, callSources, callPages, countries, devices] = await Promise.all([
     database.execute(sql`
       select
         count(distinct visitor) filter (where name = 'page_view') as visitors,
@@ -70,13 +83,7 @@ export async function analyticsReport(days: number): Promise<AnalyticsReport> {
     database.execute(sql`
       select coalesce(first_touch.source, 'Direct or unknown') as source, count(*) as signups
       from (${scoped(sql`e.name = 'signed_up'`)}) s
-      left join lateral (
-        select coalesce(p.utm_source, p.referrer) as source from analytics_events p
-        where s.visitor is not null and p.visitor = s.visitor and p.name = 'page_view'
-          and (p.utm_source is not null or p.referrer is not null)
-          and p.created_at <= s.created_at and p.created_at > s.created_at - interval '1 day'
-        order by p.created_at limit 1
-      ) first_touch on true
+      left join lateral (${firstTouch(sql`s.visitor`, sql`s.created_at`)}) first_touch on true
       group by 1 order by 2 desc`),
     database.execute(sql`
       select e.name, e.created_at as at, e.props,
@@ -84,6 +91,34 @@ export async function analyticsReport(days: number): Promise<AnalyticsReport> {
           where m.workspace_id = e.workspace_id order by m.created_at limit 1) as email
       from (${scoped(sql`e.name not in ('page_view', 'book_call_clicked')`)}) e
       order by e.created_at desc limit 30`),
+    // Each browser's first page of the day, and whether that browser then signed up or clicked "Book a call".
+    database.execute(sql`
+      with views as (${scoped(sql`e.name = 'page_view' and e.visitor is not null`)}),
+      first_pages as (
+        select distinct on (visitor) visitor, path, created_at from views order by visitor, created_at
+      ),
+      outcomes as (
+        select visitor, bool_or(name = 'signed_up') as signed_up, bool_or(name = 'book_call_clicked') as called
+        from (${scoped(sql`e.name in ('signed_up', 'book_call_clicked') and e.visitor is not null`)}) o group by visitor
+      )
+      select f.path, count(*) as visitors,
+        count(*) filter (where o.signed_up) as signups, count(*) filter (where o.called) as calls
+      from first_pages f left join outcomes o on o.visitor = f.visitor
+      group by 1 order by 2 desc, 3 desc limit 15`),
+    database.execute(sql`
+      select coalesce(first_touch.source, 'Direct or unknown') as source, count(distinct coalesce(c.visitor, c.id::text)) as calls
+      from (${scoped(sql`e.name = 'book_call_clicked'`)}) c
+      left join lateral (${firstTouch(sql`c.visitor`, sql`c.created_at`)}) first_touch on true
+      group by 1 order by 2 desc`),
+    database.execute(sql`
+      select path, count(distinct coalesce(visitor, id::text)) as calls
+      from (${scoped(sql`e.name = 'book_call_clicked'`)}) e group by 1 order by 2 desc limit 15`),
+    database.execute(sql`
+      select coalesce(props->>'country', 'Unknown') as country, count(distinct visitor) as visitors
+      from (${scoped(sql`e.name = 'page_view'`)}) e group by 1 order by 2 desc limit 15`),
+    database.execute(sql`
+      select coalesce(props->>'device', 'Unknown') as device, count(distinct visitor) as visitors
+      from (${scoped(sql`e.name = 'page_view'`)}) e group by 1 order by 2 desc`),
   ]);
 
   const t = totals[0] ?? {};
@@ -104,6 +139,11 @@ export async function analyticsReport(days: number): Promise<AnalyticsReport> {
     sources: sources.map((r) => ({ source: String(r.source), visitors: num(r.visitors) })),
     pages: pages.map((r) => ({ path: String(r.path), views: num(r.views), visitors: num(r.visitors) })),
     signupSources: signupSources.map((r) => ({ source: String(r.source), signups: num(r.signups) })),
+    landings: landings.map((r) => ({ path: String(r.path), visitors: num(r.visitors), signups: num(r.signups), calls: num(r.calls) })),
+    callSources: callSources.map((r) => ({ source: String(r.source), calls: num(r.calls) })),
+    callPages: callPages.map((r) => ({ path: String(r.path), calls: num(r.calls) })),
+    countries: countries.map((r) => ({ country: String(r.country), visitors: num(r.visitors) })),
+    devices: devices.map((r) => ({ device: String(r.device), visitors: num(r.visitors) })),
     recent: recent.map((r) => ({
       name: String(r.name),
       at: new Date(r.at as string),
