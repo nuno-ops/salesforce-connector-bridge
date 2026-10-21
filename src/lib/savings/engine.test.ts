@@ -1194,3 +1194,99 @@ describe("installed app usage", () => {
     ]);
   });
 });
+
+describe("licence fit from Lightning usage", () => {
+  const writes = (byObject: Record<string, Record<string, number>>) => ({
+    objects: ["Account", "Opportunity", "Lead", "Case"],
+    byUser: Object.fromEntries(Object.values(byObject).flatMap((m) => Object.entries(m))),
+    byObject: { Opportunity: {}, Lead: {}, Case: {}, ...byObject },
+    windowDays: 90,
+  });
+  const pages = (overrides: Partial<NonNullable<OrgSnapshot["pageUsage"]>> = {}) => ({
+    windowDays: 90,
+    byUser: { ops: 400, rep: 900, phone: 400, light: 20, agent: 600, admin: 300 },
+    salesByUser: { rep: 500 },
+    casesByUser: { agent: 300 },
+    mobileUserIds: ["phone"],
+    monthlyActive: [],
+    ...overrides,
+  });
+  const base = {
+    users: [
+      user("ops"),
+      user("rep"),
+      user("phone"),
+      user("light"),
+      user("agent"),
+      user("admin", { profileName: "System Administrator" }),
+    ],
+    serviceCloudUserIds: ["agent"],
+    writeActivity: writes({ Account: { ops: 30, phone: 5, light: 2 }, Case: { agent: 40 } }),
+    pageUsage: pages(),
+  };
+
+  it("moves users who never open sales or service records to Platform", () => {
+    const result = computeSavings(snapshot(base), prices, { now: NOW });
+    expect(result.users.platform.map((u) => u.id)).toEqual(["ops"]);
+    expect(result.recommendations.find((r) => r.id === "platform_usage")).toMatchObject({ count: 1, annualSavings: (165 - 25) * 12 });
+  });
+
+  it("doesn't flag anyone who edited an Opportunity, Lead or Case", () => {
+    const result = computeSavings(snapshot({ ...base, writeActivity: writes({ Lead: { ops: 1 }, Case: { agent: 40 } }) }), prices, { now: NOW });
+    expect(result.users.platform).toEqual([]);
+  });
+
+  it("needs page views and per-object activity", () => {
+    expect(computeSavings(snapshot({ ...base, pageUsage: null }), prices, { now: NOW }).users.platform).toEqual([]);
+    const noCase = { ...base.writeActivity, byObject: { Opportunity: {}, Lead: {} } };
+    expect(computeSavings(snapshot({ ...base, writeActivity: noCase }), prices, { now: NOW }).users.platform).toEqual([]);
+  });
+
+  it("prices the Sales Cloud side for agents who only work Cases once a price is entered", () => {
+    const unpriced = computeSavings(snapshot(base), prices, { now: NOW });
+    expect(unpriced.recommendations.find((r) => r.id === "service_only_users")).toMatchObject({ count: 1, needsPrice: true, advisory: true });
+
+    const priced = computeSavings(snapshot(base), { ...prices, apps: { packages: {}, connectedApps: {}, addOns: { serviceCloudUserMonthly: 60 } } }, { now: NOW });
+    expect(priced.users.serviceCloud?.map((u) => u.id)).toEqual(["agent"]);
+    expect(priced.byCategory.service_cloud_users).toBe(60 * 12);
+  });
+});
+
+describe("unassigned seats against the busiest month", () => {
+  const months = (counts: number[]) =>
+    counts.map((users, i) => ({ month: `2026-${String(i + 1).padStart(2, "0")}`, license: "Salesforce", users }));
+  const pageUsage = (counts: number[]) => ({ windowDays: 90, byUser: {}, salesByUser: {}, casesByUser: {}, mobileUserIds: [], monthlyActive: months(counts) });
+  const licenses = [{ id: "L", name: "Salesforce", total: 64, used: 49 }];
+
+  it("keeps the seats the busiest month needed", () => {
+    const result = computeSavings(snapshot({ userLicenses: licenses, pageUsage: pageUsage([45, 48, 49, 49, 48, 46, 49, 56, 60]) }), prices, { now: NOW });
+    const seats = result.recommendations.find((r) => r.id === "unused_seats:Salesforce");
+    expect(seats).toMatchObject({ count: 4, annualSavings: 4 * 165 * 12, confidence: "high" });
+    expect(seats?.detail).toContain("September 2026");
+  });
+
+  it("counts every unassigned seat when even the busiest month needed fewer", () => {
+    const result = computeSavings(snapshot({ userLicenses: licenses, pageUsage: pageUsage([40, 41, 42, 43, 44, 45]) }), prices, { now: NOW });
+    expect(result.recommendations.find((r) => r.id === "unused_seats:Salesforce")).toMatchObject({ count: 15 });
+  });
+
+  it("shows no saving when the busiest month used every seat", () => {
+    const result = computeSavings(snapshot({ userLicenses: licenses, pageUsage: pageUsage([50, 55, 60, 64, 62, 58]) }), prices, { now: NOW });
+    expect(result.byCategory.unused_seats).toBe(0);
+    expect(result.notes.some((n) => n.includes("busiest month"))).toBe(true);
+  });
+
+  it("falls back to today's count with too little history", () => {
+    const result = computeSavings(snapshot({ userLicenses: licenses, pageUsage: pageUsage([60, 60]) }), prices, { now: NOW });
+    expect(result.recommendations.find((r) => r.id === "unused_seats:Salesforce")).toMatchObject({ count: 15, confidence: "medium" });
+  });
+
+  it("mentions leavers who kept their seat for months", () => {
+    const deactivations = [
+      { deactivatedAt: daysAgo(10), lastLoginDate: daysAgo(130), licenseName: "Salesforce" },
+      { deactivatedAt: daysAgo(20), lastLoginDate: daysAgo(20), licenseName: "Salesforce" },
+    ];
+    const result = computeSavings(snapshot({ userLicenses: licenses, deactivations }), prices, { now: NOW });
+    expect(result.recommendations.find((r) => r.id === "unused_seats:Salesforce")?.detail).toContain("1 person who left kept a paid seat for 120 days");
+  });
+});

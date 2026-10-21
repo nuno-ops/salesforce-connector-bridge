@@ -48,6 +48,13 @@ export interface OrgSnapshot {
    * Missing on older snapshots; `null` when unreadable.
    */
   salesforceAccount?: SnapshotSalesforceAccount | null;
+  /**
+   * Lightning page views per user, from Salesforce's Lightning Usage data. Missing on older snapshots;
+   * `null` when unreadable.
+   */
+  pageUsage?: SnapshotPageUsage | null;
+  /** Paid users deactivated in the last 180 days, from the setup audit trail. Missing on older snapshots; `null` when unreadable. */
+  deactivations?: SnapshotDeactivation[] | null;
   /** Sales trends, only on snapshots taken before the report dropped its sales chart. */
   metrics?: {
     leadsByMonth: { month: string; count: number }[];
@@ -172,4 +179,24 @@ export interface SnapshotSalesforceInvoice {
   date: string | null;
   total: number;
   currency: string | null;
+}
+
+export interface SnapshotPageUsage {
+  windowDays: number;
+  /** User Id → Lightning page views in the window, any page. */
+  byUser: Record<string, number>;
+  /** User Id → views of Opportunity, Lead, Campaign, Quote, Contract or Forecast pages. */
+  salesByUser: Record<string, number>;
+  /** User Id → views of Case pages. */
+  casesByUser: Record<string, number>;
+  /** Users who also used the Salesforce mobile app, whose views aren't all counted here. */
+  mobileUserIds: string[];
+  /** Distinct users with page views per calendar month and license, over the last year. */
+  monthlyActive: { month: string; license: string; users: number }[];
+}
+
+export interface SnapshotDeactivation {
+  deactivatedAt: string;
+  lastLoginDate: string | null;
+  licenseName: string | null;
 }
