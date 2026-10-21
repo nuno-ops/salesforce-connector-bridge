@@ -33,7 +33,7 @@ export default function PrivacyPage() {
         <li>A snapshot of the data above for each scan, so you can see results and history.</li>
         <li>Billing status from Stripe. We never see or store card numbers.</li>
         <li>
-          Simple usage statistics: which pages are viewed, the site you came from, and steps such as signing up or finishing a scan.
+          Simple usage statistics: which pages are viewed, the site you came from, your country and device type (phone, tablet or computer), and steps such as signing up or finishing a scan.
           We use no cookies or tracking scripts for this and don&apos;t store your IP address; a visit is counted with a code that
           changes every day.
         </li>

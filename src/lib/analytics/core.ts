@@ -38,6 +38,34 @@ export function shortText(value: unknown, max = 100): string | null {
   return trimmed || null;
 }
 
+export type Device = "phone" | "tablet" | "desktop";
+
+/** Rough device type from the user agent; iPads that claim to be Macs count as desktop. */
+export function deviceType(userAgent: string | null | undefined): Device | null {
+  if (!userAgent) return null;
+  if (/ipad|tablet|kindle|silk|playbook|android(?!.*mobile)/i.test(userAgent)) return "tablet";
+  if (/mobi|iphone|ipod|android|windows phone/i.test(userAgent)) return "phone";
+  return "desktop";
+}
+
+/**
+ * Two-letter country code Netlify works out from the visitor's IP (`x-country`, or the base64 JSON in `x-nf-geo`).
+ * Only the country is kept, never the IP or city.
+ */
+export function countryCode(h: Headers): string | null {
+  const direct = h.get("x-country")?.trim().toUpperCase();
+  if (direct && /^[A-Z]{2}$/.test(direct)) return direct;
+  const geo = h.get("x-nf-geo");
+  if (!geo) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(geo, "base64").toString("utf8")) as { country?: { code?: unknown } };
+    const code = typeof parsed.country?.code === "string" ? parsed.country.code.toUpperCase() : "";
+    return /^[A-Z]{2}$/.test(code) ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 /** UK date, so the daily visitor hash rolls over at midnight in London. */
 export function dayKey(now = new Date()): string {
   return now.toLocaleDateString("en-CA", { timeZone: "Europe/London" });
