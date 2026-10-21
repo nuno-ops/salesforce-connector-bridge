@@ -954,6 +954,130 @@ export const GUIDES: Guide[] = [
     ],
     related: ["buy-salesforce-through-aws-marketplace", "find-unused-salesforce-apps", "salesforce-renewal-notice-period"],
   },
+  {
+    slug: "salesforce-license-audit-tool-vs-manual",
+    title: "Salesforce license audit: do it by hand or use a tool?",
+    description:
+      "What a manual Salesforce license audit involves, what it misses, and when a scan such as Salesforce Saver is worth it before a renewal.",
+    answer:
+      "You can audit Salesforce licenses by hand with list views, reports and a few SOQL queries, and for a small org with one contract that is often enough. A tool earns its place when you need every finding priced at what you actually pay, checks that are slow by hand such as app usage and people paid for in two orgs, and the list ready before your renewal notice date.",
+    updated: "October 21, 2026",
+    sections: [
+      {
+        heading: "What a manual audit covers well",
+        list: [
+          "Inactive users: a list view of active users sorted by Last Login, or one SOQL query.",
+          "Frozen users: one query on UserLogin.",
+          "Unassigned licenses: Setup, Company Information shows how many of each license are used.",
+          "Your contract dates: in the order form, or in Setup under Your Account if you have the Manage Billing permission.",
+        ],
+      },
+      {
+        heading: "What takes longer by hand",
+        list: [
+          "Pricing each finding. List prices rarely match what you pay; you have to work out your own per-seat price from the order form or invoices.",
+          "Who could use a cheaper license. That means checking each full-license user's profile and permission sets for access to Opportunities, Leads and Cases, and whether they created or edited records recently.",
+          "Unused apps. Installed packages don't show usage in one place; you check whether anyone created or edited records in each app's objects.",
+          "Integrations on full licenses, which often don't show as normal logins.",
+          "The same person with a paid seat in two orgs, which needs both orgs side by side.",
+          "Doing it again next quarter, since users and apps keep changing.",
+        ],
+      },
+      {
+        heading: "What Salesforce Saver does",
+        paragraphs: [
+          "It connects to your org through Salesforce's standard sign-in, runs read-only queries (all listed on the security page) and gives a ranked list of savings, each with a dollar figure. Prices come from your own Salesforce invoices when the connected user has Manage Billing, otherwise from list prices, and you can enter your own. It shows your renewal date and the date to tell Salesforce by when the contract is readable.",
+          "The scan is free and shows the total and each recommendation. The full report, with every user and app behind the numbers and a printable version, is a one-off $290 up to 50 users, $590 up to 250 and $990 above, with 90 days of rescans.",
+        ],
+      },
+      {
+        heading: "What it doesn't do",
+        list: [
+          "It doesn't change anything in your org. You decide what to deactivate or reassign, using the links in the report.",
+          "It doesn't negotiate with Salesforce for you. It gives you the list to take to your account executive.",
+          "It only looks at Salesforce, not the rest of your software. General SaaS management platforms cover many tools but don't look inside Salesforce in this much detail.",
+        ],
+      },
+      {
+        heading: "Which to choose",
+        paragraphs: [
+          "Do it by hand if your org is small, you have one contract and you have time before the notice date; the guides here show each check. Run a scan if you want the figures priced at what you pay, several orgs or many installed apps, or the list ready in an afternoon. The free scan tells you the size of the saving before you decide anything.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "How often should you audit Salesforce licenses?",
+        "At least once before each renewal notice date, and ideally every quarter, since people leave and apps stop being used throughout the year.",
+      ],
+      [
+        "Does a license audit need a System Administrator?",
+        "An admin sees the most, but a narrower user works for most checks. Contract and invoice data needs the Manage Billing permission.",
+      ],
+    ],
+    related: ["how-to-reduce-salesforce-license-costs", "is-it-safe-to-connect-a-tool-to-salesforce", "salesforce-renewal-checklist"],
+  },
+  {
+    slug: "is-it-safe-to-connect-a-tool-to-salesforce",
+    title: "Is it safe to connect a third-party tool to Salesforce?",
+    description:
+      "What Salesforce's approval screen means, how to limit what a connected app can do, and the questions to ask any vendor before connecting.",
+    answer:
+      "It can be, if you know what the tool reads, how it stores access, and how to cut it off. Salesforce's approval screen says the app can \"access and manage your data\" for every API tool, so the real limit is the user you connect as: connect as a user with no edit rights and Salesforce itself stops the tool changing anything.",
+    updated: "October 21, 2026",
+    sections: [
+      {
+        heading: "What the approval screen means",
+        paragraphs: [
+          "Most tools connect through OAuth, Salesforce's standard sign-in. You log in on Salesforce's own page and approve access; the tool never sees your password. Salesforce has no read-only option for connected apps, so the screen uses the same \"access and manage your data\" wording whatever the tool actually does. The tool can then do whatever the connected user is allowed to do.",
+        ],
+      },
+      {
+        heading: "How to limit what a tool can do",
+        list: [
+          "Connect as a dedicated user whose profile and permission sets have no create, edit or delete rights. The tool then can't change anything, whatever it tries.",
+          "Give that user only the read access the tool needs. A tool that only looks at users and licenses doesn't need to read the contents of your Accounts or Opportunities.",
+          "Since September 2025 Salesforce blocks connected apps that aren't installed in the org for most users. A non-admin connecting a new tool may need your admin to grant the Approve Uninstalled Connected Apps permission, or to install the app first.",
+        ],
+      },
+      {
+        heading: "Questions to ask the vendor",
+        list: [
+          "Which objects and fields does it read? Ask for the exact list of queries.",
+          "Does it ever write to your org?",
+          "Does it read the contents of records, or only counts and dates?",
+          "How are the access tokens stored, and where is the data hosted?",
+          "What happens when you disconnect: are tokens revoked and your data deleted?",
+        ],
+      },
+      {
+        heading: "How to cut access off",
+        paragraphs: [
+          "In Setup, open Connected Apps OAuth Usage to see every app with access and revoke any of them. Deactivating the user the tool connected as also stops it.",
+        ],
+      },
+      {
+        heading: "How Salesforce Saver answers those questions",
+        list: [
+          "It only runs read queries, and every query is listed on its security page before you connect.",
+          "It counts records per user and reads when each app's objects last changed, but never reads what's in your accounts, deals, cases or files.",
+          "Access tokens are encrypted with AES-256-GCM before they are stored. The database is in London; the app runs on servers in the United States.",
+          "Disconnecting revokes its tokens in Salesforce and deletes your scans straight away.",
+        ],
+      },
+    ],
+    faq: [
+      [
+        "Can a connected app see my Salesforce password?",
+        "No. With OAuth you sign in on Salesforce's own page, and the app gets a token instead of your password. You can revoke the token at any time.",
+      ],
+      [
+        "Can I make a connected app read-only?",
+        "Not through the approval screen. Connect as a user with no create, edit or delete permissions, and Salesforce will block any change the app attempts.",
+      ],
+    ],
+    related: ["salesforce-license-audit-tool-vs-manual", "find-inactive-salesforce-users", "how-to-reduce-salesforce-license-costs"],
+  },
 ];
 
 /** How the guides index groups the pages. A guide missing from every topic is listed under "More guides". */
@@ -986,6 +1110,10 @@ export const GUIDE_TOPICS: { title: string; slugs: string[] }[] = [
       "salesforce-renewal-price-increase",
       "salesforce-core-advanced-max-editions",
     ],
+  },
+  {
+    title: "Choosing a tool",
+    slugs: ["salesforce-license-audit-tool-vs-manual", "is-it-safe-to-connect-a-tool-to-salesforce"],
   },
   {
     title: "Ways to pay",
