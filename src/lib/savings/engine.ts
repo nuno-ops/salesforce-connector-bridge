@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { summarizeContract } from "./contract";
 import { editionKey, effectivePriceBook, ENTERPRISE_SHARE_OF_UNLIMITED, priceForLicense, type PriceBook } from "./prices";
 
-export const ENGINE_VERSION = 6;
+export const ENGINE_VERSION = 7;
 
 export type Category =
   | "inactive_users"
@@ -206,6 +206,12 @@ function includedSandboxes(edition: string): { full: number; partial: number } {
   return { full: 0, partial: 0 };
 }
 const CRM_OBJECTS = ["Opportunity", "Lead", "Case"];
+/** Fewer Lightning page views than this in the window and a user's missing page types say nothing. */
+const MIN_PAGE_VIEWS = 100;
+/** A leaver who kept a paid seat longer than this after their last login counts as slow offboarding. */
+const SLOW_OFFBOARDING_DAYS = 30;
+/** Months of Lightning usage needed before the busiest month is trusted to size seats. */
+const MIN_USAGE_MONTHS = 6;
 const INTEGRATION_NAME = /\b(integration|api|sync|etl|middleware|connector)\b/i;
 const ADMIN_PROFILE = /system administrator/i;
 /** Enterprise Edition limits (Salesforce limits cheat sheet): API calls per 24h and custom objects. */
@@ -264,6 +270,16 @@ export function computeSavings(
     });
   }
 
+  // Leavers who kept a paid seat long after their last login, from the setup audit trail.
+  const slowLeavers = (snapshot.deactivations ?? []).flatMap((d) => {
+    if (!PAID_LICENSES.has(d.licenseName ?? "") || !d.lastLoginDate) return [];
+    const lag = Math.floor((new Date(d.deactivatedAt).getTime() - new Date(d.lastLoginDate).getTime()) / DAY_MS);
+    return lag > SLOW_OFFBOARDING_DAYS ? [lag] : [];
+  });
+  let offboardingHint = slowLeavers.length
+    ? ` In the last 6 months, ${slowLeavers.length} ${plural(slowLeavers.length, "person", "people")} who left kept a paid seat for ${Math.round(slowLeavers.reduce((a, b) => a + b, 0) / slowLeavers.length)} days on average after their last login. Deactivating leavers on their last day frees seats for new hires instead of buying more.`
+    : "";
+
   // 1. Inactive users on paid licenses.
   const inactive: FlaggedUser[] = [];
   for (const u of snapshot.users) {
@@ -289,13 +305,15 @@ export function computeSavings(
       id: "inactive_users",
       category: "inactive_users",
       title: `Reclaim ${inactive.length} inactive ${plural(inactive.length, "license")}`,
-      detail: `These users haven't logged in for ${inactiveDays}+ days. Freeze or deactivate them and drop the seats at renewal.`,
+      detail: `These users haven't logged in for ${inactiveDays}+ days. Freeze or deactivate them and drop the seats at renewal.${offboardingHint}`,
       count: inactive.length,
       annualSavings: sum(inactive),
       confidence: inactive.every((u) => u.confidence === "high") ? "high" : "medium",
       advisory: false,
     });
   }
+  // Said once: on the inactive users if there are any, otherwise on unassigned seats.
+  if (inactive.length) offboardingHint = "";
 
   // 2. Accounts that only an integration uses: heavy use of an app that syncs systems, and none of the
   // tools a person signs in to. A person whose login also runs a connector still needs their seat.
@@ -495,6 +513,51 @@ export function computeSavings(
     });
   }
 
+  // 3b. Full licenses held by people who work in Salesforce but never open a sales or service record.
+  // Reads come from Salesforce's own Lightning usage data, so no Event Monitoring is needed.
+  const pages = snapshot.pageUsage;
+  const writes = snapshot.writeActivity?.byObject;
+  const mobileUsers = new Set(pages?.mobileUserIds ?? []);
+  /** Uses Lightning enough, and only Lightning, that a page type they never open says something. */
+  const provenLightningUser = (u: SnapshotUser) => {
+    if (!pages || mobileUsers.has(u.id) || (pages.byUser[u.id] ?? 0) < MIN_PAGE_VIEWS) return false;
+    const sinceCreated = daysSince(u.createdDate);
+    return sinceCreated === null || sinceCreated >= pages.windowDays;
+  };
+  const wrote = (u: SnapshotUser, objects: string[]) => objects.some((o) => (writes?.[o]?.[u.id] ?? 0) > 0);
+  const canCheckUsage = !!pages && !!writes && CRM_OBJECTS.every((o) => writes[o]);
+  const platformByUsage: FlaggedUser[] = [];
+  if (canCheckUsage) {
+    const saving = Math.max(0, prices.fullMonthly - prices.platformMonthly) * 12;
+    for (const u of snapshot.users) {
+      if (claimed.has(u.id) || u.licenseName !== "Salesforce") continue;
+      if (u.profileName && ADMIN_PROFILE.test(u.profileName)) continue;
+      if (!provenLightningUser(u)) continue;
+      if ((pages!.salesByUser[u.id] ?? 0) > 0 || (pages!.casesByUser[u.id] ?? 0) > 0 || wrote(u, CRM_OBJECTS)) continue;
+      platformByUsage.push(
+        flag(u, {
+          reason: `Opened ${pages!.byUser[u.id]} pages in ${pages!.windowDays} days, none of them Opportunities, Leads or Cases`,
+          annualSavings: saving,
+          confidence: "medium",
+        }),
+      );
+      claimed.add(u.id);
+    }
+  }
+  if (platformByUsage.length) {
+    platform.push(...platformByUsage);
+    recommendations.push({
+      id: "platform_usage",
+      category: "platform_licenses",
+      title: `Move ${platformByUsage.length} ${plural(platformByUsage.length, "user")} who never open sales or service records to Salesforce Platform`,
+      detail: `These users work in Salesforce regularly, but in the last ${pages!.windowDays} days they didn't open or edit a single Opportunity, Lead, Campaign, Quote, Contract or Case (from Salesforce's own Lightning usage data). A Salesforce Platform license covers Accounts, Contacts, tasks, events and your custom objects. Check they don't need reports on opportunities or cases first.${noticeHint}`,
+      count: platformByUsage.length,
+      annualSavings: sum(platformByUsage),
+      confidence: "medium",
+      advisory: false,
+    });
+  }
+
   // 4. Full licenses held by people who log in but never create or edit anything.
   const viewOnly: FlaggedUser[] = [];
   const activity = snapshot.writeActivity;
@@ -569,20 +632,77 @@ export function computeSavings(
     });
   }
 
-  // 5. Seats paid for but never assigned.
+  // 4c. Service Cloud users who work Cases but never open sales records: a Service Cloud license alone covers them.
+  const salesUnused: FlaggedUser[] = [];
+  if (canCheckUsage && serviceCloudIds.size > 0) {
+    const flagged = new Set(serviceCloud.map((u) => u.id));
+    for (const u of snapshot.users) {
+      if (!serviceCloudIds.has(u.id) || claimed.has(u.id) || flagged.has(u.id) || u.licenseName !== "Salesforce") continue;
+      if (u.profileName && ADMIN_PROFILE.test(u.profileName)) continue;
+      if (!provenLightningUser(u)) continue;
+      const worksCases = (pages!.casesByUser[u.id] ?? 0) > 0 || wrote(u, ["Case"]);
+      if (!worksCases || (pages!.salesByUser[u.id] ?? 0) > 0 || wrote(u, ["Opportunity", "Lead"])) continue;
+      salesUnused.push(
+        flag(u, {
+          reason: `Works Cases, but opened no Opportunity, Lead, Campaign, Quote or Contract in ${pages!.windowDays} days`,
+          annualSavings: (serviceCloudPrice ?? 0) * 12,
+          confidence: "low",
+        }),
+      );
+      claimed.add(u.id);
+    }
+  }
+  if (salesUnused.length) {
+    serviceCloud.push(...salesUnused);
+    const priced = serviceCloudPrice !== undefined && serviceCloudPrice > 0;
+    recommendations.push({
+      id: "service_only_users",
+      category: "service_cloud_users",
+      title: `Stop paying for Sales Cloud for ${salesUnused.length} service ${plural(salesUnused.length, "agent")}`,
+      detail: `These users have a Salesforce license plus the Service Cloud User feature license. They work Cases, but in the last ${pages!.windowDays} days they didn't open or edit a single Opportunity, Lead, Campaign, Quote or Contract. If you pay for both Sales Cloud and Service Cloud for them, a Service Cloud license on its own covers what they do. If Service Cloud is their only license, there's nothing to save.${priced ? noticeHint : " Add what you pay per Service Cloud User to see the saving."}`,
+      count: salesUnused.length,
+      annualSavings: sum(salesUnused),
+      confidence: "low",
+      advisory: !priced,
+      needsPrice: !priced,
+    });
+  }
+
+  // 5. Seats paid for but never assigned. With a year of Lightning usage, never below the busiest month,
+  // so a company that hires for a busy season keeps the seats it will need again.
   for (const name of ["Salesforce", "Salesforce Platform"]) {
     const lic = snapshot.userLicenses.find((l) => l.name === name);
     const price = priceForLicense(prices, name) ?? 0;
     if (!lic || lic.total <= lic.used || price === 0) continue;
-    const unused = lic.total - lic.used;
+    const unassigned = lic.total - lic.used;
+    const months = (pages?.monthlyActive ?? []).filter((m) => m.license === name);
+    const busiest = months.length >= MIN_USAGE_MONTHS ? months.reduce((a, b) => (b.users > a.users ? b : a)) : null;
+    let drop = unassigned;
+    let detail = `You pay for ${lic.total} ${name} licenses but only ${lic.used} are assigned. Reduce the count at renewal.`;
+    if (busiest) {
+      // Mobile-only users don't show in Lightning usage, so recent logins set a floor too.
+      const loggedInLately = snapshot.users.filter((u) => u.licenseName === name && (daysSince(u.lastLoginDate) ?? Infinity) < inactiveDays).length;
+      const needed = Math.max(busiest.users, loggedInLately);
+      drop = Math.min(unassigned, Math.max(0, lic.total - needed));
+      if (drop === 0) {
+        notes.push(
+          `You have ${unassigned} unassigned ${name} ${plural(unassigned, "license")}, but ${busiest.users} people used one in ${monthLabel(busiest.month)}, your busiest month in the last year, so none are counted as a saving.`,
+        );
+        continue;
+      }
+      detail =
+        drop < unassigned
+          ? `You pay for ${lic.total} ${name} licenses and ${lic.used} are assigned, but ${busiest.users} people used one in ${monthLabel(busiest.month)}, your busiest month in the last year. Drop the ${drop} above that at renewal and keep the rest for your busy season.`
+          : `You pay for ${lic.total} ${name} licenses but only ${lic.used} are assigned, and even in your busiest month of the last year (${monthLabel(busiest.month)}) only ${busiest.users} people used one. Reduce the count at renewal.`;
+    }
     recommendations.push({
       id: `unused_seats:${name}`,
       category: "unused_seats",
-      title: `Drop ${unused} unassigned ${name} ${plural(unused, "license")}`,
-      detail: `You pay for ${lic.total} ${name} licenses but only ${lic.used} are assigned. Reduce the count at renewal.${noticeHint}`,
-      count: unused,
-      annualSavings: unused * price * 12,
-      confidence: "medium",
+      title: `Drop ${drop} unassigned ${name} ${plural(drop, "license")}`,
+      detail: `${detail}${name === "Salesforce" ? offboardingHint : ""}${noticeHint}`,
+      count: drop,
+      annualSavings: drop * price * 12,
+      confidence: busiest ? "high" : "medium",
       advisory: false,
     });
   }
@@ -959,6 +1079,8 @@ function licenseRow(name: string, kind: LicenseRow["kind"], total: number, used:
   };
 }
 
+const monthLabel = (month: string) =>
+  new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 const day = (date: string) => formatDate(date.length === 10 ? `${date}T00:00:00` : date);
 const normName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, " ");
 const sum = (users: FlaggedUser[]) => users.reduce((a, u) => a + u.annualSavings, 0);

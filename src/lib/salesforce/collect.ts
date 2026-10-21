@@ -1,5 +1,12 @@
 import { SF_API_VERSION, SalesforceAuthError, type SalesforceClient } from "./client";
-import type { OrgSnapshot, SnapshotInstalledPackage, SnapshotSalesforceAccount, SnapshotWriteActivity } from "./types";
+import type {
+  OrgSnapshot,
+  SnapshotDeactivation,
+  SnapshotInstalledPackage,
+  SnapshotPageUsage,
+  SnapshotSalesforceAccount,
+  SnapshotWriteActivity,
+} from "./types";
 
 // Raw record shapes, limited to the fields we select.
 interface UserRecord {
@@ -28,6 +35,18 @@ interface Limits {
   FileStorageMB?: { Max: number; Remaining: number };
 }
 
+/** Days of Lightning page views the licence fit checks look at. */
+export const PAGE_WINDOW_DAYS = 90;
+/** Pages that only Sales Cloud users can open. Opening any of them means the user needs a Sales license. */
+export const SALES_PAGES = ["Opportunity", "Lead", "Campaign", "Quote", "Contract", "Forecast"] as const;
+
+function pageNameFilter(prefixes: readonly string[]) {
+  return prefixes.map((p) => `PageName LIKE '${p}%'`).join(" OR ");
+}
+
+export const deactivatedUsersQuery = (ids: string[]) =>
+  `SELECT Id, LastLoginDate, Profile.UserLicense.Name FROM User WHERE IsActive = false AND Id IN (${ids.map((id) => `'${id.replace(/[^A-Za-z0-9]/g, "")}'`).join(", ")})`;
+
 export const QUERIES = {
   organization: "SELECT Id, Name, OrganizationType, IsSandbox FROM Organization LIMIT 1",
   users:
@@ -52,6 +71,15 @@ export const QUERIES = {
     "SELECT Id, ContractNumber, StartDate, EndDate, SalesforceContractStatus, AutoRenewCode, BillingFrequency, ContractCurrency FROM SalesforceContract",
   salesforceInvoices:
     "SELECT SalesforceContractId, InvoiceDate, TotalAmount, InvoiceCurrency FROM SalesforceInvoice WHERE InvoiceDate = LAST_N_DAYS:730 ORDER BY InvoiceDate DESC",
+  // Lightning usage (the data behind Salesforce's Lightning Usage app): page view counts per user, never what was on the page.
+  pageViews: `SELECT UserId u, SUM(TotalCount) c FROM LightningUsageByPageMetrics WHERE MetricsDate = LAST_N_DAYS:${PAGE_WINDOW_DAYS} GROUP BY UserId`,
+  salesPageViews: `SELECT UserId u, SUM(TotalCount) c FROM LightningUsageByPageMetrics WHERE MetricsDate = LAST_N_DAYS:${PAGE_WINDOW_DAYS} AND (${pageNameFilter(SALES_PAGES)}) GROUP BY UserId`,
+  casePageViews: `SELECT UserId u, SUM(TotalCount) c FROM LightningUsageByPageMetrics WHERE MetricsDate = LAST_N_DAYS:${PAGE_WINDOW_DAYS} AND (${pageNameFilter(["Case"])}) GROUP BY UserId`,
+  mobileUsers: `SELECT UserId u FROM LightningUsageByAppTypeMetrics WHERE MetricsDate = LAST_N_DAYS:${PAGE_WINDOW_DAYS} AND AppExperience = 'Salesforce Mobile' GROUP BY UserId`,
+  monthlyActiveUsers:
+    "SELECT CALENDAR_YEAR(MetricsDate) y, CALENDAR_MONTH(MetricsDate) m, User.Profile.UserLicense.Name l, COUNT_DISTINCT(UserId) c FROM LightningUsageByPageMetrics WHERE MetricsDate = LAST_N_DAYS:365 GROUP BY CALENDAR_YEAR(MetricsDate), CALENDAR_MONTH(MetricsDate), User.Profile.UserLicense.Name",
+  // Only the date and the user Id in the text are kept; the text itself isn't stored.
+  deactivations: "SELECT Display, CreatedDate FROM SetupAuditTrail WHERE Action = 'deactivateduser' AND CreatedDate = LAST_N_DAYS:180",
 } as const;
 
 /** Objects whose creates and edits count as someone actually working in Salesforce. */
@@ -88,7 +116,7 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     }
   };
 
-  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe, salesforceAccount, refreshes, serviceCloud] =
+  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe, salesforceAccount, refreshes, serviceCloud, pageUsage, deactivations] =
     await Promise.all([
       client.query<{ Id: string; Name: string; OrganizationType: string; IsSandbox: boolean }>(QUERIES.organization),
       client.query<UserRecord>(QUERIES.users),
@@ -158,6 +186,8 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
         if (e instanceof SalesforceAuthError) throw e;
         return null;
       }),
+      optional("Lightning usage", () => collectPageUsage(client), null),
+      optional("Deactivated users", () => collectDeactivations(client), null),
     ]);
 
   const organization = org[0];
@@ -236,8 +266,53 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     apiRequests: limits?.DailyApiRequests ? { max: limits.DailyApiRequests.Max, remaining: limits.DailyApiRequests.Remaining } : null,
     ownCustomObjects: Array.isArray(globalDescribe?.sobjects) ? globalDescribe.sobjects.filter((o) => isOwnCustomObject(o.name)).length : null,
     salesforceAccount,
+    pageUsage,
+    deactivations,
     warnings,
   };
+}
+
+/** Page views per user from the Lightning Usage data: counts only, never what was on a page. */
+async function collectPageUsage(client: SalesforceClient): Promise<SnapshotPageUsage> {
+  const [all, sales, cases, mobile, monthly] = await Promise.all([
+    client.query<{ u: string; c: number }>(QUERIES.pageViews),
+    client.query<{ u: string; c: number }>(QUERIES.salesPageViews),
+    client.query<{ u: string; c: number }>(QUERIES.casePageViews),
+    client.query<{ u: string }>(QUERIES.mobileUsers),
+    client.query<{ y: number; m: number; l: string | null; c: number }>(QUERIES.monthlyActiveUsers),
+  ]);
+  const byId = (rows: { u: string; c: number }[]) => Object.fromEntries(rows.filter((r) => r.u).map((r) => [r.u, r.c]));
+  return {
+    windowDays: PAGE_WINDOW_DAYS,
+    byUser: byId(all),
+    salesByUser: byId(sales),
+    casesByUser: byId(cases),
+    mobileUserIds: mobile.map((r) => r.u).filter(Boolean),
+    monthlyActive: monthly
+      .filter((r) => r.l)
+      .map((r) => ({ month: `${r.y}-${String(r.m).padStart(2, "0")}`, license: r.l!, users: r.c })),
+  };
+}
+
+/** When each recently deactivated user was deactivated and when they last logged in. */
+async function collectDeactivations(client: SalesforceClient): Promise<SnapshotDeactivation[]> {
+  const rows = await client.query<{ Display: string | null; CreatedDate: string }>(QUERIES.deactivations);
+  // The audit text reads "Deactivated user Jane Doe (UserID: [005...])". Only the Id is taken from it.
+  const dates = new Map<string, string>();
+  for (const r of rows) {
+    const id = r.Display?.match(/\[(005[A-Za-z0-9]{12,15})\]/)?.[1]?.slice(0, 15);
+    if (id && (!dates.has(id) || r.CreatedDate > dates.get(id)!)) dates.set(id, r.CreatedDate);
+  }
+  if (dates.size === 0) return [];
+  const users = await client.query<{ Id: string; LastLoginDate: string | null; Profile: { UserLicense: { Name: string } | null } | null }>(
+    deactivatedUsersQuery([...dates.keys()].slice(0, 200)),
+  );
+  return users.flatMap((u) => {
+    const deactivatedAt = dates.get(u.Id.slice(0, 15));
+    return deactivatedAt
+      ? [{ deactivatedAt, lastLoginDate: u.LastLoginDate, licenseName: u.Profile?.UserLicense?.Name ?? null }]
+      : [];
+  });
 }
 
 /** Reads the org's own Salesforce contracts and invoices, the data behind the Your Account app. */

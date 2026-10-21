@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { SalesforceAuthError, SalesforceClient } from "./client";
-import { activityQuery, collectSnapshot, isOwnCustomObject, lastActivityQuery, packageObjectsQuery, QUERIES } from "./collect";
+import { activityQuery, collectSnapshot, deactivatedUsersQuery, isOwnCustomObject, lastActivityQuery, packageObjectsQuery, QUERIES } from "./collect";
 import { explainOAuthError, parseIdentityUrl, resolveLoginHost } from "./oauth";
 
 const json = (body: unknown, status = 200) =>
@@ -100,6 +100,17 @@ describe("collectSnapshot", () => {
         },
       ],
       [QUERIES.salesforceInvoices]: [{ SalesforceContractId: "0xF1", InvoiceDate: "2026-09-30", TotalAmount: 8421.2, InvoiceCurrency: "USD" }],
+      [QUERIES.pageViews]: [{ u: "0051", c: 420 }],
+      [QUERIES.salesPageViews]: [{ u: "0051", c: 300 }],
+      [QUERIES.mobileUsers]: [{ u: "0051" }],
+      [QUERIES.monthlyActiveUsers]: [{ y: 2026, m: 9, l: "Salesforce", c: 60 }],
+      [QUERIES.deactivations]: [
+        { Display: "Deactivated user Jane Doe (UserID: [005U100000CXUtF])", CreatedDate: "2026-09-12T14:02:16.000+0000" },
+        { Display: "Deactivated user Bot (UserID: [null])", CreatedDate: "2026-09-10T00:00:00.000+0000" },
+      ],
+      [deactivatedUsersQuery(["005U100000CXUtF"])]: [
+        { Id: "005U100000CXUtFIAX", LastLoginDate: "2026-05-01T00:00:00.000+0000", Profile: { UserLicense: { Name: "Salesforce" } } },
+      ],
       [lastActivityQuery("acme__Doc__c")]: [{ c: "2026-01-02T00:00:00.000+0000", m: "2026-02-03T00:00:00.000+0000" }],
     };
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
@@ -178,6 +189,17 @@ describe("collectSnapshot", () => {
       invoices: [{ contractId: "0xF1", date: "2026-09-30", total: 8421.2, currency: "USD" }],
     });
     expect(snap.metrics).toBeUndefined();
+    expect(snap.pageUsage).toEqual({
+      windowDays: 90,
+      byUser: { "0051": 420 },
+      salesByUser: { "0051": 300 },
+      casesByUser: {},
+      mobileUserIds: ["0051"],
+      monthlyActive: [{ month: "2026-09", license: "Salesforce", users: 60 }],
+    });
+    expect(snap.deactivations).toEqual([
+      { deactivatedAt: "2026-09-12T14:02:16.000+0000", lastLoginDate: "2026-05-01T00:00:00.000+0000", licenseName: "Salesforce" },
+    ]);
   });
 
   it("never reads payment card fields from the Salesforce contract", () => {

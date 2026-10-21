@@ -2,7 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/app/legal-page";
 import { SF_API_VERSION } from "@/lib/salesforce/client";
-import { ACTIVITY_OBJECTS, ACTIVITY_WINDOW_DAYS, QUERIES, activityQuery, lastActivityQuery, packageObjectsQuery } from "@/lib/salesforce/collect";
+import {
+  ACTIVITY_OBJECTS,
+  ACTIVITY_WINDOW_DAYS,
+  QUERIES,
+  activityQuery,
+  deactivatedUsersQuery,
+  lastActivityQuery,
+  packageObjectsQuery,
+} from "@/lib/salesforce/collect";
 
 export const metadata: Metadata = {
   title: "Security",
@@ -16,11 +24,12 @@ const QUERY_LIST = [
   activityQuery("<object>", "LastModifiedById"),
   packageObjectsQuery("<namespace>"),
   lastActivityQuery("<namespace>__<object>__c"),
+  deactivatedUsersQuery(["USERIDS"]).replace("'USERIDS'", "<user ids>"),
 ];
 
 export default function SecurityPage() {
   return (
-    <LegalPage title="Security" updated="October 12, 2026" eyebrow="Security">
+    <LegalPage title="Security" updated="October 21, 2026" eyebrow="Security">
       <p>
         Salesforce Saver only reads from your org. It never creates, edits or deletes anything in Salesforce. This page lists exactly
         what it reads, what it keeps and how to cut it off.
@@ -49,6 +58,14 @@ export default function SecurityPage() {
           Record counts, not records: how many {ACTIVITY_OBJECTS.join(", ")} records each user created or edited in the last{" "}
           {ACTIVITY_WINDOW_DAYS} days, and when each installed package&apos;s objects last changed. We never read what&apos;s in those
           records.
+        </li>
+        <li>
+          Page view counts from Salesforce&apos;s own Lightning usage data: how many pages each user opened, how many of those were
+          sales or case pages, and how many people used each license per month. Never what was on a page.
+        </li>
+        <li>
+          When recently deactivated users were deactivated and last logged in, from the setup audit trail. Only the user Id is taken
+          from the audit text, which isn&apos;t stored.
         </li>
         <li>Your Salesforce contract and invoice totals, when the connected user has Manage Billing. Never payment card details.</li>
       </ul>
