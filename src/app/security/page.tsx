@@ -15,6 +15,7 @@ import {
 export const metadata: Metadata = {
   title: "Security",
   description: "Exactly what Salesforce Saver reads from your Salesforce org, what it stores and where.",
+  alternates: { canonical: "/security" },
 };
 
 /** Read straight from the scan code, so this list can't drift from what actually runs. */

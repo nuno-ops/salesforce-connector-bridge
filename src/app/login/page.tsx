@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { safeNext } from "@/lib/safe-redirect";
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
