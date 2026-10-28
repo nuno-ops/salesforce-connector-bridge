@@ -1,9 +1,13 @@
 import "./landing.css";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { aboutReady } from "@/lib/about";
 import { getCurrentUser } from "@/lib/auth";
 import { calendlyUrl } from "@/lib/env";
 import { jsonLd } from "@/lib/guides";
+
+// The site is also reachable at salesforcesaveropus.netlify.app; point Google at the real domain.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const CHECKS = [
   ["01", "Unused seats", "Paid seats held by people who haven't logged in for 30 days, frozen users and licenses nobody holds."],
