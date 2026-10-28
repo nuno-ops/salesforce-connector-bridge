@@ -10,6 +10,8 @@ export function isSiteOwner(email: string | null | undefined): boolean {
 
 export interface AnalyticsReport {
   days: number;
+  /** Browsers left out as sign-up bots (see `bots` below). */
+  botVisitors: number;
   totals: {
     visitors: number;
     views: number;
@@ -38,13 +40,21 @@ const num = (v: unknown) => Number(v ?? 0);
 export async function analyticsReport(days: number): Promise<AnalyticsReport> {
   const emails = ownerEmails().map((e) => e.toLowerCase());
   const ownerList = sql.join((emails.length ? emails : [""]).map((e) => sql`${e}`), sql`, `);
-  // Events in the window, minus the owner's own workspaces. Page views carry no workspace and are kept.
+  // Sign-up bots open /login directly, with no referrer, and never do anything else (they never confirm the email,
+  // so no signed_up event). People who arrive from a link or go anywhere else on the site are kept.
+  const bots = sql`
+    select b.visitor from analytics_events b where b.visitor is not null
+    group by b.visitor
+    having bool_and(b.name = 'page_view' and b.path = '/login' and b.referrer is null and b.utm_source is null)`;
+
+  // Events in the window, minus the owner's own workspaces and sign-up bots. Page views carry no workspace and are kept.
   const scoped = (extra: SQL) => sql`
     select * from analytics_events e
     where e.created_at >= now() - make_interval(days => ${days})
       and (e.workspace_id is null or e.workspace_id not in (
         select m.workspace_id from memberships m join profiles p on p.id = m.user_id where lower(p.email) in (${ownerList})
       ))
+      and (e.visitor is null or e.visitor not in (${bots}))
       and ${extra}`;
 
   // Where a browser came from that day: the source of its first outside page view in the 24 hours before `at`.
@@ -56,7 +66,10 @@ export async function analyticsReport(days: number): Promise<AnalyticsReport> {
     order by p.created_at limit 1`;
 
   const database = db();
-  const [totals, daily, sources, pages, signupSources, recent, landings, callSources, callPages, countries, devices] = await Promise.all([
+  const [botCount, totals, daily, sources, pages, signupSources, recent, landings, callSources, callPages, countries, devices] = await Promise.all([
+    database.execute(sql`
+      select count(distinct e.visitor) as bots from analytics_events e
+      where e.created_at >= now() - make_interval(days => ${days}) and e.visitor in (${bots})`),
     database.execute(sql`
       select
         count(distinct visitor) filter (where name = 'page_view') as visitors,
@@ -124,6 +137,7 @@ export async function analyticsReport(days: number): Promise<AnalyticsReport> {
   const t = totals[0] ?? {};
   return {
     days,
+    botVisitors: num(botCount[0]?.bots),
     totals: {
       visitors: num(t.visitors),
       views: num(t.views),

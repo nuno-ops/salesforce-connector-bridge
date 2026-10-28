@@ -78,6 +78,12 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin"
           Cookie-free: a visitor is one browser on one day. Bots and your own account are left out. Counts of companies
           (sign-ups onwards) are workspaces that did that step in this period.
         </p>
+        {report.botVisitors > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Also left out: {formatNumber(report.botVisitors)} sign-up {report.botVisitors === 1 ? "bot" : "bots"} (browsers that
+            only opened the sign-in page, without coming from a link, and did nothing else).
+          </p>
+        )}
       </div>
 
       <Card>

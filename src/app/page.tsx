@@ -171,8 +171,8 @@ export default async function Home() {
               <Link className="primary-hero" href={start}>
                 {user ? "Go to your orgs" : "Start a free scan"} <span>→</span>
               </Link>
-              <a className="secondary-hero" href="#how">
-                How it works <span>↓</span>
+              <a className="secondary-hero" href={calendlyUrl()} target="_blank" rel="noreferrer">
+                Or scan it together on a call <span>↗</span>
               </a>
             </div>
             <p className="trust-line">
