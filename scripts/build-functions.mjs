@@ -3,7 +3,11 @@
 import { build } from "esbuild";
 
 await build({
-  entryPoints: { "scan-background": "src/background/scan-background.ts", daily: "src/background/daily.ts" },
+  entryPoints: {
+    "scan-background": "src/background/scan-background.ts",
+    daily: "src/background/daily.ts",
+    "deploy-succeeded": "src/background/deploy-succeeded.ts",
+  },
   outdir: "netlify/functions",
   outExtension: { ".js": ".mjs" },
   bundle: true,
