@@ -1,0 +1,102 @@
+import "server-only";
+import { and, desc, eq } from "drizzle-orm";
+import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
+import { trackStep } from "@/lib/analytics";
+import { db, schema } from "@/lib/db";
+import { sendSignupAlert } from "@/lib/signup-alert";
+import { supabaseConfig } from "@/lib/supabase/config";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export interface CurrentUser {
+  id: string;
+  email: string;
+  fullName: string | null;
+  /** How they signed in: "email" or "google". */
+  provider: string | null;
+}
+
+/** The signed-in user, verified from the session JWT. `null` when signed out. */
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  if (!supabaseConfig()) return null;
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
+  const meta = (claims.user_metadata ?? {}) as Record<string, unknown>;
+  const appMeta = (claims.app_metadata ?? {}) as Record<string, unknown>;
+  return {
+    id: claims.sub,
+    email: String(claims.email ?? ""),
+    fullName: typeof meta.full_name === "string" ? meta.full_name : null,
+    provider: typeof appMeta.provider === "string" ? appMeta.provider : null,
+  };
+});
+
+export async function requireUser(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
+export interface WorkspaceContext {
+  user: CurrentUser;
+  workspace: typeof schema.workspaces.$inferSelect;
+  role: (typeof schema.memberRole.enumValues)[number];
+}
+
+/**
+ * The user's workspace, created on first visit. Someone who joins through a colleague's invite
+ * (lib/invites.ts) gets no personal workspace and works in the colleague's.
+ */
+export const requireWorkspace = cache(async (): Promise<WorkspaceContext> => {
+  const user = await requireUser();
+  const database = db();
+
+  const [existing] = await database
+    .select({ workspace: schema.workspaces, role: schema.memberships.role })
+    .from(schema.memberships)
+    .innerJoin(schema.workspaces, eq(schema.workspaces.id, schema.memberships.workspaceId))
+    .where(eq(schema.memberships.userId, user.id))
+    // The most recently joined: someone who accepts a colleague's invite lands in that workspace.
+    .orderBy(desc(schema.memberships.createdAt))
+    .limit(1);
+  if (existing) return { user, ...existing };
+
+  const created = await database.transaction(async (tx) => {
+    await tx
+      .insert(schema.profiles)
+      .values({ id: user.id, email: user.email, fullName: user.fullName })
+      .onConflictDoNothing();
+    const [workspace] = await tx
+      .insert(schema.workspaces)
+      .values({ name: user.fullName ? `${user.fullName}'s workspace` : "My workspace" })
+      .returning();
+    await tx.insert(schema.memberships).values({ workspaceId: workspace.id, userId: user.id, role: "owner" });
+    await tx.insert(schema.entitlements).values({ workspaceId: workspace.id }).onConflictDoNothing();
+    return { user, workspace, role: "owner" as const };
+  });
+  // First workspace means a brand-new account, so let the owner know.
+  await sendSignupAlert(user);
+  await trackStep("signed_up", { userId: user.id, workspaceId: created.workspace.id, props: { method: user.provider } });
+  return created;
+});
+
+/** A Salesforce connection the current user may access, or a 404. */
+export async function requireConnection(connectionId: string) {
+  const user = await requireUser();
+  if (!/^[0-9a-f-]{36}$/i.test(connectionId)) notFound();
+  // One round trip: the connection, its workspace and the user's role, only if they're a member.
+  const [row] = await db()
+    .select({ connection: schema.sfConnections, workspace: schema.workspaces, role: schema.memberships.role })
+    .from(schema.sfConnections)
+    .innerJoin(
+      schema.memberships,
+      and(eq(schema.memberships.workspaceId, schema.sfConnections.workspaceId), eq(schema.memberships.userId, user.id)),
+    )
+    .innerJoin(schema.workspaces, eq(schema.workspaces.id, schema.sfConnections.workspaceId))
+    .where(eq(schema.sfConnections.id, connectionId))
+    .limit(1);
+  if (!row) notFound();
+  return { user, ...row };
+}
