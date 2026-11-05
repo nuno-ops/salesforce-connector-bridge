@@ -11,7 +11,7 @@ const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://salesforcesaver.com";
 export const metadata: Metadata = {
   title: "About Salesforce Saver",
   description:
-    "Salesforce Saver is built by Nuno, a Salesforce consultant in Portugal with 10 years of Salesforce experience in retail, finance and SaaS, from admin to solution architect.",
+    "Salesforce Saver is built by Nuno, a Salesforce consultant in Portugal with 10 years in retail, finance and SaaS orgs, from admin to solution architect.",
   alternates: { canonical: "/about" },
 };
 

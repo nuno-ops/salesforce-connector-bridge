@@ -329,7 +329,7 @@ export const GUIDES: Guide[] = [
     slug: "salesforce-renewal-notice-period",
     title: "When to give Salesforce notice before renewal",
     description:
-      "Salesforce subscriptions renew automatically. Where the notice period is set, what the standard terms say, what happens if you miss it, and how to find your contract end date.",
+      "Salesforce renews automatically. Where the notice period is set, what the standard terms say, what happens if you miss it, and how to find your end date.",
     answer:
       "Give Salesforce written notice before the deadline in your order form; if the order form doesn't set one, Salesforce's standard Main Services Agreement asks for written notice, which can be by email, at least 30 days before the subscription term ends. Without notice, the subscription renews automatically, by default for one year, at the same quantities.",
     updated: "October 19, 2026",
@@ -461,7 +461,7 @@ export const GUIDES: Guide[] = [
     slug: "salesforce-sandbox-cost",
     title: "What a Salesforce sandbox really costs",
     description:
-      "Which Salesforce sandboxes come with your edition, how paid sandboxes are priced as a share of your spend, how to list them with their last refresh, and when to drop one.",
+      "Which sandboxes come with your edition, how paid sandboxes are priced as a share of your spend, how to list them with their last refresh, and when to drop one.",
     answer:
       "Developer sandboxes are included with Salesforce CRM licenses, while paid sandboxes are priced as a share of what you spend: Salesforce lists Developer Pro at 5%, Partial Copy at 20% and Full Copy at 30% of net spend. Enterprise Edition includes one Partial Copy and Unlimited and Performance include one Full Copy as well, so any sandbox beyond that is a paid add-on on your order form.",
     updated: "October 19, 2026",
@@ -840,7 +840,7 @@ export const GUIDES: Guide[] = [
     slug: "buy-salesforce-through-aws-marketplace",
     title: "Buying Salesforce through AWS Marketplace to use your AWS commitment",
     description:
-      "Salesforce sells through AWS Marketplace by private offer. When the listing is Deployed on AWS, the spend can count toward an AWS commitment (EDP or private pricing agreement), within the cap in your AWS contract.",
+      "Salesforce sells on AWS Marketplace by private offer. If the listing is Deployed on AWS, the spend can count toward your AWS commitment, up to your cap.",
     answer:
       "Yes: Salesforce sells products such as Sales Cloud, Service Cloud, Data Cloud and Agentforce through AWS Marketplace, and when the listing is marked \"Deployed on AWS\" the spend can count toward an AWS spend commitment (EDP or private pricing agreement). The Salesforce price isn't lower there; the saving is paying Salesforce with AWS money you have already committed and would otherwise leave unused.",
     updated: "October 20, 2026",
@@ -902,7 +902,7 @@ export const GUIDES: Guide[] = [
     slug: "buy-salesforce-through-google-cloud-or-azure",
     title: "Can you buy Salesforce through Google Cloud or Microsoft Azure?",
     description:
-      "What Salesforce lists on Google Cloud Marketplace and Azure Marketplace today, how commit drawdown and MACC work, and where the apps around Salesforce can still count toward your commitment.",
+      "What Salesforce lists on Google Cloud and Azure Marketplace, how commit drawdown and MACC work, and which apps around Salesforce count toward your commitment.",
     answer:
       "Not for core Sales Cloud or Service Cloud licences yet. On Google Cloud Marketplace, Salesforce names one listing, Agentforce Sales Agent for Gemini Enterprise, in beta; on Azure Marketplace, the Salesforce listing we found is a single sign-on app that needs an existing subscription. Some apps you use with Salesforce, such as Docusign on Azure, can count toward those commitments.",
     updated: "October 20, 2026",
