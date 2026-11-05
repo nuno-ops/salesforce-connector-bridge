@@ -7,6 +7,8 @@ import { stepRate } from "@/lib/analytics/core";
 import { analyticsReport, isSiteOwner } from "@/lib/analytics/report";
 import { requireUser } from "@/lib/auth";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { sendPagesToBingAction } from "./actions";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -47,7 +49,9 @@ function describe(name: string, props: Record<string, unknown> | null) {
 export default async function AnalyticsPage({ searchParams }: PageProps<"/admin">) {
   const user = await requireUser();
   if (!isSiteOwner(user.email)) notFound();
-  const requested = Number((await searchParams).days);
+  const params = await searchParams;
+  const requested = Number(params.days);
+  const indexNowStatus = Number(params.indexnow) || null;
   const days = RANGES.find((r) => r === requested) ?? 30;
   const report = await analyticsReport(days);
   const t = report.totals;
@@ -228,6 +232,28 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin"
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Bing and IndexNow</CardTitle>
+          <CardDescription>
+            Each new build tells Bing about every page, but it does so before you publish. After you publish a build
+            with new or changed pages, press this so Bing crawls the live versions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-4">
+          <form action={sendPagesToBingAction}>
+            <Button type="submit">Send all pages to Bing</Button>
+          </form>
+          {indexNowStatus && (
+            <p className="text-sm">
+              {indexNowStatus === 200 || indexNowStatus === 202
+                ? `Sent. Bing accepted it (${indexNowStatus}); it shows in Bing Webmaster Tools > IndexNow within a day or two.`
+                : `Bing answered ${indexNowStatus}, so it was not accepted. Try again in a few minutes.`}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

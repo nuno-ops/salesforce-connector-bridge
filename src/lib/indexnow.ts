@@ -9,10 +9,13 @@ export function indexNowBody(urls: string[]) {
   return { host, key: INDEXNOW_KEY, keyLocation: `https://${host}/${INDEXNOW_KEY}.txt`, urlList: urls };
 }
 
-/** Returns the HTTP status; 200 and 202 both mean accepted. */
+/**
+ * Sends straight to Bing (it shares submissions with the other IndexNow engines), so they show in Bing Webmaster
+ * Tools. Returns the HTTP status; 200 and 202 both mean accepted.
+ */
 export async function submitToIndexNow(urls: string[]): Promise<number> {
   if (urls.length === 0) return 204;
-  const res = await fetch("https://api.indexnow.org/indexnow", {
+  const res = await fetch("https://www.bing.com/indexnow", {
     method: "POST",
     headers: { "Content-Type": "application/json; charset=utf-8" },
     body: JSON.stringify(indexNowBody(urls)),
