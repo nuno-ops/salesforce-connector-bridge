@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LegalPage } from "@/components/app/legal-page";
 import { authorJsonLd, byline } from "@/lib/about";
-import { GUIDES, getGuide, jsonLd } from "@/lib/guides";
+import { GUIDES, getGuide, jsonLd, parseInline } from "@/lib/guides";
 
 const SITE = process.env.NEXT_PUBLIC_APP_URL ?? "https://salesforcesaver.com";
 
@@ -62,7 +62,11 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
       {guide.sections.map((s) => (
         <section key={s.heading} className="flex flex-col gap-4">
           <h2>{s.heading}</h2>
-          {s.paragraphs?.map((p) => <p key={p}>{p}</p>)}
+          {s.paragraphs?.map((p) => (
+            <p key={p}>
+              <Inline text={p} />
+            </p>
+          ))}
           {s.code && (
             <pre className="overflow-x-auto rounded-md border border-foreground/10 bg-foreground/[0.03] p-4">
               <code>{s.code}</code>
@@ -71,7 +75,9 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
           {s.list && (
             <ul>
               {s.list.map((li) => (
-                <li key={li}>{li}</li>
+                <li key={li}>
+                  <Inline text={li} />
+                </li>
               ))}
             </ul>
           )}
@@ -116,5 +122,17 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
         </li>
       </ul>
     </LegalPage>
+  );
+}
+
+function Inline({ text }: { text: string }) {
+  return parseInline(text).map((part, i) =>
+    part.href ? (
+      <Link key={i} href={part.href} className="underline">
+        {part.text}
+      </Link>
+    ) : (
+      part.text
+    ),
   );
 }

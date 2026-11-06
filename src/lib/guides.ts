@@ -3,6 +3,10 @@
  * assistants can quote it. Keep facts to what Salesforce documents or what the scan actually does; no invented figures.
  */
 
+/**
+ * Paragraphs and list items may contain in-body links written as `[anchor](/guides/slug)` (or `/login`, `/security`).
+ * Keep them to 3-5 per guide, each target once, never the guide itself, never in headings, answers or FAQs.
+ */
 export type GuideSection = {
   heading: string;
   paragraphs?: string[];
@@ -42,19 +46,19 @@ export const GUIDES: Guide[] = [
       {
         heading: "2. Put people on the right license",
         paragraphs: [
-          "A full Sales Cloud or Service Cloud license is only needed by people who work with Leads, Opportunities or Cases. Users who only need Accounts, Contacts, activities and custom objects can often move to a Salesforce Platform license. Integrations that only call the API can run on the Salesforce Integration license, five of which come free with Enterprise, Unlimited and Performance editions.",
+          "A full Sales Cloud or Service Cloud license is only needed by people who work with Leads, Opportunities or Cases. Users who only need Accounts, Contacts, activities and custom objects can often move to a [Salesforce Platform license](/guides/salesforce-platform-license-vs-full-license). Integrations that only call the API can run on the [Salesforce Integration license](/guides/salesforce-integration-user-license), five of which come free with Enterprise, Unlimited and Performance editions.",
         ],
       },
       {
         heading: "3. Cancel apps and sandboxes nobody uses",
         paragraphs: [
-          "Installed AppExchange packages and connected apps are often paid per seat or per year and outlive the project they were bought for. Full Copy and Partial Copy sandboxes are paid add-ons too; one nobody has refreshed in a year is a candidate to drop.",
+          "[Installed AppExchange packages and connected apps](/guides/find-unused-salesforce-apps) are often paid per seat or per year and outlive the project they were bought for. [Full Copy and Partial Copy sandboxes](/guides/salesforce-sandbox-cost) are paid add-ons too; one nobody has refreshed in a year is a candidate to drop.",
         ],
       },
       {
         heading: "4. Act before the renewal notice date",
         paragraphs: [
-          "Salesforce subscriptions can't be reduced mid-term, and they renew automatically unless you give notice before the date in your order form. Take the list of seats and apps to drop to your account executive before that date, along with the price increase you are willing to accept.",
+          "Salesforce subscriptions can't be reduced mid-term, and they renew automatically unless you [give notice before the date in your order form](/guides/salesforce-renewal-notice-period). Take the list of seats and apps to drop to your account executive before that date, along with the price increase you are willing to accept.",
         ],
       },
       {
@@ -93,15 +97,15 @@ export const GUIDES: Guide[] = [
         heading: "Before you deactivate anyone",
         list: [
           "Skip people created in the last 30 days; they may not have started yet.",
-          "Check whether the user runs an integration. Integration logins often don't show as interactive logins; move those to an Integration license instead.",
-          "Check what the user owns: records, scheduled reports, flows running as them, and default owner settings. Reassign before deactivating.",
-          "If you need to cut access straight away but can't deactivate yet, freeze the user. Freezing doesn't free the license, so deactivate once the clean-up is done.",
+          "Check whether the user runs an integration. Integration logins often don't show as interactive logins; move those to an [Integration license](/guides/salesforce-integration-user-license) instead.",
+          "Check what the user owns: records, scheduled reports, flows running as them, and default owner settings. [Reassign before deactivating](/guides/deactivate-salesforce-user-without-losing-data).",
+          "If you need to cut access straight away but can't deactivate yet, freeze the user. [Freezing doesn't free the license](/guides/do-frozen-salesforce-users-use-a-license), so deactivate once the clean-up is done.",
         ],
       },
       {
         heading: "Logging in isn't the same as needing the license",
         paragraphs: [
-          "Some people log in but only read. A user who hasn't created or edited an Account, Contact, Lead, Opportunity, Case, Task or Event in 90 days may fit a cheaper license. Salesforce Saver checks this alongside last login, and counts records per user without reading what's in them.",
+          "Some people log in but only read. A user who hasn't created or edited an Account, Contact, Lead, Opportunity, Case, Task or Event in 90 days [may fit a cheaper license](/guides/salesforce-platform-license-vs-full-license). Salesforce Saver checks this alongside last login, and counts records per user without reading what's in them.",
         ],
       },
     ],
@@ -128,7 +132,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "Freeze vs deactivate",
         list: [
-          "Freeze: blocks login straight away. The license stays assigned. Useful while you reassign records or remove the user from hierarchies, workflows and default owner settings that stop deactivation.",
+          "Freeze: blocks login straight away. The license stays assigned. Useful while you reassign records or remove the user from hierarchies, workflows and [default owner settings that stop deactivation](/guides/deactivate-salesforce-user-without-losing-data).",
           "Deactivate: blocks login and frees the license for someone else. The user's records stay in the org.",
         ],
       },
@@ -140,7 +144,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "When it saves money",
         paragraphs: [
-          "Deactivating frees the seat now, so you don't buy another for the next starter. Your bill only drops when you reduce the number of seats at renewal, before the notice date in your order form.",
+          "Deactivating frees the seat now, so you don't buy another for the next starter. Your bill only drops when you [reduce the number of seats at renewal](/guides/salesforce-renewal-checklist), before [the notice date in your order form](/guides/salesforce-renewal-notice-period).",
         ],
       },
     ],
@@ -165,20 +169,20 @@ export const GUIDES: Guide[] = [
         heading: "What the license allows",
         list: [
           "API access only. The user can't log in to the Salesforce interface.",
-          "It uses the Minimum Access - API Only Integrations profile. Grant object access with permission sets and the Salesforce API Integration permission set license.",
+          "It uses the Minimum Access - API Only Integrations profile. Grant object access with permission sets and the Salesforce API Integration [permission set license](/guides/salesforce-license-types).",
           "Extra Integration licenses beyond the free ones are a paid add-on.",
         ],
       },
       {
         heading: "How to spot integrations on full licenses",
         paragraphs: [
-          "Look for users named after a tool (\"API\", \"sync\", \"integration\", a vendor name) and for users whose logins are almost all API calls. In Setup, Connected Apps OAuth Usage shows which apps each user authorises.",
+          "Look for users named after a tool (\"API\", \"sync\", \"integration\", a vendor name) and for users whose logins are almost all API calls. In Setup, [Connected Apps OAuth Usage](/guides/find-unused-salesforce-apps) shows which apps each user authorises.",
         ],
       },
       {
         heading: "Moving one",
         paragraphs: [
-          "Create a new user with the Salesforce Integration license, give it the permission sets the tool needs, re-authorise the tool as that user and test it, then deactivate the old full-license user. Check the tool's documentation first: some vendors require a specific license.",
+          "Create a new user with the Salesforce Integration license, give it the permission sets the tool needs, re-authorise the tool as that user and test it, then [deactivate the old full-license user](/guides/deactivate-salesforce-user-without-losing-data). Check the tool's documentation first: some vendors require a specific license.",
         ],
       },
     ],
@@ -209,7 +213,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "How to check",
         paragraphs: [
-          "For each full-license user, check whether their profile and permission sets can read Opportunities, Leads or Cases, and whether they created or edited any of those records recently. A user with no access to them already works like a Platform user. Changing a user's license usually needs a new profile assigned at the same time.",
+          "For each [full-license user](/guides/salesforce-license-types), check whether their profile and permission sets can read Opportunities, Leads or Cases, and whether they [created or edited any of those records recently](/guides/find-inactive-salesforce-users). A user with no access to them already works like a Platform user. Changing a user's license usually needs a new profile assigned at the same time.",
         ],
       },
     ],
@@ -232,13 +236,13 @@ export const GUIDES: Guide[] = [
       {
         heading: "Checklist",
         list: [
-          "Contract end date and notice period (in your order form). If you have the Manage Billing permission, Setup shows your contract and invoices under Your Account.",
+          "Contract end date and [notice period](/guides/salesforce-renewal-notice-period) (in your order form). If you have the Manage Billing permission, Setup shows your contract and invoices under Your Account.",
           "Active users with no login for 30 days, frozen users, and duplicate accounts.",
-          "Full licenses held by people who could use Platform, and integrations that could use the free Integration licenses.",
+          "Full licenses held by people who [could use Platform](/guides/salesforce-platform-license-vs-full-license), and integrations that could use the free Integration licenses.",
           "Licenses you pay for that aren't assigned to anyone.",
-          "AppExchange and connected apps nobody used in 90 days.",
-          "Full and Partial Copy sandboxes nobody refreshed in a year.",
-          "How much your invoices rose against the same period last year, and what increase you will accept.",
+          "[AppExchange and connected apps nobody used in 90 days](/guides/find-unused-salesforce-apps).",
+          "[Full and Partial Copy sandboxes nobody refreshed in a year](/guides/salesforce-sandbox-cost).",
+          "How much your invoices rose against the same period last year, and [what increase you will accept](/guides/salesforce-renewal-price-increase).",
         ],
       },
       {
@@ -276,7 +280,7 @@ export const GUIDES: Guide[] = [
         heading: "What each edition includes, according to Salesforce",
         list: [
           "All three: Agentforce, Slack with Slackbot, embedded analytics, data security features and Premier Success Plans, according to Salesforce's announcement.",
-          "Core: Slack Business+, 500,000 Flex Credits per org per year and one Partial Copy sandbox. A Full Copy sandbox is extra.",
+          "Core: Slack Business+, 500,000 Flex Credits per org per year and one Partial Copy sandbox. [A Full Copy sandbox is extra](/guides/salesforce-sandbox-cost).",
           "Advanced: everything in Core, plus Backup & Recover, Data Detect and Security Center, one Full Copy sandbox and 1 million Flex Credits per org per year. Sales adds Sales Programs; Service adds the Help Agent.",
           "Max: everything in Advanced, plus the full Agentforce for Sales or Service suite, Slack Enterprise+ and 2.75 million Flex Credits per org per year. Service adds Workforce Engagement and IT Service.",
         ],
@@ -287,7 +291,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "If you are on Enterprise or Unlimited today",
         paragraphs: [
-          "Salesforce's announcement says existing pricing on legacy editions is unchanged. It doesn't say whether you can keep renewing Enterprise or Unlimited, for how long, or whether the usual renewal increase still applies. Advisory firms expect renewal conversations to steer customers towards the new editions, and warn that once a bundle is signed you may not be able to drop one part of it at the next renewal.",
+          "Salesforce's announcement says existing pricing on legacy editions is unchanged. It doesn't say whether you can keep renewing Enterprise or Unlimited, for how long, or whether [the usual renewal increase](/guides/salesforce-renewal-price-increase) still applies. Advisory firms expect renewal conversations to steer customers towards the new editions, and warn that once a bundle is signed you may not be able to drop one part of it at the next renewal.",
           "If you already pay separately for Slack, Premier Success, a backup tool or a Full Copy sandbox, add those costs up before comparing them with a bundle. If you don't use them, the bundle mostly means a higher per-seat price.",
         ],
       },
@@ -305,7 +309,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "Before the conversation",
         paragraphs: [
-          "Decide how many seats you actually need first, because every edition is priced per user. Salesforce Saver's read-only scan lists inactive, frozen and unassigned seats, reads your contract end date when you connect as a user with the Manage Billing permission, and on Unlimited orgs checks whether your API calls and custom objects would fit within Enterprise limits.",
+          "[Decide how many seats you actually need first](/guides/how-to-reduce-salesforce-license-costs), because every edition is priced per user. [Salesforce Saver's read-only scan](/login) lists inactive, frozen and unassigned seats, reads your contract end date when you connect as a user with the Manage Billing permission, and on Unlimited orgs checks whether your API calls and custom objects would fit within Enterprise limits.",
         ],
       },
     ],
@@ -338,7 +342,7 @@ export const GUIDES: Guide[] = [
         heading: "How automatic renewal works",
         paragraphs: [
           "Salesforce's published Main Services Agreement sets the subscription term in each order form. Unless the order form says otherwise, subscriptions renew automatically for one year at a time, unless either side gives written notice at least 30 days before the term ends. Purchased quantities can't be reduced during a term, and fees are non-cancellable.",
-          "Two renewal details in the same clause matter for the price. Subscriptions bought at a promotional or one-off price renew at Salesforce's list price unless the order form says otherwise. And if you reduce quantities or shorten the term at renewal, Salesforce can reset the per-unit price, whatever you paid before.",
+          "Two renewal details in the same clause matter for the price. Subscriptions bought at a promotional or one-off price renew at Salesforce's list price unless the order form says otherwise. And if you reduce quantities or shorten the term at renewal, Salesforce can [reset the per-unit price](/guides/salesforce-renewal-price-increase), whatever you paid before.",
         ],
       },
       {
@@ -352,7 +356,7 @@ export const GUIDES: Guide[] = [
         heading: "What happens if you miss it",
         list: [
           "The subscription renews for another term, one year by default, with the same products and quantities.",
-          "Seats you deactivated during the year keep costing money, because quantities can't be reduced until the next renewal.",
+          "[Seats you deactivated](/guides/deactivate-salesforce-user-without-losing-data) during the year keep costing money, because quantities can't be reduced until the next renewal.",
           "Any increase written into your order form applies.",
           "You can still ask your account executive for changes, but they don't have to agree once the date has passed.",
         ],
@@ -367,7 +371,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "Work back from the date",
         paragraphs: [
-          "Subtract the notice period from the end date and put that deadline in the calendar, then start the review about 90 days before the end date so the list of seats and apps to drop is ready in time. Salesforce Saver reads your contract end date when you connect as a user with Manage Billing, and shows the date to give notice by under the standard 30-day terms next to each saving; check your order form in case yours differs.",
+          "Subtract the notice period from the end date and put that deadline in the calendar, then start the review about 90 days before the end date so [the list of seats and apps to drop](/guides/salesforce-renewal-checklist) is ready in time. [Salesforce Saver reads your contract end date](/login) when you connect as a user with Manage Billing, and shows the date to give notice by under the standard 30-day terms next to each saving; check your order form in case yours differs.",
         ],
       },
     ],
@@ -402,7 +406,7 @@ export const GUIDES: Guide[] = [
           "Salesforce's Main Services Agreement (last updated September 15, 2025) is the base contract behind most order forms. Unless your order form says otherwise:",
         ],
         list: [
-          "Subscriptions renew automatically for one year unless either side gives written notice at least 30 days before the term ends.",
+          "Subscriptions renew automatically for one year unless either side gives [written notice at least 30 days before the term ends](/guides/salesforce-renewal-notice-period).",
           "Promotional or one-time priced subscriptions renew at Salesforce's list price in effect at renewal.",
           "If you renew fewer seats or a shorter term, the renewal can be re-priced \"without regard to the prior term's per-unit pricing\".",
           "Quantities can't be decreased during a subscription term.",
@@ -416,7 +420,7 @@ export const GUIDES: Guide[] = [
         ],
         list: [
           "August 2023: list prices rose an average of 9% across Sales Cloud, Service Cloud, Marketing Cloud, Industries and Tableau, for new customers and existing customers buying new clouds.",
-          "August 1, 2025: list prices rose an average of 6% for Enterprise and Unlimited editions of Sales Cloud, Service Cloud, Field Service and select Industries Clouds. Salesforce said Foundations, Starter and Pro editions were not changing.",
+          "August 1, 2025: list prices rose an average of 6% for [Enterprise and Unlimited editions](/guides/salesforce-core-advanced-max-editions) of Sales Cloud, Service Cloud, Field Service and select Industries Clouds. Salesforce said Foundations, Starter and Pro editions were not changing.",
         ],
       },
       {
@@ -430,14 +434,14 @@ export const GUIDES: Guide[] = [
         list: [
           "Read your order form for an uplift or price protection clause, and note the notice date. Without notice, subscriptions renew automatically.",
           "Ask for a cap on the per-unit price for the renewal term, in writing in the order form. A verbal promise from an account executive doesn't bind the renewal.",
-          "Decide which unused seats, apps and sandboxes to drop first, and agree the per-unit price for the smaller quantity at the same time, because the contract lets Salesforce re-price a renewal with fewer seats.",
+          "Decide which [unused seats, apps and sandboxes](/guides/how-to-reduce-salesforce-license-costs) to drop first, and agree the per-unit price for the smaller quantity at the same time, because the contract lets Salesforce re-price a renewal with fewer seats.",
           "Mind the timing: Salesforce's fiscal year ends January 31, so November to January is its fourth quarter. Redress advises starting preparation in October.",
         ],
       },
       {
         heading: "Check what you actually paid",
         paragraphs: [
-          "Compare this year's invoices with the same period last year; with the Manage Billing permission you can see them in Setup under Your Account. Salesforce Saver reads your Salesforce invoices, shows how much they rose against a year ago, and lists the seats you could drop before renewal.",
+          "Compare this year's invoices with the same period last year; with the Manage Billing permission you can see them in Setup under Your Account. [Salesforce Saver reads your Salesforce invoices](/login), shows how much they rose against a year ago, and lists the seats you could drop before renewal.",
         ],
       },
     ],
@@ -481,7 +485,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "How paid sandboxes are priced",
         paragraphs: [
-          "Salesforce's sandbox pricing page lists Developer Pro at 5%, Partial Copy at 20% and Full Copy at 30% of net spend, meaning a percentage of what you spend on other applicable Salesforce products. Because the price is a share of your spend, it rises when your spend does. As an illustration, at 30% a Full Copy on $100,000 a year of applicable spend would be $30,000 a year. Salesforce says the page is for information only, so the figure that counts is the one on your order form.",
+          "Salesforce's sandbox pricing page lists Developer Pro at 5%, Partial Copy at 20% and Full Copy at 30% of net spend, meaning a percentage of what you spend on other applicable Salesforce products. Because the price is a share of your spend, [it rises when your spend does](/guides/salesforce-renewal-price-increase). As an illustration, at 30% a Full Copy on $100,000 a year of applicable spend would be $30,000 a year. Salesforce says the page is for information only, so the figure that counts is the one on your order form.",
         ],
       },
       {
@@ -497,13 +501,13 @@ export const GUIDES: Guide[] = [
           "A Full Copy or Partial Copy nobody has refreshed in a year is rarely used for testing. Confirm with your team before deleting it.",
           "Sandboxes your edition includes cost nothing extra, so dropping them saves nothing.",
           "A deleted sandbox can't be recovered, and deleting it also erases outbound change sets uploaded from it. Delete is only available once the sandbox's refresh interval has passed.",
-          "Deleting a sandbox doesn't end its subscription. To stop paying, reduce the sandbox quantity at renewal, before the notice date in your order form.",
+          "Deleting a sandbox doesn't end its subscription. To stop paying, [reduce the sandbox quantity at renewal](/guides/salesforce-renewal-checklist), before [the notice date in your order form](/guides/salesforce-renewal-notice-period).",
         ],
       },
       {
         heading: "Checking by hand or with a scan",
         paragraphs: [
-          "The Setup list and the queries above are enough to check by hand. Salesforce Saver lists your sandboxes through the Tooling API, flags Full Copy and Partial Copy sandboxes not refreshed in a year beyond the ones your edition includes, and prices them once you add your sandbox price.",
+          "The Setup list and the queries above are enough to check by hand. [Salesforce Saver lists your sandboxes](/login) through the Tooling API, flags Full Copy and Partial Copy sandboxes not refreshed in a year beyond the ones your edition includes, and prices them once you add your sandbox price.",
         ],
       },
     ],
@@ -551,14 +555,14 @@ export const GUIDES: Guide[] = [
       {
         heading: "Freeze first, then clean up",
         paragraphs: [
-          "Freezing blocks the login straight away but keeps the license assigned. Use it on the day someone leaves, then work through the clean-up before you deactivate:",
+          "Freezing blocks the login straight away but [keeps the license assigned](/guides/do-frozen-salesforce-users-use-a-license). Use it on the day someone leaves, then work through the clean-up before you deactivate:",
         ],
         list: [
           "Fix the blockers above and remove the user from approval processes, or give their approvals to someone else.",
           "Change the owner and running user of any dashboard they own, or it may not show the expected results.",
           "Transfer their records. Mass Transfer Records in Setup moves accounts, leads, service contracts and custom object records, up to 250 at a time; transferring an account can also move its contacts, open activities, opportunities and cases. For more records, update the owner with Data Loader.",
           "Transfer ownership before deactivating if they own more than 10,000 records of one object, to avoid performance problems. Processes built in Process Builder also can't update records owned by inactive users.",
-          "Check for integrations that log in as them. A deactivated user can't log in, through the API either, so move each tool to a dedicated integration user and test it first. Connected Apps OAuth Usage in Setup shows which apps each user has authorised.",
+          "Check for integrations that log in as them. A deactivated user can't log in, through the API either, so move each tool to [a dedicated integration user](/guides/salesforce-integration-user-license) and test it first. Connected Apps OAuth Usage in Setup shows which apps each user has authorised.",
         ],
       },
       {
@@ -569,7 +573,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "Reusing the license",
         paragraphs: [
-          "A deactivated user no longer counts against your available licenses, so you can give the seat to a new starter instead of buying another. Your bill doesn't change until you lower the license count, which in practice means at renewal, before the notice date in your order form. Salesforce Saver lists frozen and inactive users still holding a paid seat, so you know who to work through.",
+          "A deactivated user no longer counts against your available licenses, so you can give the seat to a new starter instead of buying another. Your bill doesn't change until you lower the license count, which in practice means at renewal, before [the notice date in your order form](/guides/salesforce-renewal-notice-period). Salesforce Saver lists [frozen and inactive users still holding a paid seat](/guides/find-inactive-salesforce-users), so you know who to work through.",
         ],
       },
     ],
@@ -602,7 +606,7 @@ export const GUIDES: Guide[] = [
         heading: "What the Service Cloud User license gives",
         paragraphs: [
           "Salesforce describes the Service Cloud User feature license as entitling users to \"additional Salesforce features, such as the Service Console\". In its list of feature licenses the entry reads \"Access the Salesforce Console for Service\". Knowledge is a separate feature license (Knowledge User), and the Sales Console needs its own Sales Console User permission set license.",
-          "Without it, a user on a full Salesforce license still has standard CRM objects, and Salesforce Ben describes Sales Cloud as including \"some very basic case management features\". Whether a given user can read, create or edit Cases depends on their profile and permission sets, so check those rather than assuming.",
+          "Without it, a user on a [full Salesforce license](/guides/salesforce-license-types) still has standard CRM objects, and Salesforce Ben describes Sales Cloud as including \"some very basic case management features\". Whether a given user can read, create or edit Cases depends on their profile and permission sets, so check those rather than assuming.",
         ],
       },
       {
@@ -628,7 +632,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "At renewal",
         paragraphs: [
-          "Untick Service Cloud User on the users who don't need it, then compare the number still assigned with the quantity on your order form. If Service Cloud User is a separate line, ask your account executive to reduce it before the notice date. If it comes bundled with your main licenses, there is nothing to save on that line. Salesforce Saver flags users with the license who created or edited no Cases in 90 days, and prices them at what you tell it you pay per Service Cloud User.",
+          "Untick Service Cloud User on the users who don't need it, then compare the number still assigned with the quantity on your order form. If Service Cloud User is a separate line, ask your account executive to reduce it [before the notice date](/guides/salesforce-renewal-notice-period). If it comes bundled with your main licenses, there is nothing to save on that line. [Salesforce Saver flags users with the license](/login) who created or edited no Cases in 90 days, and prices them at what you tell it you pay per Service Cloud User.",
         ],
       },
     ],
@@ -671,9 +675,9 @@ export const GUIDES: Guide[] = [
         heading: "Decide which seat to keep",
         list: [
           "Lower-case the emails and match them in a spreadsheet. Also check names, since some people use a different email domain in each org.",
-          "For each match, compare last login and whether they created or edited records recently in each org. The org where they do the work keeps the seat.",
+          "For each match, [compare last login](/guides/find-inactive-salesforce-users) and whether they created or edited records recently in each org. The org where they do the work keeps the seat.",
           "If they only log in to the other org to look something up, deactivate them there and share reports or dashboards from the org they still use.",
-          "Reassign records the user owns and check flows, approvals and default owner settings before deactivating, as you would for anyone leaving.",
+          "[Reassign records the user owns](/guides/deactivate-salesforce-user-without-losing-data) and check flows, approvals and default owner settings before deactivating, as you would for anyone leaving.",
         ],
       },
       {
@@ -686,7 +690,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "When the saving lands",
         paragraphs: [
-          "Deactivating a duplicate user frees the seat straight away, so you don't buy another for the next starter. Advisory firms report that Salesforce seats can only be cut at renewal, so take the list of seats to drop in each org to your account executive before the notice date in each order form. If both orgs are connected, Salesforce Saver matches paid users by email across them and flags people who work in one org but created or edited nothing in the other for 90 days.",
+          "Deactivating a duplicate user frees the seat straight away, so you don't buy another for the next starter. Advisory firms report that Salesforce seats can only be cut at renewal, so take the list of seats to drop in each org to your account executive before [the notice date in each order form](/guides/salesforce-renewal-notice-period). If both orgs are connected, [Salesforce Saver matches paid users by email](/login) across them and flags people who work in one org but created or edited nothing in the other for 90 days.",
         ],
       },
     ],
@@ -734,7 +738,7 @@ export const GUIDES: Guide[] = [
         heading: "Signs an app is unused",
         list: [
           "No record created or edited in the package's own objects for 90 days or more.",
-          "Package seats assigned to users who are inactive, frozen or haven't logged in for 30 days.",
+          "Package seats assigned to users who are inactive, [frozen](/guides/do-frozen-salesforce-users-use-a-license) or [haven't logged in for 30 days](/guides/find-inactive-salesforce-users).",
           "Allowed Licenses well above Used Licenses, so you pay for seats nobody holds.",
           "A connected app whose most recent use was months ago, or whose only users have left.",
           "Two apps that do the same job, such as two e-signature or document tools.",
@@ -743,14 +747,14 @@ export const GUIDES: Guide[] = [
       {
         heading: "Check the contract, then cancel before you uninstall",
         paragraphs: [
-          "Find how each app is billed: through AppExchange Checkout, on your Salesforce order form, or directly by the vendor. The term and notice period can differ for each. For AppExchange Checkout subscriptions, a user with the Manage Billing permission ends them under My Installs & Subscriptions, and Salesforce says the cancellation takes effect at the end of the contract term. For the others, give notice as the vendor contract requires.",
+          "Find how each app is billed: through AppExchange Checkout, on your Salesforce order form, or directly by the vendor. The term and [notice period](/guides/salesforce-renewal-notice-period) can differ for each. For AppExchange Checkout subscriptions, a user with the Manage Billing permission ends them under My Installs & Subscriptions, and Salesforce says the cancellation takes effect at the end of the contract term. For the others, give notice as the vendor contract requires.",
           "Uninstalling is a separate step. It removes the package's components and data from the org; Salesforce emails an export of the package data that is deleted two days after the uninstall. Salesforce's uninstall instructions say nothing about subscriptions, and vendors such as Fastcall tell customers to cancel their subscription before uninstalling.",
         ],
       },
       {
         heading: "Doing it by hand or with a scan",
         paragraphs: [
-          "Salesforce Saver reads the same data in one read-only scan: it flags installed packages with no record created or edited in their objects for 90 days, unassigned package seats, and connected apps unused for 90 days, and prices each from a public list price where it has one, or from the price you enter.",
+          "Salesforce Saver reads the same data in [one read-only scan](/login): it flags installed packages with no record created or edited in their objects for 90 days, unassigned package seats, and connected apps unused for 90 days, and prices each from a public list price where it has one, or from the price you enter.",
         ],
       },
     ],
@@ -782,7 +786,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "The main user licenses",
         list: [
-          "Salesforce (full CRM): for users who need full access to standard CRM objects and apps. Salesforce's Sales Cloud pricing page lists Core at $195 per user per month, billed annually.",
+          "Salesforce (full CRM): for users who need full access to standard CRM objects and apps. Salesforce's Sales Cloud pricing page lists [Core at $195](/guides/salesforce-core-advanced-max-editions) per user per month, billed annually.",
           "Salesforce Platform: for users who need custom apps but not standard CRM objects such as Leads and Opportunities. Salesforce lists Platform Starter at $25 (10 custom objects) and Platform Plus at $100 (110 custom objects) per user per month, billed annually. A Salesforce Platform Login license gives the same features billed per login, for occasional users.",
           "Salesforce Integration: API access only, for system-to-system integrations. Enterprise, Unlimited and Performance editions include five.",
           "Chatter Free: for people with no Salesforce license who need Chatter people, profiles, groups and files, but no Salesforce records. Chatter External is for people outside your email domain, who only see the groups they are invited to.",
@@ -793,14 +797,14 @@ export const GUIDES: Guide[] = [
         heading: "Permission set licenses and feature licenses",
         paragraphs: [
           "A permission set license adds functionality on top of a user license, and one user can hold several. Many paid add-ons, such as Service Cloud Einstein in Salesforce's own example, are permission set licenses; others come with a user license, like the Salesforce API Integration permission set license used with the Integration user license. Setup shows how many of each you have and how many are assigned.",
-          "Feature licenses are switched on per user with a checkbox on the user record and give access to one feature, such as Marketing User (campaigns), Knowledge User, Flow User or Service Cloud User (the Service Console). Whether a feature license costs extra depends on your contract, so check your order form.",
+          "Feature licenses are switched on per user with a checkbox on the user record and give access to one feature, such as Marketing User (campaigns), Knowledge User, Flow User or [Service Cloud User (the Service Console)](/guides/unused-service-cloud-licenses). Whether a feature license costs extra depends on your contract, so check your order form.",
         ],
       },
       {
         heading: "Swaps that usually save money",
         list: [
-          "Full license to Platform: people who only use Accounts, Contacts, activities and custom apps. The Platform vs full license guide covers who fits and how to check.",
-          "Full license to Integration: any integration logging in as a full user can usually move to one of the free Integration licenses.",
+          "Full license to Platform: people who only use Accounts, Contacts, activities and custom apps. [The Platform vs full license guide](/guides/salesforce-platform-license-vs-full-license) covers who fits and how to check.",
+          "Full license to Integration: any integration logging in as a full user can usually move to one of [the free Integration licenses](/guides/salesforce-integration-user-license).",
           "Member to login-based portal licenses: Salesforce's add-on price sheet lists Customer Community at $5 a member or $2 a login a month, Customer Community Plus at $15 or $6, and Partner (PRM) at $25 or $10. Several logins by one user on the same day count as one, so at those list prices login-based is cheaper for anyone who logs in on 2 days a month or fewer.",
           "Full or Platform license to Chatter Free: only for people who never need Salesforce records, just Chatter groups, profiles and files. An existing user can't be converted to Chatter Free, so this means a new Chatter Free user and deactivating the old one.",
           "Paid permission set licenses nobody holds, or held by people who have left: drop them at renewal like unused seats.",
@@ -816,7 +820,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "Checking it by hand or with a scan",
         paragraphs: [
-          "Each swap needs a look at what people actually do: which objects they edit, how often they log in, whether a login belongs to a person or a tool. Salesforce Saver checks full-license users who fit Platform or Integration licenses and unassigned Salesforce and Platform seats in one read-only scan, and lists every user and permission set license with how many are assigned.",
+          "Each swap needs a look at what people actually do: which objects they edit, how often they log in, whether a login belongs to a person or a tool. Salesforce Saver checks full-license users who fit Platform or Integration licenses and unassigned Salesforce and Platform seats in [one read-only scan](/login), and lists every user and permission set license with how many are assigned.",
         ],
       },
     ],
@@ -870,15 +874,15 @@ export const GUIDES: Guide[] = [
         heading: "What to ask before your renewal notice date",
         list: [
           "Ask your AWS account team how much of your commitment you expect to leave unused this year, what share of Marketplace spend counts under your agreement, and whether the Salesforce listing qualifies.",
-          "Ask your Salesforce account executive for an AWS Marketplace private offer for the renewal, at the same products, quantities and price you are negotiating anyway.",
+          "Ask your Salesforce account executive for an AWS Marketplace private offer for the renewal, at the same products, quantities and [price you are negotiating anyway](/guides/salesforce-renewal-price-increase).",
           "Check that the listing the offer comes from shows Deployed on AWS, and that the offer's start date lines up with your renewal date.",
-          "Do this before the notice date in your order form. Salesforce subscriptions can't be reduced mid-term, so the switch is a renewal-time move.",
+          "Do this before [the notice date in your order form](/guides/salesforce-renewal-notice-period). Salesforce subscriptions can't be reduced mid-term, so the switch is [a renewal-time move](/guides/salesforce-renewal-checklist).",
         ],
       },
       {
         heading: "What it's worth",
         paragraphs: [
-          "The saving is at most the smallest of your Salesforce bill, the Marketplace cap in your AWS agreement, and the commitment you'd otherwise leave unused. If you will use your whole AWS commitment anyway, the gain is billing in one place, not money. Salesforce Saver shows this as a buying option on the contract card, worked out from your invoices and the AWS numbers you enter, and lists the apps you use that are sold on AWS Marketplace so you can ask resellers to quote them; it isn't added to the savings total.",
+          "The saving is at most the smallest of your Salesforce bill, the Marketplace cap in your AWS agreement, and the commitment you'd otherwise leave unused. If you will use your whole AWS commitment anyway, the gain is billing in one place, not money. [Salesforce Saver shows this as a buying option](/login) on the contract card, worked out from your invoices and the AWS numbers you enter, and lists the apps you use that are sold on AWS Marketplace so you can ask resellers to quote them; it isn't added to the savings total.",
         ],
       },
     ],
@@ -932,13 +936,13 @@ export const GUIDES: Guide[] = [
           "Salesforce: is anything you are renewing, such as Agentforce or Data Cloud, sold on Google Cloud Marketplace in your country, and does it run on Google Cloud?",
           "Google or Microsoft account team: how much of your commitment you expect to leave unused, and whether your agreement has exclusions or caps on marketplace spend.",
           "Vendors of the apps you use with Salesforce: is their listing Azure benefit eligible, or running on Google Cloud, and can they move your renewal to a private offer there?",
-          "Ask before the renewal notice date in each order form, since terms are fixed until renewal.",
+          "Ask before the [renewal notice date](/guides/salesforce-renewal-notice-period) in each order form, since terms are fixed until renewal.",
         ],
       },
       {
         heading: "Checking it against your apps",
         paragraphs: [
-          "Salesforce Saver shows a Google Cloud or Azure buying option on the contract card when you tell it you have a commitment there and you use an app on its list of ones that count, such as Docusign for Azure. It counts only those apps, not Salesforce itself, up to the commitment you expect to leave unused, and doesn't add it to the savings total.",
+          "[Salesforce Saver shows a Google Cloud or Azure buying option](/login) on the contract card when you tell it you have a commitment there and you use an app on its list of ones that count, such as Docusign for Azure. It counts only those apps, not Salesforce itself, up to the commitment you expect to leave unused, and doesn't add it to the savings total.",
         ],
       },
     ],
@@ -966,7 +970,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "What a manual audit covers well",
         list: [
-          "Inactive users: a list view of active users sorted by Last Login, or one SOQL query.",
+          "[Inactive users](/guides/find-inactive-salesforce-users): a list view of active users sorted by Last Login, or one SOQL query.",
           "Frozen users: one query on UserLogin.",
           "Unassigned licenses: Setup, Company Information shows how many of each license are used.",
           "Your contract dates: in the order form, or in Setup under Your Account if you have the Manage Billing permission.",
@@ -976,17 +980,17 @@ export const GUIDES: Guide[] = [
         heading: "What takes longer by hand",
         list: [
           "Pricing each finding. List prices rarely match what you pay; you have to work out your own per-seat price from the order form or invoices.",
-          "Who could use a cheaper license. That means checking each full-license user's profile and permission sets for access to Opportunities, Leads and Cases, and whether they created or edited records recently.",
-          "Unused apps. Installed packages don't show usage in one place; you check whether anyone created or edited records in each app's objects.",
+          "[Who could use a cheaper license](/guides/salesforce-platform-license-vs-full-license). That means checking each full-license user's profile and permission sets for access to Opportunities, Leads and Cases, and whether they created or edited records recently.",
+          "[Unused apps](/guides/find-unused-salesforce-apps). Installed packages don't show usage in one place; you check whether anyone created or edited records in each app's objects.",
           "Integrations on full licenses, which often don't show as normal logins.",
-          "The same person with a paid seat in two orgs, which needs both orgs side by side.",
+          "[The same person with a paid seat in two orgs](/guides/same-user-in-two-salesforce-orgs), which needs both orgs side by side.",
           "Doing it again next quarter, since users and apps keep changing.",
         ],
       },
       {
         heading: "What Salesforce Saver does",
         paragraphs: [
-          "It connects to your org through Salesforce's standard sign-in, runs read-only queries (all listed on the security page) and gives a ranked list of savings, each with a dollar figure. Prices come from your own Salesforce invoices when the connected user has Manage Billing, otherwise from list prices, and you can enter your own. It shows your renewal date and the date to tell Salesforce by when the contract is readable.",
+          "It connects to your org through Salesforce's standard sign-in, runs read-only queries (all listed on the [security page](/security)) and gives a ranked list of savings, each with a dollar figure. Prices come from your own Salesforce invoices when the connected user has Manage Billing, otherwise from list prices, and you can enter your own. It shows your renewal date and the date to tell Salesforce by when the contract is readable.",
           "The scan is free and shows the total and each recommendation. The full report, with every user and app behind the numbers and a printable version, is a one-off $290 up to 50 users, $590 up to 250 and $990 above, with 90 days of rescans.",
         ],
       },
@@ -1053,13 +1057,13 @@ export const GUIDES: Guide[] = [
       {
         heading: "How to cut access off",
         paragraphs: [
-          "In Setup, open Connected Apps OAuth Usage to see every app with access and revoke any of them. Deactivating the user the tool connected as also stops it.",
+          "In Setup, open [Connected Apps OAuth Usage](/guides/find-unused-salesforce-apps) to see every app with access and revoke any of them. [Deactivating the user the tool connected as](/guides/deactivate-salesforce-user-without-losing-data) also stops it.",
         ],
       },
       {
         heading: "How Salesforce Saver answers those questions",
         list: [
-          "It only runs read queries, and every query is listed on its security page before you connect.",
+          "It only runs read queries, and [every query is listed on its security page](/security) before you connect.",
           "It counts records per user and reads when each app's objects last changed, but never reads what's in your accounts, deals, cases or files.",
           "Access tokens are encrypted with AES-256-GCM before they are stored. The database is in London; the app runs on servers in the United States.",
           "Disconnecting revokes its tokens in Salesforce and deletes your scans straight away.",
@@ -1120,6 +1124,23 @@ export const GUIDE_TOPICS: { title: string; slugs: string[] }[] = [
     slugs: ["buy-salesforce-through-aws-marketplace", "buy-salesforce-through-google-cloud-or-azure"],
   },
 ];
+
+export type InlinePart = { text: string; href?: string };
+
+const LINK = /\[([^\]]+)\]\((\/[^)\s]*)\)/g;
+
+/** Splits guide text into plain text and `[anchor](/path)` links. Only site-relative paths count as links. */
+export function parseInline(text: string): InlinePart[] {
+  const parts: InlinePart[] = [];
+  let last = 0;
+  for (const m of text.matchAll(LINK)) {
+    if (m.index > last) parts.push({ text: text.slice(last, m.index) });
+    parts.push({ text: m[1], href: m[2] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ text: text.slice(last) });
+  return parts;
+}
 
 export function getGuide(slug: string): Guide | undefined {
   return GUIDES.find((g) => g.slug === slug);
