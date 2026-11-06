@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GUIDES, getGuide, parseInline } from "./guides";
+import { GUIDES, getGuide, guideMarkdown, parseInline } from "./guides";
 
 const OTHER_PAGES = new Set(["/login", "/security", "/guides"]);
 
@@ -39,4 +39,15 @@ describe("guide in-body links", () => {
       for (const t of plain) expect(t).not.toMatch(/\]\(\//);
     });
   }
+});
+
+describe("guideMarkdown", () => {
+  it("renders every guide with absolute links and no leftover link syntax", () => {
+    for (const g of GUIDES) {
+      const md = guideMarkdown(g, "https://x.test");
+      expect(md.startsWith(`# ${g.title}`)).toBe(true);
+      expect(md).not.toMatch(/\]\(\//);
+      for (const s of g.sections) expect(md).toContain(`## ${s.heading}`);
+    }
+  });
 });
