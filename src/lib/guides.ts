@@ -1142,6 +1142,26 @@ export function parseInline(text: string): InlinePart[] {
   return parts;
 }
 
+/** A guide as Markdown, with in-body links made absolute so the text stands on its own (used by /llms-full.txt). */
+export function guideMarkdown(g: Guide, site: string): string {
+  const text = (t: string) =>
+    parseInline(t)
+      .map((p) => (p.href ? `[${p.text}](${site}${p.href})` : p.text))
+      .join("");
+  const out = [`# ${g.title}`, "", `Source: ${site}/guides/${g.slug}`, `Updated: ${g.updated}`, "", text(g.answer)];
+  for (const s of g.sections) {
+    out.push("", `## ${s.heading}`);
+    for (const p of s.paragraphs ?? []) out.push("", text(p));
+    if (s.code) out.push("", "```sql", s.code, "```");
+    if (s.list) out.push("", ...s.list.map((li) => `- ${text(li)}`));
+  }
+  if (g.faq.length) {
+    out.push("", "## Questions");
+    for (const [q, a] of g.faq) out.push("", `### ${q}`, "", text(a));
+  }
+  return out.join("\n");
+}
+
 export function getGuide(slug: string): Guide | undefined {
   return GUIDES.find((g) => g.slug === slug);
 }

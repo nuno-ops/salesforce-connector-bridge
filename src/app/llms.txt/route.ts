@@ -31,6 +31,7 @@ export function GET() {
 - [Security](${SITE}/security): every query a scan runs, what is stored and where
 - [Privacy](${SITE}/privacy)
 - [Terms](${SITE}/terms)
+- [All guides in full](${SITE}/llms-full.txt): every guide below as one Markdown file
 
 ## Guides
 ${GUIDES.map((g) => `- [${g.title}](${SITE}/guides/${g.slug}): ${g.description}`).join("\n")}
