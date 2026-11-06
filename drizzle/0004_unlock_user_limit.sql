@@ -1,0 +1,1 @@
+ALTER TABLE "entitlements" ADD COLUMN "audit_user_limit" integer;
