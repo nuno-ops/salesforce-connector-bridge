@@ -47,6 +47,10 @@ function pageNameFilter(prefixes: readonly string[]) {
 export const deactivatedUsersQuery = (ids: string[]) =>
   `SELECT Id, LastLoginDate, Profile.UserLicense.Name FROM User WHERE IsActive = false AND Id IN (${ids.map((id) => `'${id.replace(/[^A-Za-z0-9]/g, "")}'`).join(", ")})`;
 
+/** Custom object pages each user opened. Only the object name in front of the page name is kept, e.g. "Invoice__c" from "Invoice__c Record". */
+export const customObjectPagesQuery = (userIds: string[]) =>
+  `SELECT UserId u, PageName p FROM LightningUsageByPageMetrics WHERE MetricsDate = LAST_N_DAYS:${PAGE_WINDOW_DAYS} AND UserId IN (${userIds.map((id) => `'${id.replace(/[^A-Za-z0-9]/g, "")}'`).join(", ")}) AND PageName LIKE '%\\_\\_c %' GROUP BY UserId, PageName`;
+
 export const QUERIES = {
   organization: "SELECT Id, Name, OrganizationType, IsSandbox FROM Organization LIMIT 1",
   users:
@@ -282,16 +286,38 @@ async function collectPageUsage(client: SalesforceClient): Promise<SnapshotPageU
     client.query<{ y: number; m: number; l: string | null; c: number }>(QUERIES.monthlyActiveUsers),
   ]);
   const byId = (rows: { u: string; c: number }[]) => Object.fromEntries(rows.filter((r) => r.u).map((r) => [r.u, r.c]));
+  const salesOrCases = new Set([...Object.keys(byId(sales)), ...Object.keys(byId(cases))]);
+  const candidates = Object.keys(byId(all)).filter((id) => !salesOrCases.has(id));
   return {
     windowDays: PAGE_WINDOW_DAYS,
     byUser: byId(all),
     salesByUser: byId(sales),
     casesByUser: byId(cases),
     mobileUserIds: mobile.map((r) => r.u).filter(Boolean),
+    customObjectsByUser: await customObjectsByUser(client, candidates).catch(() => null),
     monthlyActive: monthly
       .filter((r) => r.l)
       .map((r) => ({ month: `${r.y}-${String(r.m).padStart(2, "0")}`, license: r.l!, users: r.c })),
   };
+}
+
+/** Users per query: aggregate queries stop at 2,000 rows, and one user rarely opens more than ~50 custom object pages. */
+const CUSTOM_OBJECT_BATCH = 20;
+
+/** How many distinct custom objects each user opened, for the Platform Starter limit. */
+async function customObjectsByUser(client: SalesforceClient, userIds: string[]): Promise<Record<string, number>> {
+  const objects = new Map<string, Set<string>>();
+  for (let i = 0; i < userIds.length; i += CUSTOM_OBJECT_BATCH) {
+    const rows = await client.query<{ u: string; p: string | null }>(customObjectPagesQuery(userIds.slice(i, i + CUSTOM_OBJECT_BATCH)));
+    for (const r of rows) {
+      const object = r.p?.split(" ")[0];
+      if (!r.u || !object?.endsWith("__c")) continue;
+      const set = objects.get(r.u) ?? new Set<string>();
+      set.add(object);
+      objects.set(r.u, set);
+    }
+  }
+  return Object.fromEntries([...objects].map(([u, set]) => [u, set.size]));
 }
 
 /** When each recently deactivated user was deactivated and when they last logged in. */

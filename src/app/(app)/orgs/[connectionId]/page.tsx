@@ -5,6 +5,7 @@ import { ExpertCallCard } from "@/components/app/expert-call";
 import { UpgradeCard } from "@/components/app/upgrade-card";
 import { MarkButtons } from "@/components/report/mark-buttons";
 import { ScanButton } from "@/components/report/scan-button";
+import { SandboxNotice } from "@/components/report/sandbox-notice";
 import { ShareForm } from "@/components/report/share-form";
 import { UserTabs } from "@/components/report/user-tabs";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +115,16 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             </Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // A sandbox holds copies of production users and licences, so its "savings" aren't real money.
+  if (connection.isSandbox) {
+    return (
+      <div className="flex flex-col gap-6">
+        {header}
+        <SandboxNotice />
       </div>
     );
   }

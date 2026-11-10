@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { summarizeContract } from "./contract";
 import { editionKey, effectivePriceBook, ENTERPRISE_SHARE_OF_UNLIMITED, priceForLicense, type PriceBook } from "./prices";
 
-export const ENGINE_VERSION = 7;
+export const ENGINE_VERSION = 8;
 
 export type Category =
   | "inactive_users"
@@ -76,6 +76,8 @@ export interface LicenseRow {
 
 export interface SavingsResult {
   engineVersion: number;
+  /** Scanned a sandbox: no savings are counted, because its users and licences aren't what Salesforce bills. */
+  sandbox?: boolean;
   computedAt: string;
   prices: PriceBook;
   annualSavings: number;
@@ -218,6 +220,12 @@ const ADMIN_PROFILE = /system administrator/i;
 const ENTERPRISE_API_BASE = 100_000;
 const ENTERPRISE_API_PER_LICENSE = 1_000;
 const ENTERPRISE_CUSTOM_OBJECTS = 200;
+/**
+ * Platform Starter covers up to about 10 custom objects per user; Platform Plus about 110, at about
+ * $100 against Starter's $25 a month (Redress Compliance, "Lightning Platform Starter vs Plus", Feb 2026).
+ */
+const PLATFORM_STARTER_CUSTOM_OBJECTS = 10;
+const PLATFORM_PLUS_TO_STARTER = 4;
 /** Leave headroom: one day's API use is a noisy sample. */
 const API_HEADROOM = 0.8;
 
@@ -246,6 +254,36 @@ export function computeSavings(
 
   const daysSince = (iso: string | null) =>
     iso ? Math.floor((now.getTime() - new Date(iso).getTime()) / DAY_MS) : null;
+
+  /**
+   * What moving a full user to Salesforce Platform saves, and which Platform licence fits.
+   * Platform Starter only covers about 10 custom objects, so users who open more, or whose custom
+   * object use we can't see, are priced at Platform Plus. `null` when even that saves nothing.
+   */
+  const pageData = snapshot.pageUsage;
+  const customObjects = pageData?.customObjectsByUser;
+  const mobileIds = new Set(pageData?.mobileUserIds ?? []);
+  const platformFit = (u: SnapshotUser): { annualSavings: number; note: string } | null => {
+    const starter = prices.platformMonthly;
+    const plus = starter * PLATFORM_PLUS_TO_STARTER;
+    const seen = !!customObjects && !mobileIds.has(u.id) && (pageData!.byUser[u.id] ?? 0) > 0;
+    const opened = seen ? (customObjects![u.id] ?? 0) : null;
+    if (opened !== null && opened <= PLATFORM_STARTER_CUSTOM_OBJECTS) {
+      const annualSavings = Math.max(0, prices.fullMonthly - starter) * 12;
+      return annualSavings > 0
+        ? { annualSavings, note: `fits Platform Starter (opened ${opened} of your custom objects; it covers ${PLATFORM_STARTER_CUSTOM_OBJECTS})` }
+        : null;
+    }
+    const annualSavings = Math.max(0, prices.fullMonthly - plus) * 12;
+    if (annualSavings <= 0) return null;
+    return {
+      annualSavings,
+      note:
+        opened === null
+          ? "priced at Platform Plus, since we couldn't see which custom objects they use"
+          : `priced at Platform Plus (opened ${opened} custom objects, more than Platform Starter's ${PLATFORM_STARTER_CUSTOM_OBJECTS})`,
+    };
+  };
 
   // 0. Frozen users: they can't log in but still hold a license.
   const frozen: FlaggedUser[] = [];
@@ -484,15 +522,16 @@ export function computeSavings(
       list.push(a.permissionSetId);
       permSetsByUser.set(a.assigneeId, list);
     }
-    const saving = Math.max(0, prices.fullMonthly - prices.platformMonthly) * 12;
     for (const u of snapshot.users) {
       if (claimed.has(u.id) || u.licenseName !== "Salesforce") continue;
       if (u.profileId && crmByProfile.has(u.profileId)) continue;
       if ((permSetsByUser.get(u.id) ?? []).some((id) => crmByPermSet.has(id))) continue;
+      const fit = platformFit(u);
+      if (!fit) continue;
       platform.push(
         flag(u, {
-          reason: "No access to Opportunities, Leads or Cases",
-          annualSavings: saving,
+          reason: `No access to Opportunities, Leads or Cases; ${fit.note}`,
+          annualSavings: fit.annualSavings,
           confidence: "medium",
         }),
       );
@@ -505,7 +544,7 @@ export function computeSavings(
       category: "platform_licenses",
       title: `Downgrade ${platform.length} ${plural(platform.length, "user")} to Salesforce Platform`,
       detail:
-        "These users hold full Salesforce licenses but can't read Opportunities, Leads or Cases. Confirm they don't need other Sales or Service Cloud features first.",
+        "These users hold full Salesforce licenses but can't read Opportunities, Leads or Cases. Confirm they don't need other Sales or Service Cloud features first. Each user is priced at Platform Starter if they open up to 10 of your custom objects, otherwise at Platform Plus (about four times Starter's price).",
       count: platform.length,
       annualSavings: sum(platform),
       confidence: "medium",
@@ -528,16 +567,17 @@ export function computeSavings(
   const canCheckUsage = !!pages && !!writes && CRM_OBJECTS.every((o) => writes[o]);
   const platformByUsage: FlaggedUser[] = [];
   if (canCheckUsage) {
-    const saving = Math.max(0, prices.fullMonthly - prices.platformMonthly) * 12;
     for (const u of snapshot.users) {
       if (claimed.has(u.id) || u.licenseName !== "Salesforce") continue;
       if (u.profileName && ADMIN_PROFILE.test(u.profileName)) continue;
       if (!provenLightningUser(u)) continue;
       if ((pages!.salesByUser[u.id] ?? 0) > 0 || (pages!.casesByUser[u.id] ?? 0) > 0 || wrote(u, CRM_OBJECTS)) continue;
+      const fit = platformFit(u);
+      if (!fit) continue;
       platformByUsage.push(
         flag(u, {
-          reason: `Opened ${pages!.byUser[u.id]} pages in ${pages!.windowDays} days, none of them Opportunities, Leads or Cases`,
-          annualSavings: saving,
+          reason: `Opened ${pages!.byUser[u.id]} pages in ${pages!.windowDays} days, none of them Opportunities, Leads or Cases; ${fit.note}`,
+          annualSavings: fit.annualSavings,
           confidence: "medium",
         }),
       );
@@ -550,7 +590,7 @@ export function computeSavings(
       id: "platform_usage",
       category: "platform_licenses",
       title: `Move ${platformByUsage.length} ${plural(platformByUsage.length, "user")} who never open sales or service records to Salesforce Platform`,
-      detail: `These users work in Salesforce regularly, but in the last ${pages!.windowDays} days they didn't open or edit a single Opportunity, Lead, Campaign, Quote, Contract or Case (from Salesforce's own Lightning usage data). A Salesforce Platform license covers Accounts, Contacts, tasks, events and your custom objects. Check they don't need reports on opportunities or cases first.${noticeHint}`,
+      detail: `These users work in Salesforce regularly, but in the last ${pages!.windowDays} days they didn't open or edit a single Opportunity, Lead, Campaign, Quote, Contract or Case (from Salesforce's own Lightning usage data). A Salesforce Platform license covers Accounts, Contacts, tasks, events and your custom objects. Check they don't need reports on opportunities or cases first. Each user is priced at Platform Starter if they open up to 10 of your custom objects, otherwise at Platform Plus (about four times Starter's price).${noticeHint}`,
       count: platformByUsage.length,
       annualSavings: sum(platformByUsage),
       confidence: "medium",
@@ -566,7 +606,7 @@ export function computeSavings(
   } else if (activity === undefined) {
     notes.push("Run a new scan to check for users who log in but never edit records.");
   } else {
-    const saving = Math.max(0, prices.fullMonthly - prices.platformMonthly) * 12;
+    let readsSalesRecords = 0;
     for (const u of snapshot.users) {
       if (claimed.has(u.id) || u.licenseName !== "Salesforce") continue;
       // Admins mostly change setup, not records, so they'd all look idle.
@@ -574,14 +614,26 @@ export function computeSavings(
       const sinceCreated = daysSince(u.createdDate);
       if (sinceCreated !== null && sinceCreated < activity.windowDays) continue;
       if ((activity.byUser[u.id] ?? 0) > 0) continue;
+      // Reading Opportunities, Leads or Cases still needs a full licence: Platform can't open them.
+      if ((pages?.salesByUser[u.id] ?? 0) > 0 || (pages?.casesByUser[u.id] ?? 0) > 0) {
+        readsSalesRecords++;
+        continue;
+      }
+      const fit = platformFit(u);
+      if (!fit) continue;
       viewOnly.push(
         flag(u, {
-          reason: `Logs in but created or edited no records in ${activity.windowDays} days`,
-          annualSavings: saving,
+          reason: `Logs in but created or edited no records in ${activity.windowDays} days; ${fit.note}`,
+          annualSavings: fit.annualSavings,
           confidence: "low",
         }),
       );
       claimed.add(u.id);
+    }
+    if (readsSalesRecords > 0) {
+      notes.push(
+        `${readsSalesRecords} ${plural(readsSalesRecords, "user")} edit nothing but do open sales or service records, so they still need a full licence and aren't counted.`,
+      );
     }
   }
   if (viewOnly.length && activity) {
@@ -589,7 +641,7 @@ export function computeSavings(
       id: "view_only_users",
       category: "view_only_users",
       title: `Right-size ${viewOnly.length} view-only ${plural(viewOnly.length, "user")}`,
-      detail: `These users log in but didn't create or edit a single ${activity.objects.join(", ")} record in ${activity.windowDays} days. They may only need to see reports: consider a Platform or restricted-use license, or emailed report subscriptions. Savings assume the Platform price; ask your account executive what fits.`,
+      detail: `These users log in but didn't create or edit a single ${activity.objects.join(", ")} record in ${activity.windowDays} days. They also never opened an Opportunity, Lead or Case, so a Platform license or emailed report subscriptions may be enough. Each user is priced at Platform Starter if they open up to 10 of your custom objects, otherwise at Platform Plus (about four times Starter's price). Ask your account executive what fits.`,
       count: viewOnly.length,
       annualSavings: sum(viewOnly),
       confidence: "low",
@@ -1030,6 +1082,30 @@ export function computeSavings(
   const annualSavings = Object.values(byCategory).reduce((a, b) => a + b, 0);
 
   recommendations.sort((a, b) => b.annualSavings - a.annualSavings || Number(a.advisory) - Number(b.advisory));
+
+  if (snapshot.organization.isSandbox) {
+    // A sandbox copies production's users and licences; nothing here is on the bill.
+    const zero = Object.fromEntries(Object.keys(byCategory).map((k) => [k, 0])) as Record<Category, number>;
+    return {
+      engineVersion: ENGINE_VERSION,
+      computedAt: now.toISOString(),
+      sandbox: true,
+      prices,
+      annualSavings: 0,
+      monthlySavings: 0,
+      byCategory: zero,
+      recommendations: [],
+      users: { inactive: [], integration: [], platform: [], viewOnly: [], frozen: [], duplicate: [], crossOrg: [], serviceCloud: [] },
+      edition: null,
+      apps: null,
+      connectedApps: [],
+      licenses,
+      storage,
+      sandboxes,
+      staleSandboxes: [],
+      notes: ["This is a sandbox. Its users and licences are copies of production, so no savings are counted. Connect your production org."],
+    };
+  }
 
   return {
     engineVersion: ENGINE_VERSION,

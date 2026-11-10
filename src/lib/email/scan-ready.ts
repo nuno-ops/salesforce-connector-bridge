@@ -36,6 +36,14 @@ export function topSavings(result: SavingsResult, limit = 3) {
 }
 
 export function scanReadyEmail(result: SavingsResult, input: ScanEmailInput) {
+  if (result.sandbox) {
+    const intro = `We scanned ${input.orgName}, but it's a sandbox: a copy of production whose users and licences aren't what Salesforce bills you for. Connect your production org to see real savings.`;
+    return {
+      subject: "Your scan ran on a sandbox: connect production",
+      text: [intro, "", `Connect production: ${input.reportUrl}`].join("\n"),
+      html: layout(`<p>${escapeHtml(intro)}</p><p style="margin:24px 0"><a href="${escapeHtml(input.reportUrl)}" style="${BUTTON}">Connect production</a></p>`),
+    };
+  }
   const currency = result.prices.currency ?? "USD";
   const money = (n: number) => formatCurrency(n, currency);
   const top = topSavings(result);

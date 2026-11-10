@@ -191,6 +191,12 @@ export interface SnapshotPageUsage {
   casesByUser: Record<string, number>;
   /** Users who also used the Salesforce mobile app, whose views aren't all counted here. */
   mobileUserIds: string[];
+  /**
+   * User Id → distinct custom objects whose pages they opened, for users who opened no sales or Case
+   * pages (the only ones a Platform licence could fit). Users missing from the map opened none.
+   * `null` when unreadable; missing on scans before engine v8.
+   */
+  customObjectsByUser?: Record<string, number> | null;
   /** Distinct users with page views per calendar month and license, over the last year. */
   monthlyActive: { month: string; license: string; users: number }[];
 }

@@ -88,10 +88,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                 <CardContent className="flex items-end justify-between">
                   <div>
                     <p className="text-3xl font-bold tracking-[-0.05em] text-positive">
-                      {c.annualSavings !== null ? formatCurrency(c.annualSavings, c.currency ?? "USD") : "—"}
+                      {c.isSandbox ? "—" : c.annualSavings !== null ? formatCurrency(c.annualSavings, c.currency ?? "USD") : "—"}
                     </p>
                     <p className="mt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                      {c.lastScan ? `potential yearly savings · scanned ${formatDate(c.lastScan)}` : "Not scanned yet"}
+                      {c.isSandbox
+                        ? "Sandbox · connect production for savings"
+                        : c.lastScan
+                          ? `potential yearly savings · scanned ${formatDate(c.lastScan)}`
+                          : "Not scanned yet"}
                     </p>
                   </div>
                   {c.status !== "active" && <Badge variant="warning">Reconnect needed</Badge>}

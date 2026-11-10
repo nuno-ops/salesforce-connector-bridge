@@ -7,6 +7,7 @@ import {
   ACTIVITY_WINDOW_DAYS,
   QUERIES,
   activityQuery,
+  customObjectPagesQuery,
   deactivatedUsersQuery,
   lastActivityQuery,
   packageObjectsQuery,
@@ -26,11 +27,12 @@ const QUERY_LIST = [
   packageObjectsQuery("<namespace>"),
   lastActivityQuery("<namespace>__<object>__c"),
   deactivatedUsersQuery(["USERIDS"]).replace("'USERIDS'", "<user ids>"),
+  customObjectPagesQuery(["USERIDS"]).replace("'USERIDS'", "<user ids>"),
 ];
 
 export default function SecurityPage() {
   return (
-    <LegalPage title="Security" updated="October 21, 2026" eyebrow="Security">
+    <LegalPage title="Security" updated="November 10, 2026" eyebrow="Security">
       <p>
         Salesforce Saver only reads from your org. It never creates, edits or deletes anything in Salesforce. This page lists exactly
         what it reads, what it keeps and how to cut it off.
