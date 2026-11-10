@@ -22,7 +22,7 @@ export const metadata: Metadata = { title: "Shared savings report", robots: { in
 export default async function SharedReportPage({ params }: PageProps<"/share/[token]">) {
   const { token } = await params;
   const found = looksLikeToken(token) ? await findShare(token) : null;
-  const scan = found ? await latestScan(found.connection.id, { succeededOnly: true }) : null;
+  const scan = found && !found.connection.isSandbox ? await latestScan(found.connection.id, { succeededOnly: true }) : null;
 
   if (!found || !scan?.result) {
     return (

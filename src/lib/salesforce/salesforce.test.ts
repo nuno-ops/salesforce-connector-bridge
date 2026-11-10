@@ -195,6 +195,7 @@ describe("collectSnapshot", () => {
       salesByUser: { "0051": 300 },
       casesByUser: {},
       mobileUserIds: ["0051"],
+      customObjectsByUser: {},
       monthlyActive: [{ month: "2026-09", license: "Salesforce", users: 60 }],
     });
     expect(snap.deactivations).toEqual([

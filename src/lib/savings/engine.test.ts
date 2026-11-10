@@ -275,7 +275,8 @@ describe("computeSavings", () => {
       { now: NOW },
     );
     expect(result.users.platform.map((u) => u.id)).toEqual(["lite"]);
-    expect(result.byCategory.platform_licenses).toBe((165 - 25) * 12);
+    // No Lightning usage, so we can't see their custom objects: priced at Platform Plus (4 x $25).
+    expect(result.byCategory.platform_licenses).toBe((165 - 100) * 12);
   });
 
   it("skips platform eligibility when permissions couldn't be read", () => {
@@ -440,7 +441,7 @@ describe("view-only users", () => {
     );
     expect(result.users.viewOnly.map((u) => u.id)).toEqual(["viewer"]);
     expect(result.users.inactive.map((u) => u.id)).toEqual(["gone"]);
-    expect(result.byCategory.view_only_users).toBe((165 - 25) * 12);
+    expect(result.byCategory.view_only_users).toBe((165 - 100) * 12);
     expect(
       result.recommendations.find((r) => r.category === "view_only_users"),
     ).toMatchObject({ confidence: "low", advisory: false });
@@ -1208,6 +1209,7 @@ describe("licence fit from Lightning usage", () => {
     salesByUser: { rep: 500 },
     casesByUser: { agent: 300 },
     mobileUserIds: ["phone"],
+    customObjectsByUser: { ops: 3 },
     monthlyActive: [],
     ...overrides,
   });
@@ -1229,6 +1231,35 @@ describe("licence fit from Lightning usage", () => {
     const result = computeSavings(snapshot(base), prices, { now: NOW });
     expect(result.users.platform.map((u) => u.id)).toEqual(["ops"]);
     expect(result.recommendations.find((r) => r.id === "platform_usage")).toMatchObject({ count: 1, annualSavings: (165 - 25) * 12 });
+  });
+
+  it("prices Platform Plus for users who open more custom objects than Platform Starter covers", () => {
+    const many = computeSavings(snapshot({ ...base, pageUsage: pages({ customObjectsByUser: { ops: 11 } }) }), prices, { now: NOW });
+    expect(many.recommendations.find((r) => r.id === "platform_usage")).toMatchObject({ count: 1, annualSavings: (165 - 100) * 12 });
+    expect(many.users.platform[0].reason).toContain("Platform Plus");
+
+    const unreadable = computeSavings(snapshot({ ...base, pageUsage: pages({ customObjectsByUser: null }) }), prices, { now: NOW });
+    expect(unreadable.byCategory.platform_licenses).toBe((165 - 100) * 12);
+
+    // Paying $90 a seat, Plus at 4 x $25 saves nothing, so nobody is flagged.
+    const cheap = computeSavings(snapshot({ ...base, pageUsage: pages({ customObjectsByUser: { ops: 11 } }) }), { ...prices, fullMonthly: 90 }, { now: NOW });
+    expect(cheap.users.platform).toEqual([]);
+  });
+
+  it("doesn't price view-only users as Platform when they open sales or service records", () => {
+    const result = computeSavings(
+      snapshot({
+        ...base,
+        users: [user("reader"), user("idle")],
+        writeActivity: writes({}),
+        pageUsage: pages({ byUser: { reader: 30, idle: 10 }, salesByUser: { reader: 25 }, casesByUser: {}, mobileUserIds: [], customObjectsByUser: {} }),
+      }),
+      prices,
+      { now: NOW },
+    );
+    expect(result.users.viewOnly.map((u) => u.id)).toEqual(["idle"]);
+    expect(result.byCategory.view_only_users).toBe((165 - 25) * 12);
+    expect(result.notes.some((n) => n.startsWith("1 user edit nothing but do open sales"))).toBe(true);
   });
 
   it("doesn't flag anyone who edited an Opportunity, Lead or Case", () => {
@@ -1288,5 +1319,24 @@ describe("unassigned seats against the busiest month", () => {
     ];
     const result = computeSavings(snapshot({ userLicenses: licenses, deactivations }), prices, { now: NOW });
     expect(result.recommendations.find((r) => r.id === "unused_seats:Salesforce")?.detail).toContain("1 person who left kept a paid seat for 120 days");
+  });
+});
+
+describe("sandbox orgs", () => {
+  it("counts no savings, because a sandbox's users and licences aren't on the bill", () => {
+    const result = computeSavings(
+      snapshot({
+        organization: { id: "00D9", name: "Acme Partial", edition: "Enterprise Edition", isSandbox: true, instanceUrl: "https://acme--partial.sandbox.my.salesforce.com" },
+        users: [user("gone", { lastLoginDate: null }), user("lite", { profileId: "SUPPORT_LITE" })],
+        frozenUserIds: ["gone"],
+      }),
+      prices,
+      { now: NOW },
+    );
+    expect(result.sandbox).toBe(true);
+    expect(result.annualSavings).toBe(0);
+    expect(result.recommendations).toEqual([]);
+    expect(Object.values(result.byCategory).every((v) => v === 0)).toBe(true);
+    expect(result.users.frozen).toEqual([]);
   });
 });

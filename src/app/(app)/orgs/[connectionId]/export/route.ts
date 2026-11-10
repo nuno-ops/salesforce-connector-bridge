@@ -8,6 +8,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext<"/orgs
   const { connectionId } = await params;
   const { connection, workspace } = await requireConnection(connectionId);
   const scan = await latestScan(connection.id, { succeededOnly: true });
+  if (connection.isSandbox) return new NextResponse("Sandboxes have no savings to export. Connect your production org.", { status: 404 });
   if (!scan?.result) return new NextResponse("Run a scan first.", { status: 404 });
   if (!(await orgUnlocked(workspace.id, scan))) return new NextResponse("Unlock the full report to export.", { status: 402 });
   const filename = `salesforce-savings-${connection.orgName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${scan.startedAt.toISOString().slice(0, 10)}.csv`;

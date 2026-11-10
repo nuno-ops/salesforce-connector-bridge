@@ -20,7 +20,7 @@ export default async function PrintPage({ params }: PageProps<"/orgs/[connection
   const { connectionId } = await params;
   const { connection, workspace } = await requireConnection(connectionId);
   const scan = await latestScan(connection.id, { succeededOnly: true });
-  if (!scan?.result || !(await orgUnlocked(workspace.id, scan))) notFound();
+  if (connection.isSandbox || !scan?.result || !(await orgUnlocked(workspace.id, scan))) notFound();
   const r = scan.result;
   const { priced, needsPrice } = reportRecommendations(r.recommendations);
   const contract = summarizeContract(scan.snapshot?.salesforceAccount, scan.startedAt);
