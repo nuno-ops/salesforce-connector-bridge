@@ -9,6 +9,13 @@ import {
   activityQuery,
   customObjectPagesQuery,
   deactivatedUsersQuery,
+  emailCountQuery,
+  emailSampleQuery,
+  oldActivityQuery,
+  oldCampaignMembersQuery,
+  STORAGE_GROWTH_OBJECTS,
+  STORAGE_WINDOWS,
+  storageGrowthQuery,
   lastActivityQuery,
   packageObjectsQuery,
 } from "@/lib/salesforce/collect";
@@ -28,11 +35,17 @@ const QUERY_LIST = [
   lastActivityQuery("<namespace>__<object>__c"),
   deactivatedUsersQuery(["USERIDS"]).replace("'USERIDS'", "<user ids>"),
   customObjectPagesQuery(["USERIDS"]).replace("'USERIDS'", "<user ids>"),
+  oldActivityQuery("Task", "<date>").replace("Task", "<Task or Event>"),
+  emailCountQuery(),
+  emailCountQuery("<date>"),
+  emailSampleQuery,
+  oldCampaignMembersQuery("<date>"),
+  storageGrowthQuery("Task").replace("Task", "<object>"),
 ];
 
 export default function SecurityPage() {
   return (
-    <LegalPage title="Security" updated="November 10, 2026" eyebrow="Security">
+    <LegalPage title="Security" updated="November 13, 2026" eyebrow="Security">
       <p>
         Salesforce Saver only reads from your org. It never creates, edits or deletes anything in Salesforce. This page lists exactly
         what it reads, what it keeps and how to cut it off.
@@ -61,6 +74,12 @@ export default function SecurityPage() {
           Record counts, not records: how many {ACTIVITY_OBJECTS.join(", ")} records each user created or edited in the last{" "}
           {ACTIVITY_WINDOW_DAYS} days, and when each installed package&apos;s objects last changed. We never read what&apos;s in those
           records.
+        </li>
+        <li>
+          Storage: how many old {STORAGE_GROWTH_OBJECTS.join(", ")} records there are and how many were created in the last{" "}
+          {STORAGE_WINDOWS.growthWindowDays} days, as counts only. To size email storage, the scan loads the bodies of your{" "}
+          {STORAGE_WINDOWS.emailSample} newest emails, measures their length in memory and keeps only the average size. The email text
+          is never stored, logged or sent anywhere.
         </li>
         <li>
           Page view counts from Salesforce&apos;s own Lightning usage data: how many pages each user opened, how many of those were

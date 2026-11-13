@@ -15,7 +15,7 @@ const CHECKS = [
   ["03", "Your renewal", "Seats to drop before your notice date and how much your bill rose last year, from your own invoices."],
   ["04", "Unused apps", "Installed and connected apps nobody used in 90 days, or that do the same job, priced at what you pay."],
   ["05", "The right edition", "Whether you need Unlimited, and Service Cloud licenses on people who never touch a case."],
-  ["06", "Sandboxes + duplicates", "Paid sandboxes nobody has refreshed in a year, and people paid for twice across your orgs."],
+  ["06", "Sandboxes + storage", "Paid sandboxes nobody has refreshed in a year, storage you bought and don't need, and people paid for twice across your orgs."],
 ] as const;
 
 const PLANS = [

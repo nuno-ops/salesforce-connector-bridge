@@ -55,6 +55,8 @@ export interface OrgSnapshot {
   pageUsage?: SnapshotPageUsage | null;
   /** Paid users deactivated in the last 180 days, from the setup audit trail. Missing on older snapshots; `null` when unreadable. */
   deactivations?: SnapshotDeactivation[] | null;
+  /** What fills data storage: old records, recent growth, email body sizes. Missing on older snapshots; `null` when unreadable. */
+  storageDetail?: SnapshotStorageDetail | null;
   /** Sales trends, only on snapshots taken before the report dropped its sales chart. */
   metrics?: {
     leadsByMonth: { month: string; count: number }[];
@@ -118,6 +120,31 @@ export interface SnapshotStorage {
   fileMaxMB: number;
   fileRemainingMB: number;
 }
+
+export interface SnapshotStorageDetail {
+  /** Tasks and Events (archived ones included) created more than `oldActivityYears` ago. Missing objects weren't readable. */
+  oldActivities: Partial<Record<"Task" | "Event", number>>;
+  oldActivityYears: number;
+  /** `null` when EmailMessage wasn't readable. */
+  emails: {
+    total: number;
+    /** Emails created more than `oldEmailYears` ago. */
+    old: number;
+    oldEmailYears: number;
+    /** Emails measured. Bodies are measured in memory and never stored. */
+    sampleSize: number;
+    avgHtmlBytes: number;
+    avgTextBytes: number;
+  } | null;
+  /** Members of campaigns that are inactive and ended more than `oldCampaignYears` ago; `null` when unreadable. */
+  oldCampaignMembers: number | null;
+  oldCampaignYears: number;
+  /** Records created in the last `growthWindowDays` per object, with the biggest creators. Missing objects weren't readable. */
+  growth: Partial<Record<StorageGrowthObject, { created: number; topCreators: { userId: string; count: number }[] }>>;
+  growthWindowDays: number;
+}
+
+export type StorageGrowthObject = "Task" | "Event" | "EmailMessage" | "CampaignMember";
 
 export interface SnapshotSandbox {
   name: string;

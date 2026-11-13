@@ -1340,3 +1340,110 @@ describe("sandbox orgs", () => {
     expect(result.users.frozen).toEqual([]);
   });
 });
+
+describe("storage checks", () => {
+  const withStoragePrice = (perGb?: number, filePerGb?: number): PriceBook => ({
+    ...prices,
+    apps: { packages: {}, connectedApps: {}, addOns: { dataStoragePerGbMonthly: perGb, fileStoragePerGbMonthly: filePerGb } },
+  });
+  const licenses = (n: number) => [{ id: "L1", name: "Salesforce", total: n, used: n }];
+  const detail = (overrides: Partial<NonNullable<OrgSnapshot["storageDetail"]>> = {}): NonNullable<OrgSnapshot["storageDetail"]> => ({
+    oldActivities: { Task: 0, Event: 0 },
+    oldActivityYears: 3,
+    emails: null,
+    oldCampaignMembers: 0,
+    oldCampaignYears: 2,
+    growth: {},
+    growthWindowDays: 30,
+    ...overrides,
+  });
+  const find = (r: ReturnType<typeof computeSavings>, id: string) => r.recommendations.find((x) => x.id === id);
+
+  it("prices bought data storage the org doesn't need, keeping 20% room", () => {
+    // Allowance: 10 GB + 100 licences x 20 MB = 12,240 MB. Max 16,240 MB, so 4,000 MB was bought; 6,240 MB used.
+    const snap = snapshot({ userLicenses: licenses(100), storage: { dataMaxMB: 16_240, dataRemainingMB: 10_000, fileMaxMB: 10_240, fileRemainingMB: 10_000 } });
+    const priced = computeSavings(snap, withStoragePrice(250), { now: NOW });
+    const rec = find(priced, "storage_unused_data");
+    expect(rec?.annualSavings).toBe(Math.round((4000 / 1024) * 250 * 12));
+    expect(rec?.advisory).toBe(false);
+    expect(priced.byCategory.storage).toBe(rec?.annualSavings);
+
+    const unpriced = computeSavings(snap, prices, { now: NOW });
+    expect(reportRecommendations(unpriced.recommendations).needsPrice.map((r) => r.id)).toContain("storage_unused_data");
+  });
+
+  it("uses 120 MB per licence on Unlimited, so the same org has nothing bought", () => {
+    const snap = snapshot({
+      organization: { ...snapshot().organization, edition: "Unlimited Edition" },
+      userLicenses: licenses(100),
+      storage: { dataMaxMB: 16_240, dataRemainingMB: 10_000, fileMaxMB: 10_240, fileRemainingMB: 10_000 },
+    });
+    expect(find(computeSavings(snap, withStoragePrice(250), { now: NOW }), "storage_unused_data")).toBeUndefined();
+  });
+
+  it("prices clean-ups only as the bought storage they let the org drop", () => {
+    // 4,000 MB bought and nearly all used: nothing to drop until old records go.
+    const snap = snapshot({
+      userLicenses: licenses(100),
+      storage: { dataMaxMB: 16_240, dataRemainingMB: 1_240, fileMaxMB: 10_240, fileRemainingMB: 10_000 },
+      storageDetail: detail({
+        oldActivities: { Task: 2_000_000, Event: 0 },
+        emails: { total: 200_000, old: 100_000, oldEmailYears: 1, sampleSize: 50, avgHtmlBytes: 20_000, avgTextBytes: 3_000 },
+        oldCampaignMembers: 300_000,
+      }),
+    });
+    const result = computeSavings(snap, withStoragePrice(250), { now: NOW });
+    expect(find(result, "storage_unused_data")).toBeUndefined();
+    // 2M tasks x 2 KB = 3,906 MB freed: used 11,094 MB needs 13,867 MB, so 2,000 MB (four blocks) can go.
+    expect(find(result, "storage_old_activities")?.annualSavings).toBe(Math.round((2000 / 1024) * 250 * 12));
+    // HTML frees ~1,907 MB more, which lets the rest of the 4,000 MB bought go.
+    expect(find(result, "storage_email_html")?.annualSavings).toBe(Math.round((2000 / 1024) * 250 * 12));
+    // Nothing bought is left to drop, so campaign members carry no saving.
+    expect(find(result, "storage_old_campaign_members")?.advisory).toBe(true);
+    expect(result.byCategory.storage).toBe(Math.round((2000 / 1024) * 250 * 12) * 2);
+  });
+
+  it("shows no clean-up saving when no storage was bought", () => {
+    const snap = snapshot({
+      userLicenses: licenses(100),
+      storage: { dataMaxMB: 12_240, dataRemainingMB: 6_000, fileMaxMB: 10_240, fileRemainingMB: 10_000 },
+      storageDetail: detail({ oldActivities: { Task: 2_000_000 }, oldCampaignMembers: 300_000 }),
+    });
+    const result = computeSavings(snap, withStoragePrice(250), { now: NOW });
+    expect(result.byCategory.storage).toBe(0);
+    expect(reportRecommendations(result.recommendations).priced).toEqual([]);
+  });
+
+  it("prices the storage a fast-growing org would have to buy within a year", () => {
+    // 10 licences: 10,440 MB included, none bought, 500 MB left; 30,000 tasks a month is about 59 MB.
+    const snap = snapshot({
+      users: [user("bot", { name: "JustCall Integration" })],
+      userLicenses: licenses(10),
+      storage: { dataMaxMB: 10_440, dataRemainingMB: 500, fileMaxMB: 10_240, fileRemainingMB: 10_000 },
+      storageDetail: detail({ growth: { Task: { created: 30_000, topCreators: [{ userId: "bot", count: 27_000 }] } } }),
+    });
+    const result = computeSavings(snap, withStoragePrice(250), { now: NOW });
+    const rec = find(result, "storage_growth");
+    expect(rec?.title).toBe("Data storage runs out in about 8 months: stop what's filling it");
+    expect(rec?.detail).toContain("90% of those were created by JustCall Integration");
+    expect(rec?.annualSavings).toBe(Math.round((500 / 1024) * 250 * 12));
+
+    const unpriced = computeSavings(snap, prices, { now: NOW });
+    expect(reportRecommendations(unpriced.recommendations).needsPrice.map((r) => r.id)).toContain("storage_growth");
+  });
+
+  it("prices unused bought file storage in 10 GB blocks", () => {
+    const snap = snapshot({ storage: { dataMaxMB: 10_240, dataRemainingMB: 9_000, fileMaxMB: 30_720, fileRemainingMB: 28_672 } });
+    const rec = find(computeSavings(snap, withStoragePrice(undefined, 5), { now: NOW }), "storage_unused_file");
+    expect(rec?.annualSavings).toBe(Math.round(20 * 5 * 12));
+  });
+
+  it("counts nothing on a sandbox", () => {
+    const snap = snapshot({
+      organization: { ...snapshot().organization, isSandbox: true },
+      userLicenses: licenses(100),
+      storage: { dataMaxMB: 16_240, dataRemainingMB: 10_000, fileMaxMB: 10_240, fileRemainingMB: 10_000 },
+    });
+    expect(computeSavings(snap, withStoragePrice(250), { now: NOW }).annualSavings).toBe(0);
+  });
+});

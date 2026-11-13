@@ -33,13 +33,24 @@ export interface AddOnPrices {
   partialSandboxMonthly?: number;
   /** The Service Cloud User feature license, per user per month. */
   serviceCloudUserMonthly?: number;
+  /** Extra data storage, per GB per month. Salesforce publishes no price; it's on the order form. */
+  dataStoragePerGbMonthly?: number;
+  /** Extra file storage, per GB per month. */
+  fileStoragePerGbMonthly?: number;
   /** The customer's yearly AWS spend commitment (EDP/PPA). Only used for the "pay through AWS" option. */
   awsCommitmentYearly?: number;
   /** How much of that commitment the customer expects to leave unused this year. */
   awsUnusedYearly?: number;
 }
 
-export const ADD_ON_KEYS = ["partialSandboxMonthly", "serviceCloudUserMonthly", "awsCommitmentYearly", "awsUnusedYearly"] as const satisfies readonly (keyof AddOnPrices)[];
+export const ADD_ON_KEYS = [
+  "partialSandboxMonthly",
+  "serviceCloudUserMonthly",
+  "dataStoragePerGbMonthly",
+  "fileStoragePerGbMonthly",
+  "awsCommitmentYearly",
+  "awsUnusedYearly",
+] as const satisfies readonly (keyof AddOnPrices)[];
 
 /** Per-user list prices by edition, matching the original app's defaults. */
 const EDITION_FULL_PRICE: Record<string, number> = {

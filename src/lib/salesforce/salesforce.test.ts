@@ -1,6 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import { SalesforceAuthError, SalesforceClient } from "./client";
-import { activityQuery, collectSnapshot, deactivatedUsersQuery, isOwnCustomObject, lastActivityQuery, packageObjectsQuery, QUERIES } from "./collect";
+import {
+  activityQuery,
+  collectSnapshot,
+  deactivatedUsersQuery,
+  emailCountQuery,
+  emailSampleQuery,
+  isOwnCustomObject,
+  lastActivityQuery,
+  oldActivityQuery,
+  oldCampaignMembersQuery,
+  packageObjectsQuery,
+  QUERIES,
+  storageGrowthQuery,
+  yearsBefore,
+} from "./collect";
 import { explainOAuthError, parseIdentityUrl, resolveLoginHost } from "./oauth";
 
 const json = (body: unknown, status = 200) =>
@@ -205,6 +219,57 @@ describe("collectSnapshot", () => {
 
   it("never reads payment card fields from the Salesforce contract", () => {
     expect(QUERIES.salesforceContracts).not.toMatch(/CreditCard|NameOnCreditCard/i);
+  });
+});
+
+describe("storage detail", () => {
+  it("counts old records with queryAll, measures email bodies and keeps only the averages", async () => {
+    const now = new Date("2026-11-13T10:00:00Z");
+    expect(yearsBefore(now, 3)).toBe("2023-11-13T00:00:00Z");
+    expect(yearsBefore(now, 2, "date")).toBe("2024-11-13");
+    const all: Record<string, unknown> = {
+      [oldActivityQuery("Task", "2023-11-13T00:00:00Z")]: [{ c: 1200 }],
+      [oldActivityQuery("Event", "2023-11-13T00:00:00Z")]: [{ c: 30 }],
+    };
+    const plain: Record<string, unknown> = {
+      [QUERIES.organization]: [{ Id: "00D1", Name: "Acme", OrganizationType: "Enterprise Edition", IsSandbox: false }],
+      [emailCountQuery()]: [{ c: 900 }],
+      [emailCountQuery("2025-11-13T00:00:00Z")]: [{ c: 400 }],
+      [emailSampleQuery]: [
+        { HtmlBody: "<p>héllo</p>", TextBody: "héllo" },
+        { HtmlBody: null, TextBody: "abc" },
+      ],
+      [oldCampaignMembersQuery("2024-11-13")]: [{ c: 5000 }],
+      [storageGrowthQuery("Task")]: [
+        { u: "0051", c: 70 },
+        { u: "0052", c: 30 },
+      ],
+    };
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      const q = url.searchParams.get("q") ?? "";
+      const table = url.pathname.endsWith("/queryAll") ? all : plain;
+      if (q in table) return json({ done: true, totalSize: 1, records: table[q] });
+      if (q === storageGrowthQuery("CampaignMember")) return json([{ errorCode: "INVALID_TYPE", message: "No campaigns" }], 400);
+      return json({ done: true, totalSize: 0, records: [] });
+    });
+    const client = new SalesforceClient(creds, { fetch: fetch as typeof globalThis.fetch });
+    const snap = await collectSnapshot(client, now);
+    expect(snap.storageDetail).toEqual({
+      oldActivities: { Task: 1200, Event: 30 },
+      oldActivityYears: 3,
+      // "<p>héllo</p>" is 13 bytes (é is two), "héllo" 6, "abc" 3.
+      emails: { total: 900, old: 400, oldEmailYears: 1, sampleSize: 2, avgHtmlBytes: 7, avgTextBytes: 5 },
+      oldCampaignMembers: 5000,
+      oldCampaignYears: 2,
+      growth: {
+        Task: { created: 100, topCreators: [{ userId: "0051", count: 70 }, { userId: "0052", count: 30 }] },
+        Event: { created: 0, topCreators: [] },
+        EmailMessage: { created: 0, topCreators: [] },
+      },
+      growthWindowDays: 30,
+    });
+    expect(JSON.stringify(snap)).not.toContain("héllo");
   });
 });
 
