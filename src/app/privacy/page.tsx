@@ -18,9 +18,8 @@ export default function PrivacyPage() {
           These are counts and dates only.
         </li>
         <li>
-          For storage: counts of old tasks, events, emails and campaign members, and how many were created in the last 30 days. To
-          size email storage we load the bodies of your 50 newest emails, measure their length in memory and keep only the average
-          size. The email text is never stored.
+          For storage: counts of old tasks, events, emails and campaign members, and how many were created in the last 30 days.
+          Counts only, never their contents.
         </li>
         <li>
           Your own Salesforce subscription, when the connected user has the Manage Billing permission: contract number, dates,
@@ -28,7 +27,7 @@ export default function PrivacyPage() {
         </li>
       </ul>
       <p>
-        Apart from measuring those email sizes, we do not read or store the contents of your accounts, contacts, leads, opportunities, cases or files, and we never write to your
+        We do not read or store the contents of your accounts, contacts, leads, opportunities, cases, emails or files, and we never write to your
         org. Every query is listed on our <a href="/security">security page</a>.
       </p>
       <h2>What we store</h2>

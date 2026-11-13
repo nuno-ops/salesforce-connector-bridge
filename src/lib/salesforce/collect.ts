@@ -89,15 +89,13 @@ export const QUERIES = {
 } as const;
 
 /** How the storage checks define "old" and "recent". */
-export const STORAGE_WINDOWS = { oldActivityYears: 3, oldEmailYears: 1, oldCampaignYears: 2, growthWindowDays: 30, emailSample: 50 } as const;
+export const STORAGE_WINDOWS = { oldActivityYears: 3, oldEmailYears: 1, oldCampaignYears: 2, growthWindowDays: 30 } as const;
 export const STORAGE_GROWTH_OBJECTS = ["Task", "Event", "EmailMessage", "CampaignMember"] as const satisfies readonly StorageGrowthObject[];
 
 /** Run with queryAll so archived activities count too; deleted rows are left out. `before` is a SOQL datetime. */
 export const oldActivityQuery = (object: "Task" | "Event", before: string) =>
   `SELECT COUNT(Id) c FROM ${object} WHERE IsDeleted = false AND CreatedDate < ${before}`;
 export const emailCountQuery = (before?: string) => `SELECT COUNT(Id) c FROM EmailMessage${before ? ` WHERE CreatedDate < ${before}` : ""}`;
-/** Only the length of each body is kept, in memory; the text itself is never stored. */
-export const emailSampleQuery = `SELECT HtmlBody, TextBody FROM EmailMessage ORDER BY CreatedDate DESC LIMIT ${STORAGE_WINDOWS.emailSample}`;
 /** `before` is a SOQL date (campaign end dates have no time). */
 export const oldCampaignMembersQuery = (before: string) =>
   `SELECT COUNT(Id) c FROM CampaignMember WHERE Campaign.IsActive = false AND Campaign.EndDate < ${before}`;
@@ -307,10 +305,8 @@ export function yearsBefore(now: Date, years: number, kind: "datetime" | "date" 
   return kind === "date" ? date : `${date}T00:00:00Z`;
 }
 
-const utf8Bytes = (text: string | null) => (text ? new TextEncoder().encode(text).length : 0);
-
 /**
- * What fills data storage: record counts only, plus the average size of recent email bodies.
+ * What fills data storage, as record counts only: never what's in the records.
  * Each part that fails is left out; the whole thing is `null` only when nothing was readable.
  */
 async function collectStorageDetail(client: SalesforceClient, now: Date): Promise<SnapshotStorageDetail | null> {
@@ -325,12 +321,11 @@ async function collectStorageDetail(client: SalesforceClient, now: Date): Promis
     return row?.c ?? 0;
   };
   const oldActivityBefore = yearsBefore(now, w.oldActivityYears);
-  const [task, event, emailTotal, emailOld, sample, campaignMembers, ...growthRows] = await Promise.all([
+  const [task, event, emailTotal, emailOld, campaignMembers, ...growthRows] = await Promise.all([
     swallow(count(oldActivityQuery("Task", oldActivityBefore), true)),
     swallow(count(oldActivityQuery("Event", oldActivityBefore), true)),
     swallow(count(emailCountQuery())),
     swallow(count(emailCountQuery(yearsBefore(now, w.oldEmailYears)))),
-    swallow(client.query<{ HtmlBody: string | null; TextBody: string | null }>(emailSampleQuery)),
     swallow(count(oldCampaignMembersQuery(yearsBefore(now, w.oldCampaignYears, "date")))),
     ...STORAGE_GROWTH_OBJECTS.map((o) => swallow(client.query<{ u: string | null; c: number }>(storageGrowthQuery(o)))),
   ]);
@@ -340,19 +335,7 @@ async function collectStorageDetail(client: SalesforceClient, now: Date): Promis
   if (event !== null) oldActivities.Event = event;
 
   let emails: SnapshotStorageDetail["emails"] = null;
-  if (emailTotal !== null && emailOld !== null) {
-    const n = sample?.length ?? 0;
-    const avg = (pick: (r: { HtmlBody: string | null; TextBody: string | null }) => string | null) =>
-      n ? Math.round(sample!.reduce((a, r) => a + utf8Bytes(pick(r)), 0) / n) : 0;
-    emails = {
-      total: emailTotal,
-      old: emailOld,
-      oldEmailYears: w.oldEmailYears,
-      sampleSize: n,
-      avgHtmlBytes: avg((r) => r.HtmlBody),
-      avgTextBytes: avg((r) => r.TextBody),
-    };
-  }
+  if (emailTotal !== null && emailOld !== null) emails = { total: emailTotal, old: emailOld, oldEmailYears: w.oldEmailYears };
 
   const growth: SnapshotStorageDetail["growth"] = {};
   STORAGE_GROWTH_OBJECTS.forEach((object, i) => {

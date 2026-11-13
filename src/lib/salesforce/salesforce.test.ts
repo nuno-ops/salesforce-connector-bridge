@@ -5,7 +5,6 @@ import {
   collectSnapshot,
   deactivatedUsersQuery,
   emailCountQuery,
-  emailSampleQuery,
   isOwnCustomObject,
   lastActivityQuery,
   oldActivityQuery,
@@ -223,7 +222,7 @@ describe("collectSnapshot", () => {
 });
 
 describe("storage detail", () => {
-  it("counts old records with queryAll, measures email bodies and keeps only the averages", async () => {
+  it("counts old records with queryAll and never reads email bodies", async () => {
     const now = new Date("2026-11-13T10:00:00Z");
     expect(yearsBefore(now, 3)).toBe("2023-11-13T00:00:00Z");
     expect(yearsBefore(now, 2, "date")).toBe("2024-11-13");
@@ -235,10 +234,6 @@ describe("storage detail", () => {
       [QUERIES.organization]: [{ Id: "00D1", Name: "Acme", OrganizationType: "Enterprise Edition", IsSandbox: false }],
       [emailCountQuery()]: [{ c: 900 }],
       [emailCountQuery("2025-11-13T00:00:00Z")]: [{ c: 400 }],
-      [emailSampleQuery]: [
-        { HtmlBody: "<p>héllo</p>", TextBody: "héllo" },
-        { HtmlBody: null, TextBody: "abc" },
-      ],
       [oldCampaignMembersQuery("2024-11-13")]: [{ c: 5000 }],
       [storageGrowthQuery("Task")]: [
         { u: "0051", c: 70 },
@@ -258,8 +253,7 @@ describe("storage detail", () => {
     expect(snap.storageDetail).toEqual({
       oldActivities: { Task: 1200, Event: 30 },
       oldActivityYears: 3,
-      // "<p>héllo</p>" is 13 bytes (é is two), "héllo" 6, "abc" 3.
-      emails: { total: 900, old: 400, oldEmailYears: 1, sampleSize: 2, avgHtmlBytes: 7, avgTextBytes: 5 },
+      emails: { total: 900, old: 400, oldEmailYears: 1 },
       oldCampaignMembers: 5000,
       oldCampaignYears: 2,
       growth: {
@@ -269,7 +263,8 @@ describe("storage detail", () => {
       },
       growthWindowDays: 30,
     });
-    expect(JSON.stringify(snap)).not.toContain("héllo");
+    // Counts only: no query ever selects an email body.
+    expect(fetch.mock.calls.some(([input]) => /Body/.test(new URL(String(input)).searchParams.get("q") ?? ""))).toBe(false);
   });
 });
 

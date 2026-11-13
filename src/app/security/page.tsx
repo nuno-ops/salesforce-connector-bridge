@@ -10,7 +10,6 @@ import {
   customObjectPagesQuery,
   deactivatedUsersQuery,
   emailCountQuery,
-  emailSampleQuery,
   oldActivityQuery,
   oldCampaignMembersQuery,
   STORAGE_GROWTH_OBJECTS,
@@ -38,7 +37,6 @@ const QUERY_LIST = [
   oldActivityQuery("Task", "<date>").replace("Task", "<Task or Event>"),
   emailCountQuery(),
   emailCountQuery("<date>"),
-  emailSampleQuery,
   oldCampaignMembersQuery("<date>"),
   storageGrowthQuery("Task").replace("Task", "<object>"),
 ];
@@ -77,9 +75,7 @@ export default function SecurityPage() {
         </li>
         <li>
           Storage: how many old {STORAGE_GROWTH_OBJECTS.join(", ")} records there are and how many were created in the last{" "}
-          {STORAGE_WINDOWS.growthWindowDays} days, as counts only. To size email storage, the scan loads the bodies of your{" "}
-          {STORAGE_WINDOWS.emailSample} newest emails, measures their length in memory and keeps only the average size. The email text
-          is never stored, logged or sent anywhere.
+          {STORAGE_WINDOWS.growthWindowDays} days. Counts only: we never read what&apos;s in those records or emails.
         </li>
         <li>
           Page view counts from Salesforce&apos;s own Lightning usage data: how many pages each user opened, how many of those were

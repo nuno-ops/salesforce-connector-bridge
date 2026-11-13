@@ -1388,7 +1388,7 @@ describe("storage checks", () => {
       storage: { dataMaxMB: 16_240, dataRemainingMB: 1_240, fileMaxMB: 10_240, fileRemainingMB: 10_000 },
       storageDetail: detail({
         oldActivities: { Task: 2_000_000, Event: 0 },
-        emails: { total: 200_000, old: 100_000, oldEmailYears: 1, sampleSize: 50, avgHtmlBytes: 20_000, avgTextBytes: 3_000 },
+        emails: { total: 200_000, old: 100_000, oldEmailYears: 1 },
         oldCampaignMembers: 300_000,
       }),
     });
@@ -1396,11 +1396,12 @@ describe("storage checks", () => {
     expect(find(result, "storage_unused_data")).toBeUndefined();
     // 2M tasks x 2 KB = 3,906 MB freed: used 11,094 MB needs 13,867 MB, so 2,000 MB (four blocks) can go.
     expect(find(result, "storage_old_activities")?.annualSavings).toBe(Math.round((2000 / 1024) * 250 * 12));
-    // HTML frees ~1,907 MB more, which lets the rest of the 4,000 MB bought go.
-    expect(find(result, "storage_email_html")?.annualSavings).toBe(Math.round((2000 / 1024) * 250 * 12));
-    // Nothing bought is left to drop, so campaign members carry no saving.
-    expect(find(result, "storage_old_campaign_members")?.advisory).toBe(true);
-    expect(result.byCategory.storage).toBe(Math.round((2000 / 1024) * 250 * 12) * 2);
+    // HTML at an estimated 5 KB each frees ~488 MB more: one more block. Campaign members (~586 MB) free two more.
+    expect(find(result, "storage_email_html")?.annualSavings).toBe(Math.round((500 / 1024) * 250 * 12));
+    expect(find(result, "storage_old_campaign_members")?.annualSavings).toBe(Math.round((1000 / 1024) * 250 * 12));
+    expect(result.byCategory.storage).toBe(
+      Math.round((2000 / 1024) * 250 * 12) + Math.round((500 / 1024) * 250 * 12) + Math.round((1000 / 1024) * 250 * 12),
+    );
   });
 
   it("shows no clean-up saving when no storage was bought", () => {

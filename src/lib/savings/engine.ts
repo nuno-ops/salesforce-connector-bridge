@@ -1140,8 +1140,12 @@ const FILE_BLOCK_MB = 10 * 1024;
 const STORAGE_HEADROOM = 0.8;
 /** Smallest clean-up worth a row. */
 const MIN_CLEANUP_MB = 250;
-/** Fewest emails measured before their average body size is trusted. */
-const MIN_EMAIL_SAMPLE = 10;
+/**
+ * Estimated email body sizes. The scan never opens email content, so these stay deliberately low:
+ * 5 KB of HTML is under the 6.6 KB median measured once in a real org (flyerclub, 2026-11-13); 2 KB of plain text.
+ */
+const EMAIL_HTML_MB = 5 / 1024;
+const EMAIL_TEXT_MB = 2 / 1024;
 
 /** Data storage per user licence on top of the 10 GB (Salesforce Help); `null` for editions we don't size. */
 function dataPerLicenseMB(edition: string): number | null {
@@ -1259,16 +1263,15 @@ function storageChecks(snapshot: OrgSnapshot, prices: PriceBook, noticeHint: str
   );
 
   const e = d.emails;
-  if (e && e.sampleSize >= MIN_EMAIL_SAMPLE && e.avgHtmlBytes > 0) {
-    const htmlShare = Math.round((e.avgHtmlBytes / Math.max(1, e.avgHtmlBytes + e.avgTextBytes)) * 100);
+  if (e && e.old > 0) {
     cleanup(
       {
         id: "storage_email_html",
         title: `Strip the HTML from ${e.old.toLocaleString("en-US")} emails older than ${e.oldEmailYears} ${plural(e.oldEmailYears, "year")}`,
-        detail: `In a sample of your ${e.sampleSize} newest emails, the HTML copy of the body averages ${Math.round(e.avgHtmlBytes / 1024)} KB and the plain text ${Math.round(e.avgTextBytes / 1024)} KB, so HTML is about ${htmlShare}% of the body. Email bodies count against data storage on top of the record itself. Keep the plain text and drop the HTML on old emails: about ${storageSize((e.old * e.avgHtmlBytes) / 1024 / 1024)} back, and the emails stay readable in the same place and order. The body can't be edited after sending, so this needs a small scheduled job that copies each old email without the HTML (with "Set Audit Fields" to keep the original dates), moves its attachments to the copy and deletes the original.`,
+        detail: `Each email keeps its body twice: once as HTML (with all the styling and signatures) and once as plain text, and both take data storage. Keep the plain text and drop the HTML on old emails: at an estimated 5 KB of HTML each, about ${storageSize(e.old * EMAIL_HTML_MB)} back, and the emails stay readable in the same place and order. Setup > Storage Usage shows how much your emails really use. The body can't be edited after sending, so this needs a small scheduled job that copies each old email without the HTML (with "Set Audit Fields" to keep the original dates), moves its attachments to the copy and deletes the original.`,
         count: e.old,
       },
-      (e.old * e.avgHtmlBytes) / 1024 / 1024,
+      e.old * EMAIL_HTML_MB,
     );
   }
 
@@ -1285,7 +1288,7 @@ function storageChecks(snapshot: OrgSnapshot, prices: PriceBook, noticeHint: str
   }
 
   // Growth: what the org adds each month, and whether it runs out within a year.
-  const emailMB = e && e.sampleSize >= MIN_EMAIL_SAMPLE ? RECORD_MB + (e.avgHtmlBytes + e.avgTextBytes) / 1024 / 1024 : RECORD_MB;
+  const emailMB = RECORD_MB + EMAIL_HTML_MB + EMAIL_TEXT_MB;
   const perMonth = 30 / d.growthWindowDays;
   const growth = Object.entries(d.growth).map(([object, g]) => ({
     object,

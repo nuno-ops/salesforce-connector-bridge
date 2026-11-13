@@ -55,7 +55,7 @@ export interface OrgSnapshot {
   pageUsage?: SnapshotPageUsage | null;
   /** Paid users deactivated in the last 180 days, from the setup audit trail. Missing on older snapshots; `null` when unreadable. */
   deactivations?: SnapshotDeactivation[] | null;
-  /** What fills data storage: old records, recent growth, email body sizes. Missing on older snapshots; `null` when unreadable. */
+  /** What fills data storage: counts of old and recent records. Missing on older snapshots; `null` when unreadable. */
   storageDetail?: SnapshotStorageDetail | null;
   /** Sales trends, only on snapshots taken before the report dropped its sales chart. */
   metrics?: {
@@ -131,10 +131,6 @@ export interface SnapshotStorageDetail {
     /** Emails created more than `oldEmailYears` ago. */
     old: number;
     oldEmailYears: number;
-    /** Emails measured. Bodies are measured in memory and never stored. */
-    sampleSize: number;
-    avgHtmlBytes: number;
-    avgTextBytes: number;
   } | null;
   /** Members of campaigns that are inactive and ended more than `oldCampaignYears` ago; `null` when unreadable. */
   oldCampaignMembers: number | null;
