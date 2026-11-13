@@ -95,6 +95,27 @@ export default async function PricesPage({ params }: PageProps<"/orgs/[connectio
     });
   }
 
+  // Storage only shows once the scan found bought storage, or a clean-up or growth that a price would turn into a saving.
+  const storageRecs = (scan?.result?.recommendations ?? []).filter((r) => r.id.startsWith("storage_"));
+  if (storageRecs.some((r) => r.id !== "storage_unused_file") || addOns?.dataStoragePerGbMonthly !== undefined) {
+    addOnRows.push({
+      field: "addon:dataStoragePerGbMonthly",
+      name: "Extra data storage",
+      detail: "Salesforce doesn't publish this price. It's on your order form, often sold per 500 MB: divide by the GB.",
+      unit: "per GB / mo",
+      value: addOns?.dataStoragePerGbMonthly ?? null,
+    });
+  }
+  if (storageRecs.some((r) => r.id === "storage_unused_file") || addOns?.fileStoragePerGbMonthly !== undefined) {
+    addOnRows.push({
+      field: "addon:fileStoragePerGbMonthly",
+      name: "Extra file storage",
+      detail: "From your order form.",
+      unit: "per GB / mo",
+      value: addOns?.fileStoragePerGbMonthly ?? null,
+    });
+  }
+
   // Optional AWS numbers for the "pay through AWS" option on the contract card, which needs the Salesforce bill.
   const contract = summarizeContract(scan?.snapshot?.salesforceAccount, scan?.startedAt);
   const awsRows: AppPriceRow[] = [];

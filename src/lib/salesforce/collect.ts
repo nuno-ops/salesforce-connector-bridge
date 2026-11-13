@@ -5,7 +5,9 @@ import type {
   SnapshotInstalledPackage,
   SnapshotPageUsage,
   SnapshotSalesforceAccount,
+  SnapshotStorageDetail,
   SnapshotWriteActivity,
+  StorageGrowthObject,
 } from "./types";
 
 // Raw record shapes, limited to the fields we select.
@@ -86,6 +88,20 @@ export const QUERIES = {
   deactivations: "SELECT Display, CreatedDate FROM SetupAuditTrail WHERE Action = 'deactivateduser' AND CreatedDate = LAST_N_DAYS:180",
 } as const;
 
+/** How the storage checks define "old" and "recent". */
+export const STORAGE_WINDOWS = { oldActivityYears: 3, oldEmailYears: 1, oldCampaignYears: 2, growthWindowDays: 30 } as const;
+export const STORAGE_GROWTH_OBJECTS = ["Task", "Event", "EmailMessage", "CampaignMember"] as const satisfies readonly StorageGrowthObject[];
+
+/** Run with queryAll so archived activities count too; deleted rows are left out. `before` is a SOQL datetime. */
+export const oldActivityQuery = (object: "Task" | "Event", before: string) =>
+  `SELECT COUNT(Id) c FROM ${object} WHERE IsDeleted = false AND CreatedDate < ${before}`;
+export const emailCountQuery = (before?: string) => `SELECT COUNT(Id) c FROM EmailMessage${before ? ` WHERE CreatedDate < ${before}` : ""}`;
+/** `before` is a SOQL date (campaign end dates have no time). */
+export const oldCampaignMembersQuery = (before: string) =>
+  `SELECT COUNT(Id) c FROM CampaignMember WHERE Campaign.IsActive = false AND Campaign.EndDate < ${before}`;
+export const storageGrowthQuery = (object: StorageGrowthObject) =>
+  `SELECT CreatedById u, COUNT(Id) c FROM ${object} WHERE CreatedDate = LAST_N_DAYS:${STORAGE_WINDOWS.growthWindowDays} GROUP BY CreatedById`;
+
 /** Objects whose creates and edits count as someone actually working in Salesforce. */
 export const ACTIVITY_OBJECTS = ["Account", "Contact", "Lead", "Opportunity", "Case", "Task", "Event"] as const;
 export const ACTIVITY_WINDOW_DAYS = 90;
@@ -120,7 +136,7 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     }
   };
 
-  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe, salesforceAccount, refreshes, serviceCloud, pageUsage, deactivations] =
+  const [org, users, userLicenses, objectPermissions, assignments, tokens, packages, psLicenses, limits, sandboxes, writeActivity, installedPackages, frozen, globalDescribe, salesforceAccount, refreshes, serviceCloud, pageUsage, deactivations, storageDetail] =
     await Promise.all([
       client.query<{ Id: string; Name: string; OrganizationType: string; IsSandbox: boolean }>(QUERIES.organization),
       client.query<UserRecord>(QUERIES.users),
@@ -192,6 +208,11 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
       }),
       optional("Lightning usage", () => collectPageUsage(client), null),
       optional("Deactivated users", () => collectDeactivations(client), null),
+      // Optional extra: without it the storage clean-up checks are skipped, so no warning.
+      collectStorageDetail(client, now).catch((e) => {
+        if (e instanceof SalesforceAuthError) throw e;
+        return null;
+      }),
     ]);
 
   const organization = org[0];
@@ -272,7 +293,71 @@ export async function collectSnapshot(client: SalesforceClient, now = new Date()
     salesforceAccount,
     pageUsage,
     deactivations,
+    storageDetail,
     warnings,
+  };
+}
+
+/** `now` minus whole years, as a SOQL datetime (`2023-11-13T00:00:00Z`) or date (`2023-11-13`). */
+export function yearsBefore(now: Date, years: number, kind: "datetime" | "date" = "datetime"): string {
+  const d = new Date(Date.UTC(now.getUTCFullYear() - years, now.getUTCMonth(), now.getUTCDate()));
+  const date = d.toISOString().slice(0, 10);
+  return kind === "date" ? date : `${date}T00:00:00Z`;
+}
+
+/**
+ * What fills data storage, as record counts only: never what's in the records.
+ * Each part that fails is left out; the whole thing is `null` only when nothing was readable.
+ */
+async function collectStorageDetail(client: SalesforceClient, now: Date): Promise<SnapshotStorageDetail | null> {
+  const w = STORAGE_WINDOWS;
+  const swallow = <T,>(p: Promise<T>): Promise<T | null> =>
+    p.catch((e) => {
+      if (e instanceof SalesforceAuthError) throw e;
+      return null;
+    });
+  const count = async (soql: string, all = false) => {
+    const [row] = await client.query<{ c: number }>(soql, { all });
+    return row?.c ?? 0;
+  };
+  const oldActivityBefore = yearsBefore(now, w.oldActivityYears);
+  const [task, event, emailTotal, emailOld, campaignMembers, ...growthRows] = await Promise.all([
+    swallow(count(oldActivityQuery("Task", oldActivityBefore), true)),
+    swallow(count(oldActivityQuery("Event", oldActivityBefore), true)),
+    swallow(count(emailCountQuery())),
+    swallow(count(emailCountQuery(yearsBefore(now, w.oldEmailYears)))),
+    swallow(count(oldCampaignMembersQuery(yearsBefore(now, w.oldCampaignYears, "date")))),
+    ...STORAGE_GROWTH_OBJECTS.map((o) => swallow(client.query<{ u: string | null; c: number }>(storageGrowthQuery(o)))),
+  ]);
+
+  const oldActivities: SnapshotStorageDetail["oldActivities"] = {};
+  if (task !== null) oldActivities.Task = task;
+  if (event !== null) oldActivities.Event = event;
+
+  let emails: SnapshotStorageDetail["emails"] = null;
+  if (emailTotal !== null && emailOld !== null) emails = { total: emailTotal, old: emailOld, oldEmailYears: w.oldEmailYears };
+
+  const growth: SnapshotStorageDetail["growth"] = {};
+  STORAGE_GROWTH_OBJECTS.forEach((object, i) => {
+    const rows = growthRows[i];
+    if (!rows) return;
+    const byCreator = rows.filter((r) => r.u).sort((a, b) => b.c - a.c);
+    growth[object] = {
+      created: rows.reduce((a, r) => a + r.c, 0),
+      topCreators: byCreator.slice(0, 3).map((r) => ({ userId: r.u!, count: r.c })),
+    };
+  });
+
+  const nothing = Object.keys(oldActivities).length === 0 && emails === null && campaignMembers === null && Object.keys(growth).length === 0;
+  if (nothing) return null;
+  return {
+    oldActivities,
+    oldActivityYears: w.oldActivityYears,
+    emails,
+    oldCampaignMembers: campaignMembers,
+    oldCampaignYears: w.oldCampaignYears,
+    growth,
+    growthWindowDays: w.growthWindowDays,
   };
 }
 
