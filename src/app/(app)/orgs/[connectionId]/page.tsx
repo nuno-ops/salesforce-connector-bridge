@@ -21,9 +21,10 @@ import { reportUnlocked } from "@/lib/billing/access";
 import { licensedUsers, tierLabel, unlockTier } from "@/lib/billing/pricing";
 import { lockedRecommendations, SAMPLE_CATEGORY } from "@/lib/billing/teaser";
 import { accessDays, getAccess } from "@/lib/billing/server";
-import { env } from "@/lib/env";
+import { calendlyUrl, env } from "@/lib/env";
 import { getMarks } from "@/lib/marks";
 import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
+import { BUILD_HOURLY_RATE, buildOptions, MAX_PAYBACK_MONTHS, quoteUrl } from "@/lib/savings/build-options";
 import { cloudOptions, renewalSeats, resellerQuoteApps, type CloudOption } from "@/lib/savings/cloud-options";
 import { AWS_MARKETPLACE_CAP, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
 import { contractStrategies, type Strategy } from "@/lib/savings/strategies";
@@ -151,6 +152,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const snapshot = scan.snapshot!;
   const currency = result.prices.currency ?? "USD";
   const money = (n: number) => formatCurrency(n, currency);
+  const builds = buildOptions(result);
   const appReview = reviewApps(snapshot);
   const contract = summarizeContract(snapshot.salesforceAccount, scan.startedAt);
   // Saved marketplace lookups for this org's apps; none until the lookup table exists or keys are set.
@@ -199,6 +201,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
       `${formatNumber(flaggedConnected.length + idleApps.length)} ${flaggedConnected.length + idleApps.length === 1 ? "app" : "apps"} to cancel or consolidate`,
     strategies.length > 0 && `${strategies.length} renewal buying ${strategies.length === 1 ? "option" : "options"}`,
     result.edition && result.edition.annualSavings > 0 && "Edition fit check",
+    builds.length > 0 && `${formatNumber(builds.length)} paid ${builds.length === 1 ? "app" : "apps"} you could replace with a small build`,
     "CSV export and printable report",
   ].filter((x): x is string => Boolean(x));
 
@@ -543,6 +546,60 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                           {a.seats ? (a.seats.allowed < 0 ? "Site license" : `${formatNumber(a.seats.used)} / ${formatNumber(a.seats.allowed)}`) : "—"}
                         </TD>
                         <TD className="whitespace-nowrap">{a.lastActivity ? formatDate(a.lastActivity) : "No records"}</TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {builds.length > 0 && (
+            <Card id="build">
+              <CardHeader>
+                <CardTitle>Build instead of buy</CardTitle>
+                <CardDescription>
+                  Apps you use and pay for that a small Salesforce build could replace. Savings are after the build (quoted at $
+                  {BUILD_HOURLY_RATE.amount} an hour, top of the estimated range) and yearly upkeep, averaged over three years, and only
+                  shown when the build pays back within {MAX_PAYBACK_MONTHS} months. Not counted in your total: it needs a project
+                  first. Builds are offered by Salesforce Saver&apos;s consultant, at a fixed price agreed on a call.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <THead>
+                    <tr>
+                      <TH>App</TH>
+                      <TH className="text-right">Yearly saving</TH>
+                      <TH>Replace with</TH>
+                      <TH className="text-right">Build</TH>
+                      <TH className="text-right">Pays back</TH>
+                      <TH />
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {builds.map((b) => (
+                      <TR key={b.app}>
+                        <TD className="font-medium">
+                          {b.app}
+                          <div className="text-xs text-muted-foreground">{money(b.annualCost)} a year now</div>
+                        </TD>
+                        <TD className="text-right font-mono whitespace-nowrap text-cobalt">{money(b.annualSavings)}</TD>
+                        <TD>
+                          {b.category.replacement}
+                          <div className="text-xs text-muted-foreground">
+                            {b.category.label}: about {b.category.days[0]} to {b.category.days[1]} days for a simple setup
+                          </div>
+                        </TD>
+                        <TD className="text-right whitespace-nowrap">up to {money(b.buildCost)}</TD>
+                        <TD className="text-right whitespace-nowrap">{b.paybackMonths} months</TD>
+                        <TD className="no-print">
+                          <Button asChild variant="outline" size="sm">
+                            <a href={quoteUrl(calendlyUrl(), b.app)} target="_blank" rel="noreferrer">
+                              Get a fixed quote
+                            </a>
+                          </Button>
+                        </TD>
                       </TR>
                     ))}
                   </TBody>
