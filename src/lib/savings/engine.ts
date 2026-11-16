@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { summarizeContract } from "./contract";
 import { editionKey, effectivePriceBook, ENTERPRISE_SHARE_OF_UNLIMITED, priceForLicense, type PriceBook } from "./prices";
 
-export const ENGINE_VERSION = 8;
+export const ENGINE_VERSION = 9;
 
 export type Category =
   | "inactive_users"
@@ -1039,8 +1039,10 @@ export function computeSavings(
     const s = snapshot.storage;
     const pct = (max: number, remaining: number) => (max > 0 ? (max - remaining) / max : 0);
     storage = { dataUsedPct: pct(s.dataMaxMB, s.dataRemainingMB), fileUsedPct: pct(s.fileMaxMB, s.fileRemainingMB) };
+    const storageRecs = storageChecks(snapshot, prices, noticeHint);
+    recommendations.push(...storageRecs);
     const worst = Math.max(storage.dataUsedPct, storage.fileUsedPct);
-    if (worst > 0.75) {
+    if (worst > 0.75 && storageRecs.length === 0) {
       const which = storage.dataUsedPct >= storage.fileUsedPct ? "Data" : "File";
       recommendations.push({
         id: "storage",
@@ -1125,6 +1127,207 @@ export function computeSavings(
     staleSandboxes,
     notes: [...snapshot.warnings, ...notes],
   };
+}
+
+/** Every edition from Professional up includes 10 GB of data storage per org, and 10 GB of file storage (Salesforce Help, storage allocations). */
+const BASE_STORAGE_MB = 10 * 1024;
+/** Most records count as about 2 KB of data storage (third-party figure: Redress Compliance, Atonement Licensing). */
+const RECORD_MB = 2 / 1024;
+/** Extra data storage is sold in 500 MB blocks, extra file storage in 10 GB blocks (third-party figures). */
+const DATA_BLOCK_MB = 500;
+const FILE_BLOCK_MB = 10 * 1024;
+/** After dropping storage the org should still have this much room: usage at most 80% of what's left. */
+const STORAGE_HEADROOM = 0.8;
+/** Smallest clean-up worth a row. */
+const MIN_CLEANUP_MB = 250;
+/**
+ * Estimated email body sizes. The scan never opens email content, so these stay deliberately low:
+ * 5 KB of HTML is under the 6.6 KB median measured once in a real org (flyerclub, 2026-11-13); 2 KB of plain text.
+ */
+const EMAIL_HTML_MB = 5 / 1024;
+const EMAIL_TEXT_MB = 2 / 1024;
+
+/** Data storage per user licence on top of the 10 GB (Salesforce Help); `null` for editions we don't size. */
+function dataPerLicenseMB(edition: string): number | null {
+  const e = edition.toLowerCase();
+  if (e.includes("unlimited") || e.includes("performance")) return 120;
+  if (e.includes("enterprise") || e.includes("professional")) return 20;
+  return null;
+}
+
+const storageSize = (mb: number) =>
+  mb >= 1024 ? `${(mb / 1024).toLocaleString("en-US", { maximumFractionDigits: mb >= 10 * 1024 ? 0 : 1 })} GB` : `${Math.round(mb).toLocaleString("en-US")} MB`;
+const floorTo = (n: number, block: number) => Math.floor(n / block) * block;
+
+/**
+ * Storage savings. Storage only costs money once it's been bought, so:
+ * - storage bought on top of the edition's allowance and not needed is a saving straight away;
+ * - clean-ups (old activities, email HTML, old campaign members) are priced only as the extra bought storage they let the org drop;
+ * - when nothing was bought, the saving is the storage the org would otherwise have to buy within a year at its current growth.
+ * Prices come from the customer (Prices page); until then the rows ask for a price.
+ */
+function storageChecks(snapshot: OrgSnapshot, prices: PriceBook, noticeHint: string): Recommendation[] {
+  const s = snapshot.storage;
+  const perLicense = dataPerLicenseMB(snapshot.organization.edition);
+  if (!s || perLicense === null) return [];
+  const recs: Recommendation[] = [];
+  const addOns = prices.apps?.addOns;
+  const dataPrice = addOns?.dataStoragePerGbMonthly;
+  const filePrice = addOns?.fileStoragePerGbMonthly;
+  const yearly = (mb: number, price: number | undefined) => (price ? Math.round((mb / 1024) * price * 12) : 0);
+  const addPrice = (which: string) => ` Add what you pay per GB of extra ${which} storage under Prices to see the saving.`;
+
+  // Bought data storage: the maximum minus what the edition and user licences include.
+  const seats = snapshot.userLicenses.filter((l) => /^(salesforce|force\.com)/i.test(l.name) && l.total > 0).reduce((a, l) => a + l.total, 0);
+  const allowance = BASE_STORAGE_MB + seats * perLicense;
+  const usedData = s.dataMaxMB - s.dataRemainingMB;
+  const rawBought = Math.max(0, s.dataMaxMB - allowance);
+  const bought = rawBought >= DATA_BLOCK_MB ? rawBought : 0;
+  /** Bought data storage the org could drop once `freedMB` is cleaned up, in whole blocks, keeping headroom. */
+  const droppable = (freedMB: number) =>
+    bought ? floorTo(Math.min(bought, Math.max(0, s.dataMaxMB - Math.max(0, usedData - freedMB) / STORAGE_HEADROOM)), DATA_BLOCK_MB) : 0;
+
+  const unused = droppable(0);
+  if (unused > 0) {
+    const saving = yearly(unused, dataPrice);
+    pushStorage(recs, {
+      id: "storage_unused_data",
+      title: `Stop paying for ${storageSize(unused)} of data storage you don't use`,
+      detail: `Your org has ${storageSize(s.dataMaxMB)} of data storage. Your edition and ${seats.toLocaleString("en-US")} user licences include about ${storageSize(allowance)}, so about ${storageSize(rawBought)} was bought on top. You use ${storageSize(usedData)}. Dropping ${storageSize(unused)} at renewal still leaves 20% room. Check your order form first: older contracts can include extra storage at no charge.${saving > 0 ? noticeHint : addPrice("data")}`,
+      count: 1,
+      annualSavings: saving,
+      confidence: "medium",
+      needsPrice: !dataPrice,
+    });
+  }
+
+  // Bought file storage: anything over the 10 GB per org.
+  const usedFile = s.fileMaxMB - s.fileRemainingMB;
+  const boughtFile = Math.max(0, s.fileMaxMB - BASE_STORAGE_MB);
+  const unusedFile = floorTo(Math.min(boughtFile, Math.max(0, s.fileMaxMB - usedFile / STORAGE_HEADROOM)), FILE_BLOCK_MB);
+  if (unusedFile > 0) {
+    const saving = yearly(unusedFile, filePrice);
+    pushStorage(recs, {
+      id: "storage_unused_file",
+      title: `Stop paying for ${storageSize(unusedFile)} of file storage you don't use`,
+      detail: `Your org has ${storageSize(s.fileMaxMB)} of file storage, ${storageSize(boughtFile)} more than the 10 GB every org gets, and uses ${storageSize(usedFile)}. Dropping ${storageSize(unusedFile)} at renewal still leaves 20% room.${saving > 0 ? noticeHint : addPrice("file")}`,
+      count: 1,
+      annualSavings: saving,
+      confidence: "medium",
+      needsPrice: !filePrice,
+    });
+  }
+
+  const d = snapshot.storageDetail;
+  if (!d) return recs;
+  const nameOf = new Map(snapshot.users.map((u) => [u.id, u.name]));
+
+  // Clean-ups, each priced as the extra bought storage it lets the org drop on top of the ones before it.
+  let freed = 0;
+  const cleanup = (rec: Omit<Recommendation, "category" | "annualSavings" | "advisory" | "confidence">, mb: number) => {
+    if (mb < MIN_CLEANUP_MB) return;
+    const before = droppable(freed);
+    freed += mb;
+    const extra = droppable(freed) - before;
+    const saving = yearly(extra, dataPrice);
+    const tail = !bought
+      ? ""
+      : extra === 0
+        ? ""
+        : saving > 0
+          ? ` That lets you drop ${storageSize(extra)} of the storage you bought.${noticeHint}`
+          : ` That lets you drop ${storageSize(extra)} of the storage you bought.${addPrice("data")}`;
+    recs.push({
+      ...rec,
+      detail: rec.detail + tail,
+      category: "storage",
+      annualSavings: saving,
+      confidence: "low",
+      // Without bought storage to drop, a clean-up saves nothing today; the growth row covers buying later.
+      advisory: saving === 0,
+      needsPrice: extra > 0 && !dataPrice,
+    });
+  };
+
+  const oldTasks = d.oldActivities.Task ?? 0;
+  const oldEvents = d.oldActivities.Event ?? 0;
+  const oldActivities = oldTasks + oldEvents;
+  cleanup(
+    {
+      id: "storage_old_activities",
+      title: `Archive ${oldActivities.toLocaleString("en-US")} activities older than ${d.oldActivityYears} years`,
+      detail: `${oldTasks.toLocaleString("en-US")} tasks and ${oldEvents.toLocaleString("en-US")} events were created more than ${d.oldActivityYears} years ago, about ${storageSize(oldActivities * RECORD_MB)} of data storage at roughly 2 KB each. Export them, then delete them from Salesforce. Salesforce's own activity archiving doesn't help: archived activities still count against storage.`,
+      count: oldActivities,
+    },
+    oldActivities * RECORD_MB,
+  );
+
+  const e = d.emails;
+  if (e && e.old > 0) {
+    cleanup(
+      {
+        id: "storage_email_html",
+        title: `Strip the HTML from ${e.old.toLocaleString("en-US")} emails older than ${e.oldEmailYears} ${plural(e.oldEmailYears, "year")}`,
+        detail: `Each email keeps its body twice: once as HTML (with all the styling and signatures) and once as plain text, and both take data storage. Keep the plain text and drop the HTML on old emails: at an estimated 5 KB of HTML each, about ${storageSize(e.old * EMAIL_HTML_MB)} back, and the emails stay readable in the same place and order. Setup > Storage Usage shows how much your emails really use. The body can't be edited after sending, so this needs a small scheduled job that copies each old email without the HTML (with "Set Audit Fields" to keep the original dates), moves its attachments to the copy and deletes the original.`,
+        count: e.old,
+      },
+      e.old * EMAIL_HTML_MB,
+    );
+  }
+
+  if (d.oldCampaignMembers) {
+    cleanup(
+      {
+        id: "storage_old_campaign_members",
+        title: `Delete ${d.oldCampaignMembers.toLocaleString("en-US")} members of campaigns that ended over ${d.oldCampaignYears} years ago`,
+        detail: `Every person added to a campaign is a record, about ${storageSize(d.oldCampaignMembers * RECORD_MB)} of data storage at roughly 2 KB each for campaigns that are inactive and ended more than ${d.oldCampaignYears} years ago. Export them for reporting, then delete them. The campaigns themselves stay.`,
+        count: d.oldCampaignMembers,
+      },
+      d.oldCampaignMembers * RECORD_MB,
+    );
+  }
+
+  // Growth: what the org adds each month, and whether it runs out within a year.
+  const emailMB = RECORD_MB + EMAIL_HTML_MB + EMAIL_TEXT_MB;
+  const perMonth = 30 / d.growthWindowDays;
+  const growth = Object.entries(d.growth).map(([object, g]) => ({
+    object,
+    created: g!.created,
+    topCreators: g!.topCreators,
+    mb: g!.created * (object === "EmailMessage" ? emailMB : RECORD_MB) * perMonth,
+  }));
+  const monthlyMB = growth.reduce((a, g) => a + g.mb, 0);
+  const remaining = s.dataRemainingMB;
+  if (monthlyMB > 0 && remaining < monthlyMB * 12 && unused === 0) {
+    const neededMB = Math.ceil((monthlyMB * 12 - remaining) / DATA_BLOCK_MB) * DATA_BLOCK_MB;
+    // Only priced when nothing was bought: otherwise the clean-ups above already price the same space.
+    const saving = bought ? 0 : yearly(neededMB, dataPrice);
+    const months = Math.max(0, Math.floor(remaining / monthlyMB));
+    const labels: Record<string, string> = { Task: "tasks", Event: "events", EmailMessage: "emails", CampaignMember: "campaign members" };
+    const top = [...growth].sort((a, b) => b.mb - a.mb)[0];
+    const creator = top.topCreators[0];
+    const creatorText =
+      creator && top.created > 0 && creator.count / top.created >= 0.3
+        ? ` ${Math.round((creator.count / top.created) * 100)}% of those were created by ${nameOf.get(creator.userId) ?? "one user who is no longer active"}, often a sign of an integration or automation logging everything.`
+        : "";
+    const parts = [...growth].filter((g) => g.created > 0).sort((a, b) => b.mb - a.mb).map((g) => `${Math.round(g.created * perMonth).toLocaleString("en-US")} ${labels[g.object] ?? g.object}`);
+    recs.push({
+      id: "storage_growth",
+      category: "storage",
+      title: months === 0 ? "Data storage is full: stop the records filling it" : `Data storage runs out in about ${months} ${plural(months, "month")}: stop what's filling it`,
+      detail: `Each month your org adds about ${parts.join(", ")}, roughly ${storageSize(monthlyMB)} of data storage. You have ${storageSize(Math.max(0, remaining))} left, so within a year you'd need to buy about ${storageSize(neededMB)} more.${creatorText} Turn off logging nobody reads (call and email logging, list emails, integration logs) and clean up old records instead of buying storage.${saving > 0 ? "" : bought ? "" : addPrice("data")}`,
+      count: 1,
+      annualSavings: saving,
+      confidence: "low",
+      advisory: saving === 0,
+      needsPrice: !bought && !dataPrice,
+    });
+  }
+  return recs;
+}
+
+function pushStorage(recs: Recommendation[], rec: Omit<Recommendation, "category" | "advisory">) {
+  recs.push({ ...rec, category: "storage", advisory: rec.annualSavings === 0 });
 }
 
 function flag(

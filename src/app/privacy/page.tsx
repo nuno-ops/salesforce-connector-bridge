@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Privacy policy", alternates: { canon
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy policy" updated="October 12, 2026">
+    <LegalPage title="Privacy policy" updated="November 13, 2026">
       <p>Salesforce Saver helps you find unused and misassigned Salesforce licenses. This page explains what we collect and why.</p>
       <h2>What we read from Salesforce</h2>
       <p>With the access you grant, we only read, and we read:</p>
@@ -18,12 +18,16 @@ export default function PrivacyPage() {
           These are counts and dates only.
         </li>
         <li>
+          For storage: counts of old tasks, events, emails and campaign members, and how many were created in the last 30 days.
+          Counts only, never their contents.
+        </li>
+        <li>
           Your own Salesforce subscription, when the connected user has the Manage Billing permission: contract number, dates,
           renewal and billing terms, and invoice dates and totals. We never read payment card details.
         </li>
       </ul>
       <p>
-        We do not read or store the contents of your accounts, contacts, leads, opportunities, cases or files, and we never write to your
+        We do not read or store the contents of your accounts, contacts, leads, opportunities, cases, emails or files, and we never write to your
         org. Every query is listed on our <a href="/security">security page</a>.
       </p>
       <h2>What we store</h2>

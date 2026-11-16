@@ -67,9 +67,12 @@ export class SalesforceClient {
     return (await res.json()) as T;
   }
 
-  /** Runs a SOQL query and follows `nextRecordsUrl` until every record is loaded. */
-  async query<T>(soql: string, { tooling = false } = {}): Promise<T[]> {
-    const base = `/services/data/${SF_API_VERSION}${tooling ? "/tooling" : ""}/query`;
+  /**
+   * Runs a SOQL query and follows `nextRecordsUrl` until every record is loaded.
+   * `all` uses queryAll, which also returns archived activities (and deleted rows, so filter on IsDeleted).
+   */
+  async query<T>(soql: string, { tooling = false, all = false } = {}): Promise<T[]> {
+    const base = `/services/data/${SF_API_VERSION}${tooling ? "/tooling" : ""}/${all ? "queryAll" : "query"}`;
     let page = await this.get<QueryResponse<T>>(`${base}?q=${encodeURIComponent(soql)}`);
     const records = [...page.records];
     while (!page.done && page.nextRecordsUrl) {
