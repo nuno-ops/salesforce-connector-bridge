@@ -125,3 +125,44 @@ export function quoteUrl(calendly: string, app: string): string {
   url.searchParams.set("utm_content", app);
   return url.toString();
 }
+
+/** Kinds of app a build can't replace: legal validity, carriers, or the vendor's own data. Never offered for an estimate. */
+const NOT_BUILDABLE = /docusign|adobe ?sign|acrobat sign|echosign|pandadoc|hellosign|dropbox sign|signnow|justcall|dialpad|aircall|ringcentral|talkdesk|five9|vonage|8x8|kixie|cloudtalk|zoom|mogli|\bsms\b|twilio|gong|chorus|otter|fireflies|avoma|zoominfo|clearbit|lusha|cognism|apollo|linkedin|slack|google|microsoft|outlook|gmail/i;
+const NOT_BUILDABLE_CATEGORIES = new Set(["Salesforce tool", "E-signature", "Telephony", "Conversation intelligence", "Data enrichment"]);
+
+export interface EstimateCandidate {
+  app: string;
+  /** Category from the connected-app review, when known. */
+  category: string | null;
+  users: number | null;
+  /** Yearly cost at the report's price; `null` when no price was entered. */
+  annualCost: number | null;
+  lastUsed: string | null;
+}
+
+/**
+ * Apps in use that we can't price a build for in real time, so the customer can ask for an estimate instead:
+ * apps outside the catalog, and catalog apps with no price yet. Apps that already have a build option, didn't
+ * pay back, or can't be replaced by a build are left out.
+ */
+export function estimateCandidates(result: Pick<SavingsResult, "apps" | "connectedApps" | "prices" | "sandbox">): EstimateCandidate[] {
+  if (result.sandbox) return [];
+  const priced = new Set(buildOptions(result).map((b) => b.app.toLowerCase()));
+  const out = new Map<string, EstimateCandidate>();
+  const add = (c: EstimateCandidate) => {
+    const key = c.app.toLowerCase();
+    if (priced.has(key) || out.has(key) || NOT_BUILDABLE.test(c.app) || (c.category && NOT_BUILDABLE_CATEGORIES.has(c.category))) return;
+    // A catalog app with a price was already judged: it didn't pay back.
+    if (buildCategory(c.app) && c.annualCost) return;
+    out.set(key, c);
+  };
+  for (const a of result.apps ?? []) {
+    if (a.status !== "active" || !a.namespace) continue;
+    add({ app: a.name, category: null, users: a.seats && a.seats.used > 0 ? a.seats.used : null, annualCost: a.annualCost && a.annualCost > 0 ? a.annualCost : null, lastUsed: a.lastActivity });
+  }
+  for (const t of result.connectedApps ?? []) {
+    if (t.salesforce || t.verdict === "remove") continue;
+    add({ app: t.appName, category: t.category, users: t.users, annualCost: t.monthlyPrice && t.monthlyPrice > 0 ? t.monthlyPrice * 12 : null, lastUsed: t.lastUsed });
+  }
+  return [...out.values()].sort((a, b) => (b.annualCost ?? 0) - (a.annualCost ?? 0) || a.app.localeCompare(b.app));
+}

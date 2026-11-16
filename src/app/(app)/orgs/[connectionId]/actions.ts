@@ -11,6 +11,7 @@ import { disconnect } from "@/lib/salesforce/connection";
 import { ADD_ON_KEYS, type AddOnPrices, type AppPrices } from "@/lib/savings/prices";
 import { executeScan, getPriceBook, lastScanAttempt, latestScan, recompute, startScan } from "@/lib/scan";
 import { startInBackground } from "@/lib/scan-background";
+import { requestBuildEstimate } from "@/lib/build-estimate";
 import { shareReport } from "@/lib/shares";
 
 export interface ActionState {
@@ -125,6 +126,15 @@ export async function markRecommendationAction(connectionId: string, recommendat
   await setMark({ connection, user, rec, currency: scan.result.prices.currency ?? "USD", status });
   revalidatePath(`/orgs/${connectionId}`);
   return { status: "ok" };
+}
+
+/** Asks Salesforce Saver's consultant to estimate replacing an app with a Salesforce build. */
+export async function requestEstimateAction(connectionId: string, app: string): Promise<ActionState> {
+  const { connection, user } = await requireConnection(connectionId);
+  const result = await requestBuildEstimate({ connection, user, app: String(app).slice(0, 200) });
+  if (!result.ok) return { status: "error", message: result.message };
+  revalidatePath(`/orgs/${connectionId}`);
+  return { status: "ok", message: "Sent. We'll reply by email." };
 }
 
 export interface ShareState extends ActionState {

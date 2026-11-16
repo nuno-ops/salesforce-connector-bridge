@@ -24,7 +24,9 @@ import { accessDays, getAccess } from "@/lib/billing/server";
 import { calendlyUrl, env } from "@/lib/env";
 import { getMarks } from "@/lib/marks";
 import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
-import { BUILD_HOURLY_RATE, buildOptions, MAX_PAYBACK_MONTHS, quoteUrl } from "@/lib/savings/build-options";
+import { BUILD_HOURLY_RATE, buildOptions, estimateCandidates, MAX_PAYBACK_MONTHS, quoteUrl } from "@/lib/savings/build-options";
+import { requestedEstimates } from "@/lib/build-estimate";
+import { EstimateButton } from "@/components/report/estimate-button";
 import { cloudOptions, renewalSeats, resellerQuoteApps, type CloudOption } from "@/lib/savings/cloud-options";
 import { AWS_MARKETPLACE_CAP, NOTICE_DAYS, summarizeContract, type ContractSummary } from "@/lib/savings/contract";
 import { contractStrategies, type Strategy } from "@/lib/savings/strategies";
@@ -153,6 +155,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
   const currency = result.prices.currency ?? "USD";
   const money = (n: number) => formatCurrency(n, currency);
   const builds = buildOptions(result);
+  const estimates = estimateCandidates(result);
+  const requested = estimates.length > 0 ? await requestedEstimates(connection.id) : new Set<string>();
   const appReview = reviewApps(snapshot);
   const contract = summarizeContract(snapshot.salesforceAccount, scan.startedAt);
   // Saved marketplace lookups for this org's apps; none until the lookup table exists or keys are set.
@@ -554,7 +558,7 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
             </Card>
           )}
 
-          {builds.length > 0 && (
+          {(builds.length > 0 || estimates.length > 0) && (
             <Card id="build">
               <CardHeader>
                 <CardTitle>Build instead of buy</CardTitle>
@@ -562,10 +566,11 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                   Apps you use and pay for that a small Salesforce build could replace. Savings are after the build (quoted at $
                   {BUILD_HOURLY_RATE.amount} an hour, top of the estimated range) and yearly upkeep, averaged over three years, and only
                   shown when the build pays back within {MAX_PAYBACK_MONTHS} months. Not counted in your total: it needs a project
-                  first. Builds are offered by Salesforce Saver&apos;s consultant, at a fixed price agreed on a call.
+                  first. Builds are offered by Salesforce Saver&apos;s consultant, at a fixed price agreed with you.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col gap-6">
+                {builds.length > 0 && (
                 <Table>
                   <THead>
                     <tr>
@@ -604,6 +609,40 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                     ))}
                   </TBody>
                 </Table>
+                )}
+                {estimates.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm">
+                      {builds.length > 0 ? "Other apps you use" : "Apps you use"} that we can&apos;t price a build for automatically. Ask
+                      and we&apos;ll email you an estimate of the build and the saving.
+                    </p>
+                    <Table>
+                      <THead>
+                        <tr>
+                          <TH>App</TH>
+                          <TH className="text-right">Yearly cost</TH>
+                          <TH className="text-right">Users</TH>
+                          <TH />
+                        </tr>
+                      </THead>
+                      <TBody>
+                        {estimates.map((c) => (
+                          <TR key={c.app}>
+                            <TD className="font-medium">
+                              {c.app}
+                              {c.category && <div className="text-xs text-muted-foreground">{c.category}</div>}
+                            </TD>
+                            <TD className="text-right whitespace-nowrap">{c.annualCost === null ? "Not priced" : money(c.annualCost)}</TD>
+                            <TD className="text-right">{c.users === null ? "—" : formatNumber(c.users)}</TD>
+                            <TD className="no-print">
+                              <EstimateButton connectionId={connection.id} app={c.app} requested={requested.has(c.app.toLowerCase())} />
+                            </TD>
+                          </TR>
+                        ))}
+                      </TBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

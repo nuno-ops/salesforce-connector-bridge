@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCategory, buildOptions, priceBuild, quoteUrl } from "./build-options";
+import { buildCategory, buildOptions, estimateCandidates, priceBuild, quoteUrl } from "./build-options";
 import type { SavingsResult } from "./engine";
 
 const base = (overrides: Partial<SavingsResult> = {}) =>
@@ -66,5 +66,24 @@ describe("build instead of buy", () => {
     expect(quoteUrl("https://calendly.com/salesforcesaver/30min", "Zapier")).toBe(
       "https://calendly.com/salesforcesaver/30min?utm_source=salesforcesaver&utm_campaign=build_quote&utm_content=Zapier",
     );
+  });
+});
+
+describe("estimate requests", () => {
+  it("offers apps in use that can't be priced in real time, and leaves out the rest", () => {
+    const result = base({
+      connectedApps: [
+        connected("Zapier", 300), // priced build option already
+        connected("Jotform", null), // catalog app, no price yet
+        connected("Typeform", 20), // catalog app that doesn't pay back
+        connected("Acme Quoting", 150), // outside the catalog
+        connected("Old Tool", 50, "remove"), // unused: cancel instead
+        connected("JustCall SoftPhone Dialer", 500), // telephony can't be built
+        { ...connected("Workbench", null), salesforce: true },
+      ] as unknown as SavingsResult["connectedApps"],
+      apps: [{ name: "Gantt Planner", namespace: "gantt", seats: { allowed: 10, used: 4 }, lastActivity: "2026-11-01", status: "active", objectCount: 2, annualCost: null }],
+    });
+    expect(estimateCandidates(result).map((c) => c.app)).toEqual(["Acme Quoting", "Gantt Planner", "Jotform"]);
+    expect(estimateCandidates({ ...result, sandbox: true })).toEqual([]);
   });
 });
