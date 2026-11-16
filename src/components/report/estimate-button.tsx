@@ -9,7 +9,7 @@ export function EstimateButton({ connectionId, app, requested }: { connectionId:
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [done, setDone] = useState(requested);
-  if (done) return <span className="text-xs text-muted-foreground">{message ?? "Estimate requested"}</span>;
+  if (done) return <span className="text-xs text-muted-foreground">{message ?? "Requested. We'll email you."}</span>;
   return (
     <span className="flex flex-col items-start gap-1">
       <Button
@@ -25,7 +25,7 @@ export function EstimateButton({ connectionId, app, requested }: { connectionId:
           })
         }
       >
-        {pending ? "Sending…" : "Request an estimate"}
+        {pending ? "Sending…" : "See what I'd save"}
       </Button>
       {message && <span className="text-xs text-muted-foreground">{message}</span>}
     </span>

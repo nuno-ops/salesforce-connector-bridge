@@ -134,7 +134,7 @@ export async function requestEstimateAction(connectionId: string, app: string): 
   const result = await requestBuildEstimate({ connection, user, app: String(app).slice(0, 200) });
   if (!result.ok) return { status: "error", message: result.message };
   revalidatePath(`/orgs/${connectionId}`);
-  return { status: "ok", message: "Sent. We'll reply by email." };
+  return { status: "ok", message: "Requested. We'll email you." };
 }
 
 export interface ShareState extends ActionState {
