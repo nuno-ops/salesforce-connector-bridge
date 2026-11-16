@@ -24,7 +24,7 @@ import { accessDays, getAccess } from "@/lib/billing/server";
 import { calendlyUrl, env } from "@/lib/env";
 import { getMarks } from "@/lib/marks";
 import { nonprofitSaving, POWER_OF_US_LICENSES, PREMIER_SHARE_OF_LICENSES, premierSaving, type CompanyAnswers } from "@/lib/savings/answers";
-import { BUILD_HOURLY_RATE, buildOptions, estimateCandidates, MAX_PAYBACK_MONTHS, quoteUrl } from "@/lib/savings/build-options";
+import { buildOptions, estimateCandidates, quoteUrl } from "@/lib/savings/build-options";
 import { requestedEstimates } from "@/lib/build-estimate";
 import { EstimateButton } from "@/components/report/estimate-button";
 import { cloudOptions, renewalSeats, resellerQuoteApps, type CloudOption } from "@/lib/savings/cloud-options";
@@ -561,12 +561,11 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
           {(builds.length > 0 || estimates.length > 0) && (
             <Card id="build">
               <CardHeader>
-                <CardTitle>Build instead of buy</CardTitle>
+                <CardTitle>Build it in Salesforce, stop paying for it</CardTitle>
                 <CardDescription>
-                  Apps you use and pay for that a small Salesforce build could replace. Savings are after the build (quoted at $
-                  {BUILD_HOURLY_RATE.amount} an hour, top of the estimated range) and yearly upkeep, averaged over three years, and only
-                  shown when the build pays back within {MAX_PAYBACK_MONTHS} months. Not counted in your total: it needs a project
-                  first. Builds are offered by Salesforce Saver&apos;s consultant, at a fixed price agreed with you.
+                  With AI-assisted development, building simple tools inside Salesforce now takes days, not months. Replacing these
+                  apps means one less subscription to renew, your data stays in Salesforce, and you own what&apos;s built. Savings are
+                  after the build and its upkeep. They&apos;re kept out of your total because they need a small project first.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-6">
@@ -576,9 +575,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                     <tr>
                       <TH>App</TH>
                       <TH className="text-right">Yearly saving</TH>
-                      <TH>Replace with</TH>
-                      <TH className="text-right">Build</TH>
-                      <TH className="text-right">Pays back</TH>
+                      <TH>Built with</TH>
+                      <TH className="text-right">Pays for itself in</TH>
                       <TH />
                     </tr>
                   </THead>
@@ -593,15 +591,14 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                         <TD>
                           {b.category.replacement}
                           <div className="text-xs text-muted-foreground">
-                            {b.category.label}: about {b.category.days[0]} to {b.category.days[1]} days for a simple setup
+                            Ready in about {b.category.days[0]} to {b.category.days[1]} days
                           </div>
                         </TD>
-                        <TD className="text-right whitespace-nowrap">up to {money(b.buildCost)}</TD>
                         <TD className="text-right whitespace-nowrap">{b.paybackMonths} months</TD>
                         <TD className="no-print">
                           <Button asChild variant="outline" size="sm">
                             <a href={quoteUrl(calendlyUrl(), b.app)} target="_blank" rel="noreferrer">
-                              Get a fixed quote
+                              Talk it through
                             </a>
                           </Button>
                         </TD>
@@ -613,8 +610,8 @@ export default async function OrgPage({ params, searchParams }: PageProps<"/orgs
                 {estimates.length > 0 && (
                   <div className="flex flex-col gap-3">
                     <p className="text-sm">
-                      {builds.length > 0 ? "Other apps you use" : "Apps you use"} that we can&apos;t price a build for automatically. Ask
-                      and we&apos;ll email you an estimate of the build and the saving.
+                      {builds.length > 0 ? "These apps" : "Apps you pay for"} could be built in Salesforce too. Ask and we&apos;ll email
+                      you what you&apos;d save.
                     </p>
                     <Table>
                       <THead>
